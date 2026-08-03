@@ -1,26 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-agilly-primary: #F0822A;
+  --color-agilly-primary-hover: #D96F1D;
+  --color-agilly-black: #0F172A;
+  --color-agilly-gray: #64748B;
+  --color-agilly-gray-light: #94A3B8;
+  --color-agilly-bg: #F7F8FA;
+  --color-agilly-bg-alt: #EDF0F5;
+  --color-agilly-card: #FFFFFF;
+
+  --font-sans: 'Plus Jakarta Sans', 'IBM Plex Sans', sans-serif;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html { 
+    font-size: 16px; 
+    scroll-behavior: smooth; 
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-agilly-bg);
+    color: var(--color-agilly-black);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Soft UI Components avec Bords Carrés (Design Agilly Officiel) */
+  
+  .btn-soft-primary {
+    @apply inline-flex items-center justify-center bg-[#F0822A] text-white font-semibold text-sm transition-all duration-200 shadow-sm hover:bg-[#D96F1D] active:translate-y-0 cursor-pointer rounded-none border border-transparent;
+    padding: 10px 22px;
+  }
+
+  .btn-soft-secondary {
+    @apply inline-flex items-center justify-center bg-white text-[#0F172A] font-semibold text-sm transition-all duration-200 border border-slate-300 shadow-sm hover:bg-slate-50 cursor-pointer rounded-none;
+    padding: 10px 22px;
+  }
+
+  .btn-soft-ghost {
+    @apply inline-flex items-center justify-center text-slate-600 font-medium text-sm transition-all duration-200 hover:bg-slate-100 hover:text-slate-900 cursor-pointer rounded-none;
+    padding: 10px 18px;
+  }
+
+  .card-soft {
+    @apply bg-white border border-slate-200 shadow-sm transition-all duration-300 rounded-none;
+    padding: 24px;
+  }
+
+  .input-soft {
+    @apply w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm transition-all duration-200 outline-none rounded-none;
+    padding: 12px 16px;
+  }
+
+  .input-soft:focus {
+    @apply bg-white border-[#F0822A] ring-2 ring-[#F0822A]/20;
+  }
+
+  .badge-soft-excellence {
+    @apply bg-[#ECFDF5] text-[#10B981] border border-[#10B981]/30 font-semibold text-xs px-3 py-1 rounded-none;
+  }
+  
+  .badge-soft-tres-bon {
+    @apply bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/30 font-semibold text-xs px-3 py-1 rounded-none;
+  }
+
+  .badge-soft-satisfaisant {
+    @apply bg-[#EFF6FF] text-[#3B82F6] border border-[#3B82F6]/30 font-semibold text-xs px-3 py-1 rounded-none;
+  }
+
+  .badge-soft-insuffisant {
+    @apply bg-[#FEF2F2] text-[#EF4444] border border-[#EF4444]/30 font-semibold text-xs px-3 py-1 rounded-none;
+  }
 }
+
+
+/* Animations Soft UI */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 0.7s linear infinite; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+
