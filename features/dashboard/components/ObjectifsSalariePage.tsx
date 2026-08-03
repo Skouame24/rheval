@@ -53,11 +53,12 @@ export function ObjectifsSalariePage() {
         title="Mes Objectifs de Performance"
         subtitle="Consultez les objectifs fixés par votre manager pour la campagne 2026."
         breadcrumbs={[{ label: "Tableau de bord", href: "/dashboard/salarie" }, { label: "Objectifs" }]}
-        action={
+        actions={
           <Button variant="secondary" leftIcon={<DownloadIcon size={16} />}>
             Télécharger (PDF)
           </Button>
         }
+
       />
 
       <div className="flex flex-col gap-6">

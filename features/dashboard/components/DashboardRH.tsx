@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { formatDateCourte } from "@/lib/utils/formatDate";
 import { formatNote, formatTaux } from "@/lib/utils/formatNote";
 import type { StatutEvaluation } from "@/types";
-import { UsersIcon, CheckCircleIcon, ScaleIcon, ChartBarIcon, ArrowDownTrayIcon, ArrowPathIcon, EyeIcon } from "@/components/ui/Icons";
+import { UsersIcon, CheckCircleIcon, ScaleIcon, ChartBarIcon, ArrowDownTrayIcon, ArrowPathIcon, EyeIcon, GridIcon } from "@/components/ui/Icons";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 
 // ─── Données de démo ────────────────────────────────────────
