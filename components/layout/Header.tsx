@@ -53,6 +53,8 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
         </h1>
       </div>
 
+
+
       {/* Centre — Sélecteur de Rôle (Role Switcher Démo) */}
       <div className="hidden xl:flex items-center gap-1 bg-slate-100 p-1 border border-slate-200 rounded-none">
         <span className="text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider">

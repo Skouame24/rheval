@@ -141,8 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("agilly_token", "demo_token_" + role);
     setUser(selectedUser);
 
-    window.location.href = ROLE_DASHBOARD[role] || "/dashboard/mon-espace";
+    window.location.href = "/portail";
   };
+
 
   const switchRole = (newRole: Role) => {
     const newUser = DEMO_USERS_BY_ROLE[newRole] || DEMO_USERS_BY_ROLE["SALARIE"];

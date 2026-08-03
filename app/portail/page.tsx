@@ -10,7 +10,7 @@ export default function PortailPage() {
 
   // Sécurité si non connecté
   if (!user || !role) {
-    return null; // ou un loader, le middleware/AuthContext devrait gérer la redirection normalement
+    return null;
   }
 
   const navigateToDashboard = () => {
@@ -67,7 +67,7 @@ export default function PortailPage() {
           {/* RHEVAL - ACTIVE APP */}
           <button 
             onClick={navigateToDashboard}
-            className="group relative flex flex-col bg-white border border-gray-200 hover:border-agilly-primary shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-sm"
+            className="group relative flex flex-col bg-white border border-gray-200 hover:border-agilly-primary shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-sm cursor-pointer"
           >
             {/* Ligne d'accentuation en haut */}
             <div className="absolute top-0 left-0 w-full h-1 bg-agilly-primary transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
