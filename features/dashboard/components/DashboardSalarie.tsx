@@ -110,8 +110,8 @@ export function DashboardSalarie() {
   const tauxAtteinte = noteAffichee !== null ? Math.round((noteAffichee / 20) * 100) : null;
   // Stabilise la référence du tableau — évite la boucle infinie dans FicheEvaluationModal
   const objectifs = useMemo(() => evaluation?.objectifs ?? [], [evaluation?.objectifs]);
-  const evaluateurN1 = user?.managerId ? { prenom: "Manager", nom: "" } : null; // Temporaire, l'API ne renvoie pas l'évaluateur directement comme avant
-  const evaluateurN2 = null;
+  const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : null; // Temporaire, l'API ne renvoie pas l'évaluateur directement comme avant
+  const evaluateurN2 = user?.n2 ? { prenom: user.n2.prenom, nom: user.n2.nom } : null;
 
   const openFicheModal = (options?: { autoEval?: boolean; visa?: boolean }) => {
     setAutoEvalMode(!!options?.autoEval);

@@ -51,7 +51,7 @@ export function ObjectifsSalariePage() {
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-50 text-gray-600 border border-gray-200 rounded-none">
                     <ClockIcon size={14} />
-                    {evaluation?.cycle?.dateFermeture ? new Date(evaluation.cycle.dateFermeture).toLocaleDateString('fr-FR') : "31 Décembre 2026"}
+                    {evaluation?.cycle?.dateFin ? new Date(evaluation.cycle.dateFin).toLocaleDateString('fr-FR') : "31 Décembre 2026"}
                   </div>
                 </div>
               </div>

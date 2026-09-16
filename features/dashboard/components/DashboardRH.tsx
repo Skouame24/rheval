@@ -30,7 +30,7 @@ export function DashboardRH() {
 
   useEffect(() => {
     Promise.all([
-      evaluationsApi.getAll(),
+      evaluationsApi.getAllForRh(),
       rhApi.getDashboardStats()
     ]).then(([evals, dashboardStats]) => {
       setEvaluations(evals);

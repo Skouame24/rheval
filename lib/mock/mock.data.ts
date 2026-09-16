@@ -320,7 +320,7 @@ const MOCK_EVALUATION_N2_EBENEZER: Evaluation = {
 
 // ─── 6. EVALUATION CYCLE COMPLÈTE — EBENEZER ─────────────────
 
-export const MOCK_EVAL_CYCLE_EBENEZER: EvaluationCycle = {
+export const MOCK_EVAL_CYCLE_EBENEZER: any = {
   id: "evalcycle-001",
   cycle: MOCK_CYCLE_SUMMARY_2026,
   salarie: toUserSummary(MOCK_USERS[0]),
@@ -334,7 +334,7 @@ export const MOCK_EVAL_CYCLE_EBENEZER: EvaluationCycle = {
 
 // ─── 7. EVALUATIONS PAR STATUT (pour le dashboard N1/N2/RH) ──
 
-export const MOCK_EVAL_CYCLES: EvaluationCycle[] = [
+export const MOCK_EVAL_CYCLES: any[] = [
   // Ebenezer — EN_ATTENTE_N2
   MOCK_EVAL_CYCLE_EBENEZER,
 
