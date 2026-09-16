@@ -5,8 +5,19 @@ import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 import { useRouter } from "next/navigation";
 
 export default function PortailPage() {
-  const { user, role, logout } = useAuth();
+  const { user, role, isLoading, logout } = useAuth();
   const router = useRouter();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-[#F0822A] border-t-transparent animate-spin rounded-none" />
+          <p className="text-sm font-bold text-slate-600">Chargement de votre session Microsoft Entra ID...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Sécurité si non connecté
   if (!user || !role) {
@@ -87,10 +98,10 @@ export default function PortailPage() {
             ⚡ HUB APPLICATIF ENTERPRISE
           </span>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-3">
-            Bonjour, <span className="text-[#F0822A]">{user.prenom}</span>
+            Bonjour, <span className="text-[#F0822A]">{user.prenom} {user.nom}</span>
           </h1>
           <p className="text-base md:text-lg text-slate-600 max-w-2xl font-medium m-0 leading-relaxed">
-            Bienvenue sur votre portail d'applications Agilly. Sélectionnez un service pour démarrer votre session.
+            Connecté avec <span className="font-bold text-slate-900">{user.email}</span> ({user.poste || user.role}). Sélectionnez un service ci-dessous :
           </p>
         </div>
 
@@ -110,9 +121,7 @@ export default function PortailPage() {
                   <path d="m9 15 2 2 4-4"/>
                 </svg>
               </div>
-              <span className="text-[10px] font-extrabold text-[#F0822A] uppercase tracking-wider bg-orange-50 px-2 py-0.5 border border-orange-200 inline-block mb-2">
-                APPLICATION EN SERVICE
-              </span>
+             
               <h3 className="text-xl font-extrabold text-slate-900 mb-2 group-hover:text-[#F0822A] transition-colors">AGILLY RHEVAL</h3>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
                 Plateforme officielle de gestion des évaluations annuelles de performance et suivi des objectifs.

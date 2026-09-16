@@ -17,13 +17,13 @@ export interface WorkflowStep {
 
 export const WORKFLOW_STEPS: WorkflowStep[] = [
   { id: 1, label: "Ouverture Cycle", actor: "DRH", description: "Lancement de la campagne d'évaluation" },
-  { id: 2, label: "Fixation Objectifs", actor: "Manager N+1", description: "Définition des tranches et pondérations" },
-  { id: 3, label: "Consultation", actor: "Salarié", description: "Prise de connaissance des critères" },
-  { id: 4, label: "Évaluation /20", actor: "Manager N+1", description: "Attribution des notes et justifications" },
-  { id: 5, label: "Revue & Contre-note", actor: "Direction N+2", description: "Validation ou ajustement hiérarchique" },
-  { id: 6, label: "Arbitrage RH", actor: "DRH", description: "Uniquement si écart > 2.0 points" },
-  { id: 7, label: "Signatures", actor: "4 Acteurs", description: "Validation N+1 ➔ Salarié ➔ N+2 ➔ DRH" },
-  { id: 8, label: "Clôture & Export", actor: "Système / RH", description: "Génération Excel & PDF Officiel" },
+  { id: 2, label: "Fixation Objectifs", actor: "Manager N+1", description: "Fixation des objectifs par le Supérieur N+1" },
+  { id: 3, label: "Auto-évaluation", actor: "Salarié", description: "Saisie des auto-notes & auto-commentaires" },
+  { id: 4, label: "Évaluation /20", actor: "Manager N+1", description: "Attribution des notes et des appréciations" },
+  { id: 5, label: "Avis & Visa", actor: "Salarié", description: "Consultation N+1 et Visa (OK / NON OK)" },
+  { id: 6, label: "Revue & Contre-note", actor: "Direction N+2", description: "Validation ou contre-évaluation hiérarchique" },
+  { id: 7, label: "Arbitrage RH", actor: "DRH", description: "Uniquement si écart de note > 2.0 points" },
+  { id: 8, label: "Signatures & Clôture", actor: "4 Acteurs", description: "Validation finale, signatures & export Excel" },
 ];
 
 interface WorkflowStepperProps {

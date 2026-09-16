@@ -5,6 +5,7 @@
 
 "use client";
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 
@@ -99,25 +100,103 @@ const DEMO_USERS_BY_ROLE: Record<Role, User> = {
 // ─── Provider ───────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restauration de session au montage
+  // Synchronisation dynamique avec la session Microsoft Entra ID
   useEffect(() => {
-    const stored = localStorage.getItem("agilly_user");
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        localStorage.removeItem("agilly_user");
-      }
-    } else {
-      // Par défaut pour la démo
-      setUser(DEMO_USERS_BY_ROLE["SALARIE"]);
-      localStorage.setItem("agilly_user", JSON.stringify(DEMO_USERS_BY_ROLE["SALARIE"]));
+    if (status === "loading") {
+      setIsLoading(true);
+      return;
     }
+
+    if (status === "authenticated" && session?.user) {
+      const u = session.user as any;
+      const fullName = (u.name || "").trim();
+      const nameParts = fullName.split(/\s+/);
+      let prenom = "Collaborateur";
+      let nom = fullName;
+      if (nameParts.length > 1) {
+        const uppercaseIndices = nameParts.map((p: string) => p.length > 1 && p === p.toUpperCase());
+        const lastUpperIdx = uppercaseIndices.lastIndexOf(true);
+        if (lastUpperIdx > 0) {
+          prenom = nameParts.slice(0, lastUpperIdx).join(" ");
+          nom = nameParts.slice(lastUpperIdx).join(" ");
+        } else {
+          prenom = nameParts.slice(0, -1).join(" ");
+          nom = nameParts.slice(-1).join(" ");
+        }
+      }
+
+      let n1 = undefined;
+      if (u.manager) {
+        const mgrNameParts = (u.manager.displayName || "").trim().split(" ");
+        n1 = {
+          id: u.manager.id,
+          nom: mgrNameParts.length > 1 ? mgrNameParts.slice(1).join(" ") : (u.manager.displayName || "Manager"),
+          prenom: mgrNameParts[0] || "",
+          email: u.manager.mail || "",
+          role: "N1" as Role,
+          poste: u.manager.jobTitle || "Manager N+1",
+        };
+      }
+
+      const realUser: User = {
+        id: u.id || "ms-user",
+        nom: nom || "Connecté",
+        prenom: prenom,
+        email: u.email || "collaborateur@agilly.com",
+        role: (u.role as Role) || "SALARIE",
+        poste: u.jobTitle || "",
+        departement: u.department || "Direction Générale",
+        telephone: u.mobilePhone || "",
+        n1: n1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      console.log("🔐 [AuthContext] Informations SSO reçues de NextAuth :", u);
+      if (u.manager) {
+        console.log("👔 [AuthContext] Manager N+1 détecté depuis Microsoft Graph :", u.manager);
+      }
+      console.log("👤 [AuthContext] Utilisateur initialisé (realUser) :", realUser);
+      setUser(realUser);
+      localStorage.setItem("agilly_user", JSON.stringify(realUser));
+      if (u.accessToken) {
+        localStorage.setItem("agilly_token", u.accessToken);
+      }
+
+      // Synchronisation immédiate avec la base de données PostgreSQL
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+      fetch(`${apiUrl}/auth/sync-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_microsoft: realUser.id,
+          nom: realUser.nom,
+          prenom: realUser.prenom,
+          email: realUser.email,
+          poste: realUser.poste,
+          departement: realUser.departement,
+          telephone: realUser.telephone,
+          role: realUser.role,
+          managerId: u.manager?.id || undefined,
+        }),
+      })
+        .then(async (res) => {
+          const syncRes = await res.json().catch(() => null);
+          console.log("🔄 [AuthContext] Réponse sync-session backend :", syncRes);
+        })
+        .catch((err) => console.warn("[AuthContext] Erreur synchronisation session en base:", err));
+
+      setIsLoading(false);
+      return;
+    }
+
+    // Si non authentifié via NextAuth, on ne met rien
+    setUser(null);
     setIsLoading(false);
-  }, []);
+  }, [session, status]);
 
   const login = async (email: string, password: string): Promise<void> => {
     await new Promise((r) => setTimeout(r, 600));
@@ -153,10 +232,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = ROLE_DASHBOARD[newRole] || "/dashboard/mon-espace";
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem("agilly_user");
     localStorage.removeItem("agilly_token");
     setUser(null);
+    try {
+      await nextAuthSignOut({ redirect: false });
+    } catch {}
     window.location.href = "/";
   };
 

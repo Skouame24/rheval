@@ -1,14 +1,18 @@
 // ============================================================
 // app/dashboard/rh/export/page.tsx
-// Page "Export Excel & Rapports" RH (Soft UI Inline CSS)
+// Page "Export Excel & Rapports" RH — connectée au hook useExportRh
 // ============================================================
 
 "use client";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui";
+import { useExportRh } from "@/lib/hooks/useRhDashboard";
 
 export default function ExportRhPage() {
+  const { exportExcel, isExporting, exportError } = useExportRh();
+  const CYCLE_ID = "cycle-2026";
+
   return (
     <AppShell role="RH" userName="Pôle Ressources Humaines" userEmail="drh@agilly.com" notifCount={5}>
       <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
@@ -24,11 +28,24 @@ export default function ExportRhPage() {
             <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 20px 0" }}>
               Générez le document Excel d'Agilly identique au modèle officiel avec la grille des tranches 18-20, 15-17, 12-14, 0-11, le plan de formation et les 4 tampons de signature.
             </p>
+            {exportError && <p style={{ color: "#EF4444", fontSize: 12, margin: "8px 0 0" }}>⚠️ {exportError}</p>}
             <button
-              onClick={() => alert("Génération du pack complet des fiches d'évaluation Excel d'Agilly...")}
-              style={{ width: "100%", padding: "12px", background: "#F0822A", color: "#FFFFFF", border: "none", borderRadius: 12, fontWeight: 900, fontSize: 14, cursor: "pointer" }}
+              onClick={() => exportExcel(CYCLE_ID)}
+              disabled={isExporting}
+              style={{
+                width: "100%", padding: "12px",
+                background: isExporting ? "#94a3b8" : "#F0822A",
+                color: "#FFFFFF", border: "none", borderRadius: 12,
+                fontWeight: 900, fontSize: 14,
+                cursor: isExporting ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+              }}
             >
-              📥 Exporter le Pack Complet (Zip Excel)
+              {isExporting ? (
+                <><div style={{ width: 16, height: 16, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Génération en cours…</>
+              ) : (
+                <>📥 Exporter le Pack Complet (Zip Excel)</>
+              )}
             </button>
           </Card>
 
@@ -38,8 +55,15 @@ export default function ExportRhPage() {
               Téléchargez le tableau récapitulatif contenant les notes N+1, N+2, les moyennes finales pondérées, les taux d'atteinte et le catalogue des formations demandées.
             </p>
             <button
-              onClick={() => alert("Exportation de la synthèse globale en cours...")}
-              style={{ width: "100%", padding: "12px", background: "#000000", color: "#FFFFFF", border: "none", borderRadius: 12, fontWeight: 900, fontSize: 14, cursor: "pointer" }}
+              onClick={() => exportExcel(CYCLE_ID)}
+              disabled={isExporting}
+              style={{
+                width: "100%", padding: "12px",
+                background: isExporting ? "#94a3b8" : "#000000",
+                color: "#FFFFFF", border: "none", borderRadius: 12,
+                fontWeight: 900, fontSize: 14,
+                cursor: isExporting ? "not-allowed" : "pointer"
+              }}
             >
               📊 Exporter la Synthèse Consolidée
             </button>

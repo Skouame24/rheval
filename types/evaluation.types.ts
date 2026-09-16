@@ -8,15 +8,22 @@ import type { CycleSummary, Objectif } from "./cycle.types";
 
 // Statuts possibles d'un cycle d'évaluation (machine à états)
 export type StatutEvaluation =
-  | "EN_ATTENTE_N1"    // En attente de l'évaluation du manager N+1
-  | "EN_ATTENTE_N2"    // En attente de l'évaluation du manager N+2
-  | "EN_ATTENTE_RH"    // En attente de validation par la RH
-  | "ARBITRAGE"        // Désaccord — arbitrage conjoint N+2 + RH en cours
-  | "VALIDE"           // Validé par la RH
-  | "CLOTURE";         // Cycle clôturé
+  | "FIXATION_OBJECTIFS" 
+  | "MI_PARCOURS"
+  | "AUTO_EVALUATION"    
+  | "EVALUATION_N1"
+  | "EN_ATTENTE_N1"      
+  | "VISA_SALARIE"       
+  | "VALIDATION_N2"
+  | "EN_ATTENTE_N2"      
+  | "VALIDATION_DRH"
+  | "EN_ATTENTE_RH"      
+  | "ARBITRAGE"          
+  | "VALIDE"             
+  | "CLOTURE";
 
 // Qui a réalisé l'évaluation
-export type TypeEvaluateur = "N1" | "N2" | "RH";
+export type TypeEvaluateur = "SALARIE" | "N1" | "N2" | "RH";
 
 // Note attribuée par un évaluateur pour un objectif
 export interface NoteObjectif {
@@ -24,9 +31,11 @@ export interface NoteObjectif {
   objectif: Objectif;
   note: number; // /20
   commentaire?: string;
+  noteSalarie?: number; // Auto-note /20 du salarié
+  commentaireSalarie?: string; // Auto-commentaire du salarié
 }
 
-// Une évaluation individuelle (N+1, N+2 ou RH)
+// Une évaluation individuelle (Salarié, N+1, N+2 ou RH)
 export interface Evaluation {
   id: string;
   cycleId: string;
@@ -44,22 +53,29 @@ export interface Evaluation {
   dateSoumission?: string;
 }
 
-// Vue complète d'un cycle d'évaluation pour un salarié
+// Visa du salarié post-évaluation N+1
+export interface VisaSalarie {
+  accord: boolean;               // true = OK, false = NON OK
+  observation?: string;          // Observation / justification du salarié
+  dateVisa: string;
+}
+
+// Vue complète d'un cycle d'évaluation pour un salarié (FicheEvaluation)
 export interface EvaluationCycle {
   id: string;
   cycle: CycleSummary;
   salarie: UserSummary;
   statut: StatutEvaluation;
-  evaluationN1?: Evaluation;
-  evaluationN2?: Evaluation;
-  evaluationRH?: Evaluation;
-  arbitrage?: Arbitrage;
-  noteFinale?: number;           // /20 — calculée après validation RH
-  tauxAtteinte?: number;         // En % = (noteFinale / 20) * 100
+  noteGlobale?: number;
+  observation?: string;
+  objectifs: any[]; // TODO: type précis
+  competences?: any[];
+  bonus?: any;
+  feedbacks360?: any[];
+  historique?: any[];
   dateCreation: string;
   dateCloture?: string;
 }
-
 // Dossier d'arbitrage
 export interface Arbitrage {
   id: string;

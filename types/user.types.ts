@@ -13,8 +13,9 @@ export interface User {
   role: Role;
   poste: string;
   departement: string;
-  n1?: UserSummary; // Manager direct
-  n2?: UserSummary; // Supérieur du manager
+  telephone?: string;        // Mobile depuis Microsoft Graph
+  n1?: UserSummary;          // Manager direct
+  n2?: UserSummary;          // Supérieur du manager
   avatarUrl?: string;
   createdAt: string;
   updatedAt: string;

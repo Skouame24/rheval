@@ -55,28 +55,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
 
 
 
-      {/* Centre — Sélecteur de Rôle (Role Switcher Démo) */}
-      <div className="hidden xl:flex items-center gap-1 bg-slate-100 p-1 border border-slate-200 rounded-none">
-        <span className="text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider">
-          Rôle Démo :
-        </span>
-        {ROLES_LIST.map((r) => {
-          const isActive = currentRole === r.role;
-          return (
-            <button
-              key={r.role}
-              onClick={() => switchRole(r.role)}
-              className={`px-3 py-1 text-xs font-bold transition-all duration-200 cursor-pointer rounded-none ${
-                isActive
-                  ? "bg-[#F0822A] text-white shadow-sm"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white"
-              }`}
-            >
-              {r.label}
-            </button>
-          );
-        })}
-      </div>
+
 
       {/* Droite — Cloche & Profil */}
       <div className="flex items-center gap-4">
@@ -132,28 +111,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 </div>
               </div>
 
-              {/* Choix rapides de rôle */}
-              <div className="p-3 border-b border-slate-200 bg-slate-50">
-                <p className="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Changer de vue (Démo) :</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {ROLES_LIST.map((r) => (
-                    <button
-                      key={r.role}
-                      onClick={() => {
-                        switchRole(r.role);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`px-2 py-1.5 text-xs font-semibold text-left transition-all rounded-none ${
-                        currentRole === r.role
-                          ? "bg-[#F0822A] text-white font-bold"
-                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
 
               <div className="py-1">

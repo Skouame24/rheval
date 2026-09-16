@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { Metadata } from "next";
+import { NextAuthProvider } from "@/components/providers/NextAuthProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import "./globals.css";
 
@@ -16,10 +17,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <NextAuthProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );
 }
+

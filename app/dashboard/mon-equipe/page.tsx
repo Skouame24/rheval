@@ -9,24 +9,17 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
+import { useMyTeam } from "@/lib/hooks/useTeam";
+import type { User } from "@/types";
 
-const TEAM = [
-  { id: "1", nom: "KOUAME", prenom: "Ebenezer Samuel", poste: "Développeur Full-Stack", email: "ebenezer.kouame@agilly.com", dateEntree: "15 mars 2024", statut: "En cours" },
-  { id: "2", nom: "Koné", prenom: "Mariam", poste: "Designer UI/UX", email: "mariam.kone@agilly.com", dateEntree: "01 juin 2023", statut: "En cours" },
-  { id: "3", nom: "Bah", prenom: "Oumar", poste: "Développeur Mobile", email: "oumar.bah@agilly.com", dateEntree: "10 janv. 2025", statut: "Transmis N+2" },
-  { id: "4", nom: "Camara", prenom: "Aissatou", poste: "QA Engineer", email: "aissatou.camara@agilly.com", dateEntree: "01 sept. 2022", statut: "Transmis RH" },
-  { id: "5", nom: "Sylla", prenom: "Mamadou", poste: "DevOps", email: "mamadou.sylla@agilly.com", dateEntree: "12 nov. 2021", statut: "Validé" },
-];
+// TEAM data supprimée — remplacée par useMyTeam()
 
 export default function CollaborateursN1Page() {
-  const [selectedCollab, setSelectedCollab] = useState<any>(null);
+  const [selectedCollab, setSelectedCollab] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { isLoading, error, search } = useMyTeam();
 
-  const filteredTeam = TEAM.filter(member => 
-    member.nom.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    member.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.poste.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTeam = search(searchQuery);
 
   return (
     <AppShell role="N1" userName="Sevan AKOUMIA" userEmail="sevan.akoumia@agilly.com" notifCount={2}>
@@ -39,6 +32,18 @@ export default function CollaborateursN1Page() {
             salariedName={`${selectedCollab.prenom} ${selectedCollab.nom}`}
             salariedPoste={selectedCollab.poste}
           />
+        )}
+
+        {isLoading && (
+          <div style={{ textAlign: "center", padding: 48 }}>
+            <div style={{ width: 36, height: 36, border: "4px solid #F0822A", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+            <p style={{ color: "#64748b", fontSize: 14 }}>Chargement de l'équipe…</p>
+          </div>
+        )}
+        {error && (
+          <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 16 }}>
+            <p style={{ color: "#B91C1C", fontWeight: 700, margin: 0 }}>⚠️ {error}</p>
+          </div>
         )}
 
         <PageHeader
@@ -61,8 +66,8 @@ export default function CollaborateursN1Page() {
             </div>
           </div>
           
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginTop: 20 }}>
-            {filteredTeam.map((member) => (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 20 }}>
+            {filteredTeam.map((member: User) => (
               <div
                 key={member.id}
                 style={{
@@ -88,12 +93,12 @@ export default function CollaborateursN1Page() {
 
                 <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
                   <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>✉️ {member.email}</p>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>📅 Entrée : {member.dateEntree}</p>
+                  <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>📅 Dept : {member.departement}</p>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8, background: "#FFF7ED", color: "#EA580C", border: "1px solid #FFEDD5" }}>
-                    {member.statut}
+                    {member.role}
                   </span>
                   <button
                     onClick={() => setSelectedCollab(member)}

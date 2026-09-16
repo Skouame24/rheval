@@ -35,10 +35,18 @@ function getHeaders(includeBody = false): HeadersInit {
     headers["Content-Type"] = "application/json";
   }
 
-  // Injection du token JWT depuis le localStorage
+  // Injection du token JWT et identifiant utilisateur depuis le localStorage
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("agilly_token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const savedUser = localStorage.getItem("agilly_user");
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        if (u.id) headers["x-user-id"] = u.id;
+      } catch {}
+    }
   }
 
   return headers;
@@ -64,7 +72,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
   // 204 No Content
   if (response.status === 204) return undefined as T;
 
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  if (!text) {
+    return undefined as T;
+  }
+  return JSON.parse(text) as T;
 }
 
 // ─── Méthodes HTTP ──────────────────────────────────────────
