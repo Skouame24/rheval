@@ -167,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Synchronisation immédiate avec la base de données PostgreSQL
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api";
       fetch(`${apiUrl}/auth/sync-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -6,7 +6,7 @@
 
 import type { ApiError } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api";
 
 // ─── Classe d'erreur API ────────────────────────────────────
 
