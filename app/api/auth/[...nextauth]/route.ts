@@ -55,9 +55,9 @@ async function fetchGraphProfile(accessToken: string): Promise<{
 export const authOptions: NextAuthOptions = {
   providers: [
     AzureADProvider({
-      clientId: process.env.AZURE_AD_CLIENT_ID || "placeholder-client-id",
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "placeholder-client-secret",
-      tenantId: process.env.AZURE_AD_TENANT_ID || "placeholder-tenant-id",
+      clientId: process.env.AZURE_AD_CLIENT_ID || "f351e4f4-6b70-462e-9c80-eea701265f0d",
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
+      tenantId: process.env.AZURE_AD_TENANT_ID || "4a824101-74e2-4eca-8f3a-dac68503d06f",
       authorization: {
         params: {
           prompt: "select_account",
