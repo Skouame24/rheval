@@ -22,7 +22,7 @@ export default function CollaborateursN1Page() {
   const filteredTeam = search(searchQuery);
 
   return (
-    <AppShell role="N1" userName="Sevan AKOUMIA" userEmail="sevan.akoumia@agilly.com" notifCount={2}>
+    <AppShell>
       <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
         
         {selectedCollab && (

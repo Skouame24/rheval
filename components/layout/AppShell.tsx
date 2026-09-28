@@ -11,26 +11,28 @@ import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface AppShellProps {
-  role: Role;
-  userName: string;
-  userEmail: string;
+  role?: Role;
+  userName?: string;
+  userEmail?: string;
   pageTitle?: string;
   notifCount?: number;
   children: React.ReactNode;
 }
 
 export function AppShell({
-  role: defaultRole,
-  userName: defaultUserName,
-  userEmail: defaultUserEmail,
+  role: defaultRole = "SALARIE",
+  userName: defaultUserName = "Utilisateur",
+  userEmail: defaultUserEmail = "",
   pageTitle,
-  notifCount,
+  notifCount = 0,
   children,
 }: AppShellProps) {
   const { user } = useAuth();
 
   const role = user?.role || defaultRole;
-  const userName = user ? `${user.prenom} ${user.nom}` : defaultUserName;
+  const userName = user 
+    ? `${user.prenom ? user.prenom + " " : ""}${user.nom}`.trim() 
+    : defaultUserName;
   const userEmail = user?.email || defaultUserEmail;
 
   return (
@@ -40,12 +42,12 @@ export function AppShell({
 
       {/* Zone principale */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header sticky */}
+        {/* Header sticky - badge 0 tant qu'aucune notification réelle non lue n'existe */}
         <Header
           role={role}
           userName={userName}
           pageTitle={pageTitle}
-          notifCount={notifCount}
+          notifCount={0}
         />
 
         {/* Contenu scrollable */}

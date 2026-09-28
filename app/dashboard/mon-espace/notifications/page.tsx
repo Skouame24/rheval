@@ -19,7 +19,7 @@ const NOTIFICATIONS = [
     id: "1",
     type: "INFO",
     title: "Évaluation N+1 soumise",
-    description: "Votre responsable N+1 Sevan AKOUMIA a soumis son évaluation.",
+    description: "Votre responsable N+1 a soumis son évaluation.",
     date: "10 juillet 2026",
     read: true,
   },

@@ -24,17 +24,17 @@ import {
 // ─── Données de démo Admin ─────────────────────────────────
 
 const INITIAL_USERS = [
-  { id: "u-1", nom: "KOUAME", prenom: "Ebenezer Samuel", email: "e.kouame@agilly.com", role: "SALARIE", direction: "Executive", n1: "Sevan AKOUMIA", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:22" },
+  { id: "u-1", nom: "KOUAME", prenom: "Ebenezer Samuel", email: "e.kouame@agilly.com", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:22" },
   { id: "u-2", nom: "AKOUMIA", prenom: "Sevan", email: "s.akoumia@agilly.com", role: "N1", direction: "Executive", n1: "Alexis BAMBA", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:15" },
   { id: "u-3", nom: "BAMBA", prenom: "Koffi Alexis", email: "a.bamba@agilly.com", role: "N2", direction: "Technique", n1: "Direction Générale", statut: "ACTIF", derniereConnexion: "Hier 16:45" },
   { id: "u-4", nom: "KOUASSI", prenom: "Marie-Claire", email: "mc.kouassi@agilly.com", role: "DRH", direction: "Ressources Humaines", n1: "Direction Générale", statut: "ACTIF", derniereConnexion: "Aujourd'hui 11:30" },
   { id: "u-5", nom: "SYSTEM", prenom: "Admin AGILLY", email: "admin@agilly.com", role: "ADMIN", direction: "Informatique & Sécurité", n1: "Root", statut: "ACTIF", derniereConnexion: "En cours" },
-  { id: "u-6", nom: "Koné", prenom: "Mariam", email: "m.kone@agilly.com", role: "SALARIE", direction: "Executive", n1: "Sevan AKOUMIA", statut: "ACTIF", derniereConnexion: "02/08/2026 10:14" },
-  { id: "u-[#]", nom: "Bah", prenom: "Oumar", email: "o.bah@agilly.com", role: "SALARIE", direction: "Technique", n1: "Sevan AKOUMIA", statut: "ACTIF", derniereConnexion: "01/08/2026 18:00" },
+  { id: "u-6", nom: "Koné", prenom: "Mariam", email: "m.kone@agilly.com", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "02/08/2026 10:14" },
+  { id: "u-[#]", nom: "Bah", prenom: "Oumar", email: "o.bah@agilly.com", role: "SALARIE", direction: "Technique", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "01/08/2026 18:00" },
 ];
 
 const AUDIT_LOGS = [
-  { id: "log-1", date: "2026-08-03 14:25:12", utilisateur: "Sevan AKOUMIA (Manager N+1)", action: "SOUMISSION_OBJECTIFS", details: "Transmission des 3 objectifs de performance pour Ebenezer KOUAME", ip: "197.230.12.44", type: "Évaluation" },
+  { id: "log-1", date: "2026-08-03 14:25:12", utilisateur: "Marc AUBERT (Manager N+1)", action: "SOUMISSION_OBJECTIFS", details: "Transmission des 3 objectifs de performance pour Ebenezer KOUAME", ip: "197.230.12.44", type: "Évaluation" },
   { id: "log-2", date: "2026-08-03 12:14:05", utilisateur: "Marie-Claire KOUASSI (DRH)", action: "ARBITRAGE_RH_VALIDE", details: "Arbitrage RH rendu pour le dossier Mariam Koné (Note finale: 16.0/20)", ip: "197.230.12.18", type: "Arbitrage" },
   { id: "log-3", date: "2026-08-03 11:02:30", utilisateur: "Admin AGILLY (SysAdmin)", action: "CHANGEMENT_ROLE", details: "Affectation du rôle DRH au compte mc.kouassi@agilly.com", ip: "197.230.12.1", type: "Sécurité" },
   { id: "log-4", date: "2026-08-03 09:45:00", utilisateur: "Koffi Alexis BAMBA (N+2)", action: "VALIDATION_N2", details: "Validation de la fiche d'évaluation de Oumar Bah", ip: "197.230.12.82", type: "Évaluation" },
@@ -56,7 +56,7 @@ export default function AdminDashboardPage() {
     email: "",
     role: "SALARIE",
     direction: "Executive",
-    n1: "Sevan AKOUMIA",
+    n1: "Marc AUBERT",
   });
 
   const handleCreateUser = (e: React.FormEvent) => {
@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
     };
     setUsers((prev) => [created, ...prev]);
     setIsAddUserOpen(false);
-    setNewUser({ nom: "", prenom: "", email: "", role: "SALARIE", direction: "Executive", n1: "Sevan AKOUMIA" });
+    setNewUser({ nom: "", prenom: "", email: "", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT" });
     alert(`Le compte utilisateur de ${created.prenom} ${created.nom} a été créé avec succès !`);
   };
 

@@ -10,13 +10,13 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 const INITIAL_USERS = [
-  { id: "u-1", nom: "KOUAME", prenom: "Ebenezer Samuel", email: "e.kouame@agilly.com", role: "SALARIE", direction: "Executive", n1: "Sevan AKOUMIA", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:22" },
+  { id: "u-1", nom: "KOUAME", prenom: "Ebenezer Samuel", email: "e.kouame@agilly.com", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:22" },
   { id: "u-2", nom: "AKOUMIA", prenom: "Sevan", email: "s.akoumia@agilly.com", role: "N1", direction: "Executive", n1: "Alexis BAMBA", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:15" },
   { id: "u-3", nom: "BAMBA", prenom: "Koffi Alexis", email: "a.bamba@agilly.com", role: "N2", direction: "Technique", n1: "Direction Générale", statut: "ACTIF", derniereConnexion: "Hier 16:45" },
   { id: "u-4", nom: "KOUASSI", prenom: "Marie-Claire", email: "mc.kouassi@agilly.com", role: "DRH", direction: "Ressources Humaines", n1: "Direction Générale", statut: "ACTIF", derniereConnexion: "Aujourd'hui 11:30" },
   { id: "u-5", nom: "SYSTEM", prenom: "Admin AGILLY", email: "admin@agilly.com", role: "ADMIN", direction: "Informatique & Sécurité", n1: "Root", statut: "ACTIF", derniereConnexion: "En cours" },
-  { id: "u-6", nom: "Koné", prenom: "Mariam", email: "m.kone@agilly.com", role: "SALARIE", direction: "Executive", n1: "Sevan AKOUMIA", statut: "ACTIF", derniereConnexion: "02/08/2026 10:14" },
-  { id: "u-7", nom: "Bah", prenom: "Oumar", email: "o.bah@agilly.com", role: "SALARIE", direction: "Technique", n1: "Sevan AKOUMIA", statut: "ACTIF", derniereConnexion: "01/08/2026 18:00" },
+  { id: "u-6", nom: "Koné", prenom: "Mariam", email: "m.kone@agilly.com", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "02/08/2026 10:14" },
+  { id: "u-7", nom: "Bah", prenom: "Oumar", email: "o.bah@agilly.com", role: "SALARIE", direction: "Technique", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "01/08/2026 18:00" },
 ];
 
 export default function UtilisateursAdminPage() {
@@ -26,7 +26,7 @@ export default function UtilisateursAdminPage() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
 
   const [newUser, setNewUser] = useState({
-    nom: "", prenom: "", email: "", role: "SALARIE", direction: "Executive", n1: "Sevan AKOUMIA",
+    nom: "", prenom: "", email: "", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT",
   });
 
   const handleCreateUser = (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ export default function UtilisateursAdminPage() {
     const created = { id: `u-${Date.now()}`, ...newUser, statut: "ACTIF", derniereConnexion: "Jamais connecté" };
     setUsers([created, ...users]);
     setIsAddUserOpen(false);
-    setNewUser({ nom: "", prenom: "", email: "", role: "SALARIE", direction: "Executive", n1: "Sevan AKOUMIA" });
+    setNewUser({ nom: "", prenom: "", email: "", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT" });
   };
 
   const handleToggleStatut = (id: string) => {

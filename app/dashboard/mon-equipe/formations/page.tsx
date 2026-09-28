@@ -17,7 +17,7 @@ const FORMATIONS = [
 
 export default function FormationsN1Page() {
   return (
-    <AppShell role="N1" userName="Sevan AKOUMIA" userEmail="sevan.akoumia@agilly.com" notifCount={2}>
+    <AppShell role="N1" userName="Marc AUBERT" userEmail="sevan.akoumia@agilly.com" notifCount={2}>
       <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
         <PageHeader
           title="Besoins de Formation Identifiés"

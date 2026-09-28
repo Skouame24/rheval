@@ -126,10 +126,10 @@ export function FicheEvaluation360ManagerModal({
   onClose,
   readOnly = false,
   managerData = {
-    nomPrenoms: "Sevan AKOUMIA",
-    fonction: "Directeur des Opérations & Tech Lead",
-    dateEmbauche: "15 janvier 2021",
-    service: "Direction Technique & Projets",
+    nomPrenoms: "Manager Référent",
+    fonction: "Responsable d'Équipe",
+    dateEmbauche: "Non spécifié",
+    service: "Direction Générale",
   },
 }: FicheEvaluation360ManagerModalProps) {
   const { user } = useAuth();

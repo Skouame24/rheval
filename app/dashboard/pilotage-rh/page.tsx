@@ -22,11 +22,11 @@ import {
 } from "@/components/ui/Icons";
 
 const INITIAL_DOSSIERS_RH = [
-  { id: "1", nom: "KOUAME", prenom: "Ebenezer Samuel", poste: "Dev Full-Stack (IA)", direction: "Executive", n1: "Sevan AKOUMIA", noteN1: 18.5, noteN2: 18.0, statut: "EN_ATTENTE_RH", statutLabel: "En attente Validation RH" },
-  { id: "2", nom: "Koné", prenom: "Mariam", poste: "Designer UI/UX", direction: "Executive", n1: "Sevan AKOUMIA", noteN1: 17.5, noteN2: 14.0, statut: "ARBITRAGE", statutLabel: "ARBITRAGE (Écart 3.5 pts)" },
-  { id: "3", nom: "Bah", prenom: "Oumar", poste: "Dev Mobile", direction: "Technique", n1: "Sevan AKOUMIA", noteN1: 15.0, noteN2: 15.0, statut: "VALIDE", statutLabel: "Validé & Clôturé" },
-  { id: "4", nom: "Camara", prenom: "Aissatou", poste: "QA Engineer", direction: "Technique", n1: "Sevan AKOUMIA", noteN1: 14.5, noteN2: 14.5, statut: "VALIDE", statutLabel: "Validé & Clôturé" },
-  { id: "5", nom: "Sylla", prenom: "Mamadou", poste: "DevOps", direction: "Infrastructure", n1: "Sevan AKOUMIA", noteN1: 17.0, noteN2: 17.0, statut: "VALIDE", statutLabel: "Validé & Clôturé" },
+  { id: "1", nom: "KOUAME", prenom: "Ebenezer Samuel", poste: "Dev Full-Stack (IA)", direction: "Executive", n1: "Marc AUBERT", noteN1: 18.5, noteN2: 18.0, statut: "EN_ATTENTE_RH", statutLabel: "En attente Validation RH" },
+  { id: "2", nom: "Koné", prenom: "Mariam", poste: "Designer UI/UX", direction: "Executive", n1: "Marc AUBERT", noteN1: 17.5, noteN2: 14.0, statut: "ARBITRAGE", statutLabel: "ARBITRAGE (Écart 3.5 pts)" },
+  { id: "3", nom: "Bah", prenom: "Oumar", poste: "Dev Mobile", direction: "Technique", n1: "Marc AUBERT", noteN1: 15.0, noteN2: 15.0, statut: "VALIDE", statutLabel: "Validé & Clôturé" },
+  { id: "4", nom: "Camara", prenom: "Aissatou", poste: "QA Engineer", direction: "Technique", n1: "Marc AUBERT", noteN1: 14.5, noteN2: 14.5, statut: "VALIDE", statutLabel: "Validé & Clôturé" },
+  { id: "5", nom: "Sylla", prenom: "Mamadou", poste: "DevOps", direction: "Infrastructure", n1: "Marc AUBERT", noteN1: 17.0, noteN2: 17.0, statut: "VALIDE", statutLabel: "Validé & Clôturé" },
 ];
 
 export default function RhDashboardPage() {

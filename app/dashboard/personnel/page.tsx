@@ -13,11 +13,11 @@ import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEval
 import { ModalProfilEmploye } from "@/features/dashboard/components/ModalProfilEmploye";
 
 const SALARIES = [
-  { id: "1", nom: "KOUAME", prenom: "Ebenezer Samuel", poste: "Développeur Full-Stack (IA)", direction: "Executive", site: "Abidjan AGILLY 1", n1: "Sevan AKOUMIA", email: "e.kouame@agilly.com", matricule: "EMP-2026-001", telephone: "+225 07 01 02 03 04", statutCycle: "Saisie N+1 Terminée", noteActuelle: "18.5" },
-  { id: "2", nom: "Koné", prenom: "Mariam", poste: "Designer UI/UX", direction: "Executive", site: "Abidjan AGILLY 1", n1: "Sevan AKOUMIA", email: "m.kone@agilly.com", matricule: "EMP-2026-002", telephone: "+225 07 05 06 07 08", statutCycle: "Arbitrage RH Ouvert", noteActuelle: "15.75" },
-  { id: "3", nom: "Bah", prenom: "Oumar", poste: "Développeur Mobile", direction: "Technique", site: "Abidjan AGILLY 1", n1: "Sevan AKOUMIA", email: "o.bah@agilly.com", matricule: "EMP-2026-003", telephone: "+225 07 09 10 11 12", statutCycle: "Validé & Clôturé", noteActuelle: "15.0" },
-  { id: "4", nom: "Camara", prenom: "Aissatou", poste: "QA Engineer", direction: "Technique", site: "Abidjan AGILLY 1", n1: "Sevan AKOUMIA", email: "a.camara@agilly.com", matricule: "EMP-2026-004", telephone: "+225 07 13 14 15 16", statutCycle: "Validé & Clôturé", noteActuelle: "14.5" },
-  { id: "5", nom: "Sylla", prenom: "Mamadou", poste: "DevOps", direction: "Infrastructure", site: "Abidjan AGILLY 1", n1: "Sevan AKOUMIA", email: "m.sylla@agilly.com", matricule: "EMP-2026-005", telephone: "+225 07 17 18 19 20", statutCycle: "Validé & Clôturé", noteActuelle: "17.0" },
+  { id: "1", nom: "KOUAME", prenom: "Ebenezer Samuel", poste: "Développeur Full-Stack (IA)", direction: "Executive", site: "Abidjan AGILLY 1", n1: "Marc AUBERT", email: "e.kouame@agilly.com", matricule: "EMP-2026-001", telephone: "+225 07 01 02 03 04", statutCycle: "Saisie N+1 Terminée", noteActuelle: "18.5" },
+  { id: "2", nom: "Koné", prenom: "Mariam", poste: "Designer UI/UX", direction: "Executive", site: "Abidjan AGILLY 1", n1: "Marc AUBERT", email: "m.kone@agilly.com", matricule: "EMP-2026-002", telephone: "+225 07 05 06 07 08", statutCycle: "Arbitrage RH Ouvert", noteActuelle: "15.75" },
+  { id: "3", nom: "Bah", prenom: "Oumar", poste: "Développeur Mobile", direction: "Technique", site: "Abidjan AGILLY 1", n1: "Marc AUBERT", email: "o.bah@agilly.com", matricule: "EMP-2026-003", telephone: "+225 07 09 10 11 12", statutCycle: "Validé & Clôturé", noteActuelle: "15.0" },
+  { id: "4", nom: "Camara", prenom: "Aissatou", poste: "QA Engineer", direction: "Technique", site: "Abidjan AGILLY 1", n1: "Marc AUBERT", email: "a.camara@agilly.com", matricule: "EMP-2026-004", telephone: "+225 07 13 14 15 16", statutCycle: "Validé & Clôturé", noteActuelle: "14.5" },
+  { id: "5", nom: "Sylla", prenom: "Mamadou", poste: "DevOps", direction: "Infrastructure", site: "Abidjan AGILLY 1", n1: "Marc AUBERT", email: "m.sylla@agilly.com", matricule: "EMP-2026-005", telephone: "+225 07 17 18 19 20", statutCycle: "Validé & Clôturé", noteActuelle: "17.0" },
 ];
 
 export default function SalariesRhPage() {

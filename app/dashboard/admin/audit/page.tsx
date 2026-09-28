@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 const AUDIT_LOGS = [
-  { id: "log-1", date: "2026-08-03 14:25:12", utilisateur: "Sevan AKOUMIA (Manager N+1)", action: "SOUMISSION_OBJECTIFS", details: "Transmission des 3 objectifs de performance pour Ebenezer KOUAME", ip: "197.230.12.44", type: "Évaluation" },
+  { id: "log-1", date: "2026-08-03 14:25:12", utilisateur: "Marc AUBERT (Manager N+1)", action: "SOUMISSION_OBJECTIFS", details: "Transmission des 3 objectifs de performance pour Ebenezer KOUAME", ip: "197.230.12.44", type: "Évaluation" },
   { id: "log-2", date: "2026-08-03 12:14:05", utilisateur: "Marie-Claire KOUASSI (DRH)", action: "ARBITRAGE_RH_VALIDE", details: "Arbitrage RH rendu pour le dossier Mariam Koné (Note finale: 16.0/20)", ip: "197.230.12.18", type: "Arbitrage" },
   { id: "log-3", date: "2026-08-03 11:02:30", utilisateur: "Admin AGILLY (SysAdmin)", action: "CHANGEMENT_ROLE", details: "Affectation du rôle DRH au compte mc.kouassi@agilly.com", ip: "197.230.12.1", type: "Sécurité" },
   { id: "log-4", date: "2026-08-03 09:45:00", utilisateur: "Koffi Alexis BAMBA (N+2)", action: "VALIDATION_N2", details: "Validation de la fiche d'évaluation de Oumar Bah", ip: "197.230.12.82", type: "Évaluation" },

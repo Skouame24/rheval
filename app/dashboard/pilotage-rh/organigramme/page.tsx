@@ -140,7 +140,7 @@ export default function OrganigrammeRhPage() {
                 NIVEAU N+1 · MANAGER DIRECT
               </span>
               <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0F172A", margin: "8px 0 2px 0" }}>
-                Sevan AKOUMIA — Responsable Technique
+                Marc AUBERT — Responsable Technique
               </h3>
               <p style={{ fontSize: 12, fontWeight: 700, color: "#475569", margin: 0 }}>
                 Lead & Encadrement direct de l'Équipe Technique (Notateur N+1 des Objectifs)
