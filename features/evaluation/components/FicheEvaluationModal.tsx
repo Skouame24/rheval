@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { WorkflowStepper } from "@/components/shared/WorkflowStepper";
 import { useAuth } from "@/contexts/AuthContext";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
+import { evaluationsApi } from "@/lib/api/evaluations.api";
 
 interface FicheEvaluationModalProps {
   isOpen: boolean;
@@ -17,12 +18,16 @@ interface FicheEvaluationModalProps {
   isVisaMode?: boolean;
   currentStep?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   dossier?: {
+    id?: string;
     nom: string;
     prenom: string;
     poste: string;
     direction?: string;
+    [key: string]: any;
   } | null;
+  evaluationId?: string;
   objectifs?: any[];
+  onSaved?: () => void;
 }
 
 interface ObjectifData {
@@ -58,35 +63,81 @@ export function FicheEvaluationModal({
   isVisaMode = false,
   currentStep = 4,
   dossier,
+  evaluationId,
   objectifs: apiObjectifs,
+  onSaved,
 }: FicheEvaluationModalProps) {
   const { user, role } = useAuth();
   const [objectifs, setObjectifs] = useState<ObjectifData[]>(INITIAL_OBJECTIFS);
-  const [activeTab, setActiveTab] = useState<"N1" | "SALARIE">(isAutoEvaluationMode ? "SALARIE" : "N1");
+  const [activeTab, setActiveTab] = useState<"N1" | "SALARIE">("SALARIE");
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+
+  const isSalarie = role === "SALARIE";
+
+  // Identifiant de la fiche d'évaluation
+  const resolvedFicheId = evaluationId || dossier?.id || (dossier as any)?.ficheId || "";
+
+  // Détermination des droits d'édition
+  // Sur l'onglet SALARIE : le collaborateur peut s'auto-évaluer s'il est salarié ou en mode auto-évaluation
+  const canEditSalarie = activeTab === "SALARIE" && (isAutoEvaluationMode || isSalarie || !readOnly);
+  // Sur l'onglet N1 : le manager / admin / RH peut saisir les notes N1
+  const canEditN1 = activeTab === "N1" && (role === "N1" || role === "ADMIN" || role === "RH" || (!readOnly && !isSalarie));
+  const canEdit = activeTab === "SALARIE" ? canEditSalarie : canEditN1;
 
   // Clé stable basée sur le contenu réel (IDs) — immune aux références instables
   const apiObjectifsKey = apiObjectifs?.map((o: any) => o.id).join(",") ?? "";
 
+  // Initialisation de l'onglet par défaut
   useEffect(() => {
-    // Guard: si apiObjectifs est undefined/null/vide on réinitialise
+    if (isAutoEvaluationMode || isSalarie) {
+      setActiveTab("SALARIE");
+    } else {
+      setActiveTab("N1");
+    }
+  }, [isAutoEvaluationMode, isSalarie, isOpen]);
+
+  useEffect(() => {
+    // Guard: si apiObjectifs est vide on réinitialise
     if (!apiObjectifs || apiObjectifs.length === 0) {
       setObjectifs(INITIAL_OBJECTIFS);
       return;
     }
 
+    const salarieId = dossier?.id || (dossier as any)?.salarieId || (dossier as any)?.userId || user?.id;
+
     setObjectifs(apiObjectifs.map((obj: any, idx: number) => {
-      const evalSalarie = obj.evaluations?.find((e: any) => e.examinateurId === obj.fiche?.salarieId) || {};
-      const evalN1 = obj.evaluations?.find((e: any) => e.examinateurId !== obj.fiche?.salarieId) || {};
+      // Résolution intelligente des évaluations passées
+      const evalSalarie = obj.evaluations?.find((e: any) => 
+        (salarieId && e.examinateurId === salarieId) || e.type === "SALARIE"
+      ) || {};
+
+      const evalN1 = obj.evaluations?.find((e: any) => 
+        (!salarieId || e.examinateurId !== salarieId) && e.type !== "SALARIE"
+      ) || {};
+
+      const noteSal = obj.noteSalarie != null 
+        ? Number(obj.noteSalarie) 
+        : (evalSalarie.note != null ? Number(evalSalarie.note) : 0);
+
+      const commentSal = obj.commentaireSalarie || evalSalarie.observation || "";
+
+      const noteN1 = obj.noteObtenue != null 
+        ? Number(obj.noteObtenue) 
+        : (evalN1.note != null ? Number(evalN1.note) : (obj.note != null ? Number(obj.note) : 0));
+
+      const commentN1 = obj.commentaire || evalN1.observation || "";
 
       return {
         id: obj.id,
         numero: idx + 1,
         intitule: obj.intitule,
         ponderation: obj.ponderation ?? (idx === 0 ? 50 : 25),
-        noteSalarie: evalSalarie.note ? Number(evalSalarie.note) : 0,
-        commentaireSalarie: evalSalarie.observation || "",
-        noteObtenue: evalN1.note ? Number(evalN1.note) : 0,
-        commentaire: evalN1.observation || "",
+        noteSalarie: noteSal,
+        commentaireSalarie: commentSal,
+        noteObtenue: noteN1,
+        commentaire: commentN1,
         trancheSelectionnee: "",
         criteres: [
           {
@@ -98,7 +149,7 @@ export function FicheEvaluationModal({
             min: 18,
             max: 20,
             defaultNote: 19,
-            texte: obj.indicateurs?.[0]?.intitule || "Performance exceptionnelle"
+            texte: obj.indicateurs?.[0]?.intitule || "Performance exceptionnelle et objectifs dépassés"
           },
           {
             tranche: "15 à 17",
@@ -109,7 +160,7 @@ export function FicheEvaluationModal({
             min: 15,
             max: 17,
             defaultNote: 16,
-            texte: "Objectif atteint avec succès"
+            texte: "Objectif atteint avec succès et régularité"
           },
           {
             tranche: "12 à 14",
@@ -120,7 +171,7 @@ export function FicheEvaluationModal({
             min: 12,
             max: 14,
             defaultNote: 13,
-            texte: "Objectif partiellement atteint"
+            texte: "Objectif partiellement atteint, axes d'amélioration"
           },
           {
             tranche: "0 à 11",
@@ -131,14 +182,13 @@ export function FicheEvaluationModal({
             min: 0,
             max: 11,
             defaultNote: 8,
-            texte: "Objectif non atteint"
+            texte: "Objectif non atteint, actions correctives requises"
           }
         ]
       };
     }));
-  // apiObjectifsKey est une string stable — ne change que si les IDs changent vraiment
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiObjectifsKey]);
+  }, [apiObjectifsKey, dossier?.id, user?.id]);
 
   const collabNom = dossier ? `${dossier.prenom} ${dossier.nom}` : (user ? `${user.prenom} ${user.nom}` : "Collaborateur Agilly");
   const collabInitials = dossier ? `${dossier.prenom.charAt(0)}${dossier.nom.charAt(0)}` : (user ? `${user.prenom.charAt(0)}${user.nom.charAt(0)}` : "AG");
@@ -150,8 +200,6 @@ export function FicheEvaluationModal({
   const [visaSalarieSubmitted, setVisaSalarieSubmitted] = useState(false);
 
   if (!isOpen) return null;
-
-  const isSalarie = role === "SALARIE";
 
   // Calcul dynamique de la Note Globale Pondérée N+1
   const noteGlobaleN1 = objectifs.reduce((acc, obj) => {
@@ -168,20 +216,20 @@ export function FicheEvaluationModal({
 
   // Gestion du clic sur une tranche de barème
   const handleSelectTranche = (objId: string, critere: { tranche: string; min: number; max: number; defaultNote: number }) => {
-    if (readOnly && !isAutoEvaluationMode) return;
+    if (!canEdit) return;
 
     setObjectifs((prev) =>
       prev.map((o) => {
         if (o.id === objId) {
           const currentNote = activeTab === "SALARIE" ? o.noteSalarie : o.noteObtenue;
-          // Si la note actuelle est déjà dans la tranche cliquée, on la garde ; sinon on applique la valeur par défaut indicative
           const isNoteInTier = currentNote >= critere.min && currentNote <= critere.max;
-          const newNote = isNoteInTier ? currentNote : critere.defaultNote;
+          const newNote = isNoteInTier && currentNote > 0 ? currentNote : critere.defaultNote;
 
           if (activeTab === "SALARIE") {
             return {
               ...o,
               noteSalarie: newNote,
+              trancheSelectionnee: critere.tranche,
             };
           } else {
             return {
@@ -196,9 +244,9 @@ export function FicheEvaluationModal({
     );
   };
 
-  // Ajustement manuel de la note avec calcul dynamique de la tranche correspondante
+  // Ajustement manuel de la note avec calcul dynamique
   const handleNoteChange = (objId: string, valStr: string) => {
-    if (readOnly && !isAutoEvaluationMode) return;
+    if (!canEdit) return;
     const val = parseFloat(valStr) || 0;
     const clampedVal = Math.min(20, Math.max(0, val));
 
@@ -213,12 +261,13 @@ export function FicheEvaluationModal({
             return {
               ...o,
               noteSalarie: clampedVal,
+              trancheSelectionnee: matchedCritere?.tranche || "",
             };
           } else {
             return {
               ...o,
               noteObtenue: clampedVal,
-              trancheSelectionnee: matchedCritere.tranche,
+              trancheSelectionnee: matchedCritere?.tranche || "",
             };
           }
         }
@@ -228,7 +277,7 @@ export function FicheEvaluationModal({
   };
 
   const handleCommentaireChange = (objId: string, text: string) => {
-    if (readOnly && !isAutoEvaluationMode) return;
+    if (!canEdit) return;
     setObjectifs((prev) =>
       prev.map((o) => {
         if (o.id === objId) {
@@ -239,6 +288,44 @@ export function FicheEvaluationModal({
         return o;
       })
     );
+  };
+
+  const handleSaveEvaluation = async () => {
+    if (!resolvedFicheId) {
+      alert("⚠️ Aucune fiche d'évaluation associée n'a été trouvée pour enregistrer.");
+      return;
+    }
+    setIsSaving(true);
+    setSaveSuccessMsg(null);
+    try {
+      if (activeTab === "SALARIE") {
+        await evaluationsApi.submitAutoEvaluation(resolvedFicheId, {
+          notes: objectifs.map((o) => ({
+            objectifId: o.id,
+            note: o.noteSalarie,
+            commentaire: o.commentaireSalarie,
+          })),
+          observations: visaSalarieObservation,
+        });
+        setSaveSuccessMsg("✓ Votre auto-évaluation a été enregistrée avec succès dans la base de données !");
+      } else {
+        await evaluationsApi.submitNotesN1(resolvedFicheId, {
+          evaluationCycleId: resolvedFicheId,
+          notes: objectifs.map((o) => ({
+            objectifId: o.id,
+            note: o.noteObtenue,
+          })),
+          observations: "",
+        });
+        setSaveSuccessMsg("✓ L'évaluation N+1 a été enregistrée avec succès dans la base de données !");
+      }
+      if (onSaved) onSaved();
+    } catch (err: any) {
+      console.error("[FicheEvaluationModal] Save error:", err);
+      alert("Erreur lors de l'enregistrement : " + (err.message || "Erreur serveur"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSubmitVisa = () => {
@@ -280,9 +367,9 @@ export function FicheEvaluationModal({
       }}>
 
         {/* ── TOP ACCENT BRAND BAR ── */}
-        <div style={{ height: 6, width: "100%", background: "#F0822A" }} />
+        <div style={{ height: 6, width: "100%", background: activeTab === "SALARIE" ? "#0284C7" : "#F0822A" }} />
 
-        {/* ── HEADER MODAL LUXURY ── */}
+        {/* ── HEADER MODAL ── */}
         <div style={{
           padding: "18px 32px",
           background: "#FFFFFF",
@@ -297,9 +384,9 @@ export function FicheEvaluationModal({
               width: 44,
               height: 44,
               borderRadius: 0,
-              background: "#FFF7ED",
-              border: "1px solid #F0822A",
-              color: "#F0822A",
+              background: activeTab === "SALARIE" ? "#EFF6FF" : "#FFF7ED",
+              border: `1px solid ${activeTab === "SALARIE" ? "#0284C7" : "#F0822A"}`,
+              color: activeTab === "SALARIE" ? "#0284C7" : "#F0822A",
               fontWeight: 900,
               fontSize: 20,
               display: "flex",
@@ -313,7 +400,7 @@ export function FicheEvaluationModal({
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", margin: 0, letterSpacing: -0.5 }}>
                   Fiche d'Évaluation de Performance Officielle
                 </h2>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#10B981", background: "#ECFDF5", padding: "4px 10px", borderRadius: 0, border: "1px solid #10B981/30" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#10B981", background: "#ECFDF5", padding: "4px 10px", borderRadius: 0, border: "1px solid #10B98130" }}>
                   🟢 Document Officiel Actif
                 </span>
               </div>
@@ -342,6 +429,24 @@ export function FicheEvaluationModal({
           >✕</button>
         </div>
 
+        {/* ── BANNIÈRE SUCCÈS D'ENREGISTREMENT ── */}
+        {saveSuccessMsg && (
+          <div style={{
+            padding: "12px 32px",
+            background: "#ECFDF5",
+            borderBottom: "1px solid #10B981",
+            color: "#065F46",
+            fontSize: 13,
+            fontWeight: 800,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
+            <span>{saveSuccessMsg}</span>
+            <button onClick={() => setSaveSuccessMsg(null)} style={{ background: "none", border: "none", color: "#065F46", cursor: "pointer", fontWeight: 900 }}>✕</button>
+          </div>
+        )}
+
         {/* ── TOGGLE ONGLET VUE MANAGER N+1 VS AUTO-ÉVALUATION SALARIÉ ── */}
         <div style={{
           padding: "10px 32px",
@@ -350,31 +455,15 @@ export function FicheEvaluationModal({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
           flexShrink: 0
         }}>
           <div style={{ display: "flex", gap: 8 }}>
             <button
-              onClick={() => setActiveTab("N1")}
-              style={{
-                padding: "8px 16px",
-                fontSize: 13,
-                fontWeight: 800,
-                borderRadius: 0,
-                border: activeTab === "N1" ? "2px solid #F0822A" : "1px solid #CBD5E1",
-                background: activeTab === "N1" ? "#FFF7ED" : "#FFFFFF",
-                color: activeTab === "N1" ? "#F0822A" : "#64748B",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6
-              }}
-            >
-              📊 Évaluation Manager N+1 ({noteGlobaleN1.toFixed(2)}/20)
-            </button>
-            <button
               onClick={() => setActiveTab("SALARIE")}
               style={{
-                padding: "8px 16px",
+                padding: "8px 18px",
                 fontSize: 13,
                 fontWeight: 800,
                 borderRadius: 0,
@@ -389,11 +478,39 @@ export function FicheEvaluationModal({
             >
               ✍️ Auto-évaluation Salarié ({noteGlobaleSalarie.toFixed(2)}/20)
             </button>
+
+            <button
+              onClick={() => setActiveTab("N1")}
+              style={{
+                padding: "8px 18px",
+                fontSize: 13,
+                fontWeight: 800,
+                borderRadius: 0,
+                border: activeTab === "N1" ? "2px solid #F0822A" : "1px solid #CBD5E1",
+                background: activeTab === "N1" ? "#FFF7ED" : "#FFFFFF",
+                color: activeTab === "N1" ? "#F0822A" : "#64748B",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              📊 Évaluation Manager N+1 ({noteGlobaleN1.toFixed(2)}/20)
+            </button>
           </div>
 
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B" }}>
-            {activeTab === "SALARIE" ? "Saisie / Consultation des auto-notes du salarié" : "Évaluation et appréciations hiérarchiques N+1"}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {canEditSalarie && (
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#0284C7", background: "#E0F2FE", padding: "4px 10px" }}>
+                ✓ Mode Saisie Activé (Cliquez sur les tranches ou saisissez vos notes)
+              </span>
+            )}
+            {canEditN1 && (
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#EA580C", background: "#FFEDD5", padding: "4px 10px" }}>
+                ✓ Mode Notation N+1 Activé
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ── BODY SCROLLABLE ── */}
@@ -412,13 +529,13 @@ export function FicheEvaluationModal({
             flexDirection: "column",
             gap: 20
           }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                 <div style={{
                   width: 56,
                   height: 56,
                   borderRadius: 0,
-                  background: "#F0822A",
+                  background: activeTab === "SALARIE" ? "#0284C7" : "#F0822A",
                   color: "#FFFFFF",
                   fontSize: 22,
                   fontWeight: 900,
@@ -430,7 +547,7 @@ export function FicheEvaluationModal({
                   {collabInitials}
                 </div>
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 900, color: "#F0822A", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: activeTab === "SALARIE" ? "#0284C7" : "#F0822A", textTransform: "uppercase", letterSpacing: "0.15em" }}>
                     Fiche du Collaborateur
                   </span>
                   <h3 style={{ fontSize: 22, fontWeight: 900, color: "#000000", margin: "2px 0 0 0", letterSpacing: -0.5 }}>
@@ -467,7 +584,7 @@ export function FicheEvaluationModal({
                   <span style={{ fontSize: 10, fontWeight: 900, color: "#EA580C", textTransform: "uppercase" }}>Supérieur Hiérarchique (N+1)</span>
                   <p style={{ fontSize: 14, fontWeight: 800, color: "#000000", margin: 0 }}>
                     {dossier
-                      ? "—"
+                      ? (dossier.n1 || "Direction")
                       : user?.n1
                         ? `${user.n1.prenom} ${user.n1.nom}${user.n1.poste ? ` (${user.n1.poste})` : ""}`
                         : "Non renseigné"}
@@ -488,7 +605,7 @@ export function FicheEvaluationModal({
 
           {/* SECTION 2 : GRILLE D'OBJECTIFS DE PERFORMANCE */}
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 900, color: "#000000", margin: 0, letterSpacing: -0.4 }}>
                   2. Grille des Objectifs & Barème de Notation {activeTab === "SALARIE" ? "(Auto-évaluation)" : "(Manager N+1)"}
@@ -497,9 +614,33 @@ export function FicheEvaluationModal({
                   Cliquez sur l'une des 4 tranches pour attribuer le niveau d'atteinte et ajustez la note si nécessaire
                 </p>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#F0822A", background: "#FFF7ED", padding: "6px 14px", borderRadius: 0, border: "1px solid #FFEDD5" }}>
-                {objectifs.length} Objectif{objectifs.length > 1 ? "s" : ""} · Total {objectifs.reduce((s, o) => s + (o.ponderation ?? 0), 0)}%
-              </span>
+              
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "#F0822A", background: "#FFF7ED", padding: "6px 14px", borderRadius: 0, border: "1px solid #FFEDD5" }}>
+                  {objectifs.length} Objectif{objectifs.length > 1 ? "s" : ""} · Total {objectifs.reduce((s, o) => s + (o.ponderation ?? 0), 0)}%
+                </span>
+
+                {canEdit && (
+                  <button
+                    onClick={handleSaveEvaluation}
+                    disabled={isSaving}
+                    style={{
+                      padding: "8px 16px",
+                      background: activeTab === "SALARIE" ? "#0284C7" : "#F0822A",
+                      color: "#FFFFFF",
+                      border: "none",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6
+                    }}
+                  >
+                    {isSaving ? "Sauvegarde..." : activeTab === "SALARIE" ? "💾 Enregistrer mon Auto-Évaluation" : "💾 Enregistrer N+1"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {objectifs.length === 0 ? (
@@ -550,14 +691,14 @@ export function FicheEvaluationModal({
                     </div>
                   </div>
 
-                  {/* 4 Tranches d'Indicateurs Stylisées */}
+                  {/* 4 Tranches d'Indicateurs Stylisées Cliquables */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
                     <p style={{ fontSize: 11, fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 2px 0" }}>
-                      Sélectionner la tranche de réalisation :
+                      Sélectionner la tranche de réalisation {activeTab === "SALARIE" ? "(Auto-évaluation)" : "(Note N+1)"} :
                     </p>
 
                     {obj.criteres.map((c, i) => {
-                      const isSelected = currentNote >= c.min && currentNote <= c.max;
+                      const isSelected = currentNote >= c.min && currentNote <= c.max && currentNote > 0;
                       return (
                         <div 
                           key={i} 
@@ -570,7 +711,7 @@ export function FicheEvaluationModal({
                             display: "flex",
                             alignItems: "center",
                             gap: 16,
-                            cursor: readOnly && !isAutoEvaluationMode ? "default" : "pointer",
+                            cursor: canEdit ? "pointer" : "default",
                             transition: "all 0.2s ease",
                             boxShadow: isSelected ? `0 4px 16px ${c.color}22` : "none",
                           }}
@@ -614,7 +755,7 @@ export function FicheEvaluationModal({
                               borderRadius: 0,
                               border: `1px solid ${c.border}`,
                             }}>
-                              ✓ Niveau Validé
+                              ✓ Sélectionné
                             </span>
                           )}
                         </div>
@@ -634,7 +775,7 @@ export function FicheEvaluationModal({
                           min="0"
                           max="20"
                           step="0.5"
-                          disabled={readOnly && !isAutoEvaluationMode}
+                          disabled={!canEdit}
                           value={currentNote}
                           onChange={(e) => handleNoteChange(obj.id, e.target.value)}
                           style={{
@@ -660,7 +801,7 @@ export function FicheEvaluationModal({
                       </label>
                       <textarea
                         rows={2}
-                        disabled={readOnly && !isAutoEvaluationMode}
+                        disabled={!canEdit}
                         value={currentComment}
                         onChange={(e) => handleCommentaireChange(obj.id, e.target.value)}
                         placeholder={activeTab === "SALARIE" ? "Commenter votre réalisation sur cet objectif..." : "Ajouter une appréciation ou justification..."}
@@ -824,7 +965,7 @@ export function FicheEvaluationModal({
               <SignatureBox 
                 step={1}
                 role="Supérieur N+1"
-                nom={user?.n1 ? `${user.n1.prenom} ${user.n1.nom}` : (dossier ? "N+1" : "Non renseigné")}
+                nom={user?.n1 ? `${user.n1.prenom} ${user.n1.nom}` : (dossier?.n1 || "N+1")}
                 signe={false}
                 date="En attente"
                 observation="En attente de l'évaluation N+1."
@@ -844,7 +985,7 @@ export function FicheEvaluationModal({
               <SignatureBox 
                 step={3}
                 role="Supérieur N+2"
-                nom={user?.n2 ? `${user.n2.prenom} ${user.n2.nom}` : "—"}
+                nom={user?.n2 ? `${user.n2.prenom} ${user.n2.nom}` : "Direction N+2"}
                 signe={false}
                 date="En attente"
                 observation="En attente de validation N+1."
@@ -865,7 +1006,7 @@ export function FicheEvaluationModal({
         </div>
 
         {/* ── FOOTER MODAL FLOATING ── */}
-        <div style={{ padding: "20px 36px", background: "#FFFFFF", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ padding: "20px 36px", background: "#FFFFFF", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{
               width: 56,
@@ -887,18 +1028,64 @@ export function FicheEvaluationModal({
                 {activeTab === "SALARIE" ? "Auto-Moyenne Salarié" : "Moyenne N+1 & Taux d'atteinte"}
               </span>
               <p style={{ fontSize: 20, fontWeight: 900, color: "#000000", margin: 0, lineHeight: 1 }}>
-                {noteAffichee.toFixed(2)} / 20 <span style={{ fontSize: 15, color: "#F0822A", fontWeight: 800 }}>({tauxGlobal} %)</span>
+                {noteAffichee.toFixed(2)} / 20 <span style={{ fontSize: 15, color: activeTab === "SALARIE" ? "#0284C7" : "#F0822A", fontWeight: 800 }}>({tauxGlobal} %)</span>
               </p>
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <button
               onClick={onClose}
               style={{ padding: "12px 20px", borderRadius: 0, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#475569", fontWeight: 800, fontSize: 14, cursor: "pointer" }}
             >
               Fermer
             </button>
+
+            {/* BOUTON ENREGISTRER AUTO-ÉVALUATION OU EVALUATION N+1 */}
+            {canEditSalarie ? (
+              <button
+                onClick={handleSaveEvaluation}
+                disabled={isSaving}
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 0,
+                  border: "none",
+                  background: "#0284C7",
+                  color: "#FFFFFF",
+                  fontWeight: 900,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 14px rgba(2, 132, 199, 0.35)",
+                }}
+              >
+                {isSaving ? "Enregistrement en cours..." : "💾 Enregistrer mon Auto-Évaluation"}
+              </button>
+            ) : canEditN1 ? (
+              <button
+                onClick={handleSaveEvaluation}
+                disabled={isSaving}
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 0,
+                  border: "none",
+                  background: "#F0822A",
+                  color: "#FFFFFF",
+                  fontWeight: 900,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 14px rgba(240, 130, 42, 0.35)",
+                }}
+              >
+                {isSaving ? "Enregistrement en cours..." : "💾 Enregistrer l'Évaluation N+1"}
+              </button>
+            ) : null}
+
             <button
               onClick={() => {
                 exportEvaluationToExcel({
@@ -910,7 +1097,7 @@ export function FicheEvaluationModal({
                     site: "Abidjan - AGILLY 1",
                   },
                   n1: {
-                    nom: user?.n1?.nom || "Marc AUBERT",
+                    nom: user?.n1?.nom || dossier?.n1 || "Marc AUBERT",
                     poste: user?.n1?.poste || "Responsable Technique",
                   },
                   objectifs: objectifs.map((o) => ({
@@ -931,7 +1118,7 @@ export function FicheEvaluationModal({
               }}
               style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: "#107C41", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
             >
-              📊 Exporter la Fiche Excel Officielle (.xlsx)
+              📊 Exporter la Fiche Excel (.xlsx)
             </button>
           </div>
         </div>

@@ -89,6 +89,22 @@ export const evaluationsApi = {
   },
 
   /**
+   * PUT /api/evaluations/:id/auto-evaluation
+   * Enregistrement de l'auto-évaluation du salarié.
+   */
+  submitAutoEvaluation: async (
+    id: string,
+    dto: { notes: Array<{ objectifId: string; note: number; commentaire?: string }>; observations?: string }
+  ): Promise<EvaluationCycle> => {
+    try {
+      return await client.put<EvaluationCycle>(`/evaluations/${id}/auto-evaluation`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.submitAutoEvaluation] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
    * PUT /api/n1/evaluations/:id
    * Saisie des notes /20 et commentaires par le Manager N+1.
    * US-07 — FicheEvaluationModal (rôle N1)
