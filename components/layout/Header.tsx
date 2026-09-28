@@ -25,7 +25,7 @@ const ROLES_LIST: { role: Role; label: string; badgeBg: string }[] = [
   { role: "ADMIN", label: "Admin", badgeBg: "bg-slate-100 text-slate-800 border-slate-300" },
 ];
 
-export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 2 }: HeaderProps) {
+export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 0 }: HeaderProps) {
   const { user, switchRole, resetToSsoUser, isSimulated, logout } = useAuth();
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;

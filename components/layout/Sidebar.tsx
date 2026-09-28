@@ -4,9 +4,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { evaluationsApi } from "@/lib/api/evaluations.api";
 
 type NavItem = {
   label: string;
@@ -69,6 +70,42 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
   const pathname = usePathname();
   const normalizedRole = role.toUpperCase();
 
+  const [n1PendingCount, setN1PendingCount] = useState<number | undefined>(undefined);
+  const [rhPendingCount, setRhPendingCount] = useState<number | undefined>(undefined);
+  const [arbitrageCount, setArbitrageCount] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (normalizedRole === "N1" || normalizedRole === "N2") {
+      evaluationsApi
+        .getN1TeamEvaluations()
+        .then((fiches) => {
+          // Seules les fiches en attente réelle de notation N+1 génèrent un badge
+          const pending = (fiches || []).filter(
+            (f) => f.statut === "EVALUATION_N1" || f.statut === "EN_ATTENTE_N1"
+          );
+          setN1PendingCount(pending.length > 0 ? pending.length : undefined);
+        })
+        .catch(() => setN1PendingCount(undefined));
+    } else if (normalizedRole === "RH" || normalizedRole === "DRH") {
+      evaluationsApi
+        .getAllForRh()
+        .then((fiches) => {
+          const pending = (fiches || []).filter(
+            (f) => f.statut === "VALIDATION_DRH" || f.statut === "EN_ATTENTE_RH"
+          );
+          const arbitrages = (fiches || []).filter(
+            (f) => f.statut === "ARBITRAGE"
+          );
+          setRhPendingCount(pending.length > 0 ? pending.length : undefined);
+          setArbitrageCount(arbitrages.length > 0 ? arbitrages.length : undefined);
+        })
+        .catch(() => {
+          setRhPendingCount(undefined);
+          setArbitrageCount(undefined);
+        });
+    }
+  }, [normalizedRole]);
+
   const sections: NavSection[] = [];
 
   // NAVIGATION RH & DRH
@@ -79,8 +116,8 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
         { label: "Vue globale RH", href: "/dashboard/pilotage-rh", iconSvg: NAV_ICONS.dashboard },
         { label: "Base du personnel", href: "/dashboard/personnel", iconSvg: NAV_ICONS.team },
         { label: "Cycles d'évaluation", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
-        { label: "Toutes les évaluations", href: "/dashboard/pilotage-rh/evaluations", iconSvg: NAV_ICONS.evaluations, badge: 3 },
-        { label: "Arbitrages RH", href: "/dashboard/pilotage-rh/arbitrages", iconSvg: NAV_ICONS.arbitrage, badge: 1 },
+        { label: "Toutes les évaluations", href: "/dashboard/pilotage-rh/evaluations", iconSvg: NAV_ICONS.evaluations, badge: rhPendingCount },
+        { label: "Arbitrages RH", href: "/dashboard/pilotage-rh/arbitrages", iconSvg: NAV_ICONS.arbitrage, badge: arbitrageCount },
       ]
     });
   }
@@ -103,7 +140,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
       title: "MON ÉQUIPE",
       items: [
         { label: "Mes collaborateurs", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.team },
-        { label: "Évaluations à valider", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: 2 },
+        { label: "Évaluations à valider", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }

@@ -86,7 +86,7 @@ export function DashboardN1() {
         breadcrumbs={[{ label: "Tableau de bord N+1" }]}
       />
 
-      {/* KPIs */}
+      {/* KPIs Dynamiques */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {stats.map((s) => <StatCard key={s.label} {...s} />)}
       </div>
@@ -103,7 +103,7 @@ export function DashboardN1() {
         <div className="bg-[#F4F7FB]">
           {isLoading ? (
             <div className="divide-y divide-gray-100">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: 2 }).map((_, i) => (
                 <CollaborateurRowSkeleton key={i} />
               ))}
             </div>
@@ -128,7 +128,7 @@ export function DashboardN1() {
                 <AvatarWithName nom={c.nom} prenom={c.prenom} poste={c.poste} role="SALARIE" size="sm" />
 
                 <div className="flex-1 flex items-center justify-between gap-4">
-                  <EvaluationStatusBadge statut={"EN_ATTENTE_N1" as StatutEvaluation} size="sm" />
+                  <EvaluationStatusBadge statut={"FIXATION_OBJECTIFS" as StatutEvaluation} size="sm" />
 
                   <div className="flex items-center gap-4 shrink-0">
                     <div onClick={(e) => { e.stopPropagation(); setSelectedCollab(c.id); }}>
