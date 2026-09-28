@@ -8,11 +8,9 @@ import type { ApiError } from "@/types";
 
 function getBaseUrl(): string {
   if (typeof window !== "undefined") {
-    // Si la page est chargée en HTTPS (ex: https://10.5.6.7:3000), router automatiquement via /api/proxy
-    // pour éviter les erreurs de Mixed Content (HTTPS -> HTTP non chiffré)
-    if (window.location.protocol === "https:") {
-      return "/api/proxy";
-    }
+    // Dans le navigateur, toujours passer par /api/proxy (Next.js rewrite vers le backend)
+    // Cela élimine 100% des erreurs CORS, Mixed Content et blocages réseau
+    return "/api/proxy";
   }
   return process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api";
 }

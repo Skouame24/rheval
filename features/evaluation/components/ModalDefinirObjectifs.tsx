@@ -68,36 +68,45 @@ export function ModalDefinirObjectifs({
     setSuccessMessage(null);
 
     const loadData = async () => {
+      // 1. Si les objectifs sont déjà passés en props (ex: depuis la fiche chargée), les afficher immédiatement !
+      if (objectifs && objectifs.length > 0) {
+        mapAndSetObjectifs(objectifs);
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Sinon, interroger l'API pour ce salarié
       if (salariedId) {
         try {
           setIsLoading(true);
-          const data = await objectivesApi.getBySalarieId(salariedId);
+          // Timeout de sécurité de 3 secondes pour ne jamais bloquer l'UI
+          const timeoutPromise = new Promise<any[]>((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout")), 3000)
+          );
+          const data = await Promise.race([
+            objectivesApi.getBySalarieId(salariedId),
+            timeoutPromise,
+          ]);
+
           if (data && data.length > 0) {
             mapAndSetObjectifs(data);
-          } else if (objectifs && objectifs.length > 0) {
-            mapAndSetObjectifs(objectifs);
           } else {
             initDefaultObjectif();
           }
         } catch (err: any) {
-          console.error("Erreur lors de la récupération des objectifs:", err);
-          if (objectifs && objectifs.length > 0) {
-            mapAndSetObjectifs(objectifs);
-          } else {
-            initDefaultObjectif();
-          }
+          console.warn("Chargement API objectifs dépassé ou échoué, initialisation par défaut:", err);
+          initDefaultObjectif();
         } finally {
           setIsLoading(false);
         }
-      } else if (objectifs && objectifs.length > 0) {
-        mapAndSetObjectifs(objectifs);
       } else {
         initDefaultObjectif();
+        setIsLoading(false);
       }
     };
 
     loadData();
-  }, [isOpen, salariedId, objectifs]);
+  }, [isOpen, salariedId]);
 
   const initDefaultObjectif = () => {
     setObjectifsState([
@@ -149,6 +158,7 @@ export function ModalDefinirObjectifs({
 
   const handleAddObjectif = () => {
     if (!canEdit) return;
+    setIsLoading(false);
     setObjectifsState((prev) => [
       ...prev,
       {
@@ -309,7 +319,7 @@ export function ModalDefinirObjectifs({
 
         {/* Body Scrollable Tailwind Natif */}
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-[#F7F8FA]">
-          {isLoading ? (
+          {isLoading && objectifsState.length === 0 ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-3 border-[#F0822A] border-t-transparent animate-spin rounded-none" />
               <span className="text-xs font-bold text-slate-500">Chargement des objectifs du collaborateur...</span>
