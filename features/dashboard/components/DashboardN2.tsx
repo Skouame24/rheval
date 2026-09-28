@@ -82,7 +82,11 @@ export function DashboardN2() {
         <FicheEvaluationModal
           isOpen={true}
           onClose={() => setSelectedFicheModal(null)}
+          evaluationId={selectedFicheModal.id}
           dossier={{
+            id: selectedFicheModal.id,
+            ficheId: selectedFicheModal.id,
+            salarieId: selectedFicheModal.salarie?.id,
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",

@@ -92,7 +92,10 @@ export function DashboardRH() {
       <FicheEvaluationModal
         isOpen={selectedFicheId !== null}
         onClose={() => setSelectedFicheId(null)}
+        evaluationId={selectedFicheId || undefined}
         dossier={selectedDossier ? {
+          id: selectedFicheId || undefined,
+          ficheId: selectedFicheId || undefined,
           nom: selectedDossier.nom,
           prenom: selectedDossier.prenom,
           poste: selectedDossier.poste,

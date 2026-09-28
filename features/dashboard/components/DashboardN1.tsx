@@ -73,6 +73,8 @@ export function DashboardN1() {
         isOpen={selectedCollab !== null}
         onClose={() => setSelectedCollab(null)}
         dossier={activeCollab ? {
+          id: activeCollab.id,
+          salarieId: activeCollab.id,
           nom: activeCollab.nom,
           prenom: activeCollab.prenom,
           poste: activeCollab.poste,

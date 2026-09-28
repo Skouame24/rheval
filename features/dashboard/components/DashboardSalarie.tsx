@@ -101,40 +101,15 @@ export function DashboardSalarie() {
   const [autoEvalMode, setAutoEvalMode] = useState(false);
   const [visaMode, setVisaMode] = useState(false);
 
-  const { evaluation, isLoading, error } = useCurrentEvaluation();
+  const { evaluation, isLoading, error, refetch } = useCurrentEvaluation();
 
   // ── Résolution des champs affichés depuis les données API ──
   const statut = (evaluation?.statut ?? "EN_ATTENTE_N1") as StatutEvaluation;
   const cycleLibelle = evaluation?.cycle?.libelle ?? "Cycle d'Évaluation Annuelle 2026";
+  const noteAffichee = evaluation?.noteGlobale ? Number(evaluation.noteGlobale) : null;
+  const tauxAtteinte = noteAffichee !== null ? Math.round((noteAffichee / 20) * 100) : null;
   // Stabilise la référence du tableau — évite la boucle infinie dans FicheEvaluationModal
   const objectifs = useMemo(() => evaluation?.objectifs ?? [], [evaluation?.objectifs]);
-
-  const noteN1 = evaluation?.noteGlobale ? Number(evaluation.noteGlobale) : null;
-  // Résolution intelligente de l'auto-note du collaborateur
-  const noteAutoCalculated = useMemo(() => {
-    if (evaluation?.noteAutoEvaluation !== undefined && evaluation.noteAutoEvaluation !== null) {
-      return Number(evaluation.noteAutoEvaluation);
-    }
-    let totalPond = 0;
-    let sumPond = 0;
-    for (const obj of objectifs) {
-      const p = Number(obj.ponderation) || (100 / (objectifs.length || 1));
-      const evalSal = obj.evaluations?.find((e: any) => e.type === "SALARIE" || e.examinateurId === user?.id);
-      const nSal = obj.noteSalarie != null 
-        ? Number(obj.noteSalarie) 
-        : (evalSal?.note != null ? Number(evalSal.note) : null);
-      if (nSal != null) {
-        sumPond += Number(nSal) * (p / 100);
-        totalPond += p;
-      }
-    }
-    return totalPond > 0 ? Number(sumPond.toFixed(2)) : null;
-  }, [evaluation?.noteAutoEvaluation, objectifs, user?.id]);
-
-  const hasAutoEval = noteAutoCalculated !== null && noteAutoCalculated > 0;
-  const noteAffichee = noteN1 !== null ? noteN1 : noteAutoCalculated;
-  const tauxAtteinte = noteAffichee !== null ? Math.round((noteAffichee / 20) * 100) : null;
-
   const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : null; // Temporaire, l'API ne renvoie pas l'évaluateur directement comme avant
   const evaluateurN2 = user?.n2 ? { prenom: user.n2.prenom, nom: user.n2.nom } : null;
 
@@ -230,13 +205,18 @@ export function DashboardSalarie() {
         isAutoEvaluationMode={autoEvalMode}
         isVisaMode={visaMode}
         currentStep={autoEvalMode ? 3 : visaMode ? 5 : 4}
+        evaluationId={evaluation?.id}
         dossier={user ? {
+          id: evaluation?.id,
+          ficheId: evaluation?.id,
+          salarieId: user.id,
           nom: user.nom,
           prenom: user.prenom,
           poste: user.poste || "Collaborateur Agilly",
           direction: user.departement || "Direction Générale",
         } : undefined}
         objectifs={objectifs}
+        onSaved={refetch}
       />
 
       <ModalDefinirObjectifs
@@ -273,16 +253,14 @@ export function DashboardSalarie() {
 
         <button
           onClick={() => openFicheModal({ autoEval: true })}
-          className={`p-4 bg-white border ${hasAutoEval ? "border-emerald-300 hover:border-emerald-400 text-emerald-950" : "border-sky-200 hover:border-sky-400 text-sky-900"} rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left`}
+          className="p-4 bg-white border border-sky-200 hover:border-sky-400 text-sky-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
         >
-          <div className={`w-10 h-10 ${hasAutoEval ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-sky-50 text-sky-600 border-sky-200"} font-extrabold text-lg flex items-center justify-center border shrink-0`}>
-            {hasAutoEval ? "✓" : "✍️"}
+          <div className="w-10 h-10 bg-sky-50 text-sky-600 font-extrabold text-lg flex items-center justify-center border border-sky-200 shrink-0">
+            ✍️
           </div>
           <div>
-            <span className={`text-[10px] font-black ${hasAutoEval ? "text-emerald-600" : "text-sky-600"} uppercase tracking-wider block`}>Étape 03</span>
-            <span className="text-sm font-extrabold block">
-              {hasAutoEval ? `Auto-évaluation Complétée (${noteAutoCalculated?.toFixed(2)}/20)` : "Faire mon Auto-évaluation"}
-            </span>
+            <span className="text-[10px] font-black text-sky-600 uppercase tracking-wider block">Étape 03</span>
+            <span className="text-sm font-extrabold block">Faire mon Auto-évaluation</span>
           </div>
         </button>
       </div>
@@ -324,23 +302,18 @@ export function DashboardSalarie() {
           </div>
 
           {/* Taux Global & Note Provisoire */}
-          <div className={`p-4 md:px-6 md:py-4 rounded-none border flex items-center gap-5 shadow-sm ${hasAutoEval && noteN1 === null ? "bg-[#F0F9FF] border-[#0284C7]/30" : "bg-[#FFF7ED] border-[#F0822A]/30"}`}>
-            <div className={`w-14 h-14 rounded-none ${hasAutoEval && noteN1 === null ? "bg-[#0284C7]" : "bg-[#F0822A]"} text-white flex items-center justify-center text-base font-extrabold shadow-sm shrink-0`}>
+          <div className="bg-[#FFF7ED] p-4 md:px-6 md:py-4 rounded-none border border-[#F0822A]/30 flex items-center gap-5 shadow-sm">
+            <div className="w-14 h-14 rounded-none bg-[#F0822A] text-white flex items-center justify-center text-base font-extrabold shadow-sm shrink-0">
               {tauxAtteinte !== null ? `${tauxAtteinte}%` : "—"}
             </div>
             <div>
-              <span className={`text-[10px] font-extrabold ${hasAutoEval && noteN1 === null ? "text-[#0284C7]" : "text-[#F0822A]"} uppercase tracking-widest`}>
-                {noteN1 !== null ? "NOTE FINALE N+1" : hasAutoEval ? "AUTO-NOTE COLLABORATEUR" : "NOTE GLOBALE PONDÉRÉE"}
+              <span className="text-[10px] font-extrabold text-[#F0822A] uppercase tracking-widest">
+                NOTE GLOBALE PONDÉRÉE
               </span>
               <p className="text-3xl font-extrabold text-slate-900 m-0 leading-none tracking-tight">
                 {noteAffichee !== null ? noteAffichee.toFixed(2) : "—"}{" "}
                 <span className="text-sm font-bold text-slate-400">/ 20</span>
               </p>
-              {hasAutoEval && noteN1 === null && (
-                <span className="text-[11px] font-bold text-emerald-700 block mt-1">
-                  ✓ Auto-évaluation enregistrée · Transmise à votre Manager N+1
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -393,66 +366,39 @@ export function DashboardSalarie() {
             </div>
           )}
 
-          {objectifs.map((obj: any, i: number) => {
-            const pond = obj.ponderation ?? (i === 0 ? 50 : 25);
-            const evalSal = obj.evaluations?.find((e: any) => e.type === "SALARIE" || e.examinateurId === user?.id);
-            const nSal = obj.noteSalarie != null 
-              ? Number(obj.noteSalarie) 
-              : (evalSal?.note != null ? Number(evalSal.note) : null);
-            const nN1 = obj.noteObtenue != null 
-              ? Number(obj.noteObtenue) 
-              : (obj.noteGlobale != null ? Number(obj.noteGlobale) : null);
-
-            return (
-              <div
-                key={obj.id}
-                className="bg-slate-50 p-5 rounded-none border border-slate-200 hover:border-slate-300 transition-all flex flex-wrap justify-between items-center gap-5"
-              >
-                <div className="flex-1 min-w-[260px]">
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="text-[10px] font-extrabold text-[#F0822A] bg-[#FFF7ED] px-3 py-0.5 rounded-none border border-[#F0822A]/30 uppercase">
-                      OBJECTIF {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">
-                      Pondération :{" "}
-                      <strong className="text-slate-900">{pond}%</strong>
-                    </span>
-                    {nSal !== null && (
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 border border-emerald-200">
-                        ✓ Auto-évalué : {nSal}/20
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-base font-extrabold text-slate-900 m-0 leading-snug">
-                    {obj.intitule ?? "Objectif"}
-                  </h4>
+          {objectifs.map((obj: any, i: number) => (
+            <div
+              key={obj.id}
+              className="bg-slate-50 p-5 rounded-none border border-slate-200 hover:border-slate-300 transition-all flex flex-wrap justify-between items-center gap-5"
+            >
+              <div className="flex-1 min-w-[260px]">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[10px] font-extrabold text-[#F0822A] bg-[#FFF7ED] px-3 py-0.5 rounded-none border border-[#F0822A]/30 uppercase">
+                    OBJECTIF {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500">
+                    Pondération :{" "}
+                    <strong className="text-slate-900">
+                      — %
+                    </strong>
+                  </span>
                 </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  {nSal !== null && (
-                    <div className="bg-sky-50 p-3 md:px-4 md:py-2 rounded-none border border-sky-200 text-right shadow-sm">
-                      <span className="text-[9px] font-extrabold text-sky-700 uppercase tracking-wider block mb-0.5">
-                        Auto-Note Salarié
-                      </span>
-                      <p className="text-lg font-extrabold text-sky-800 m-0">
-                        {nSal} <span className="text-xs font-bold text-slate-400">/ 20</span>
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="bg-white p-3 md:px-5 md:py-3 rounded-none border border-slate-200 text-right shadow-sm">
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Note N+1
-                    </span>
-                    <p className="text-xl font-extrabold text-[#F0822A] m-0">
-                      {nN1 ?? "—"}{" "}
-                      <span className="text-xs font-bold text-slate-400">/ 20</span>
-                    </p>
-                  </div>
-                </div>
+                <h4 className="text-base font-extrabold text-slate-900 m-0 leading-snug">
+                  {obj.intitule ?? "Objectif"}
+                </h4>
               </div>
-            );
-          })}
+
+              <div className="bg-white p-3 md:px-5 md:py-3 rounded-none border border-slate-200 text-right shrink-0 shadow-sm">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-0.5">
+                  Note Globale
+                </span>
+                <p className="text-xl font-extrabold text-[#F0822A] m-0">
+                  {obj.noteGlobale ?? "—"}{" "}
+                  <span className="text-xs font-bold text-slate-400">/ 20</span>
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </Card>
     </div>

@@ -154,13 +154,18 @@ export default function EvaluationsN1Page() {
               loadEvaluations();
             }}
             readOnly={selectedFicheModal.statut === "FIXATION_OBJECTIFS"}
+            evaluationId={selectedFicheModal.id}
             dossier={{
+              id: selectedFicheModal.id,
+              ficheId: selectedFicheModal.id,
+              salarieId: selectedFicheModal.salarie?.id,
               nom: selectedFicheModal.salarie?.nom || "",
               prenom: selectedFicheModal.salarie?.prenom || "",
               poste: selectedFicheModal.salarie?.poste || "",
               direction: (selectedFicheModal.salarie as any)?.departement || "",
             }}
             objectifs={selectedFicheModal.objectifs}
+            onSaved={loadEvaluations}
           />
         )}
 

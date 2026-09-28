@@ -77,8 +77,25 @@ export function FicheEvaluationModal({
 
   const isSalarie = role === "SALARIE";
 
-  // Identifiant de la fiche d'évaluation
-  const resolvedFicheId = evaluationId || dossier?.id || (dossier as any)?.ficheId || "";
+  const effectiveObjectifs = (apiObjectifs && apiObjectifs.length > 0) ? apiObjectifs : (fetchedEval?.objectifs ?? []);
+  const effectiveDossier = dossier || (fetchedEval?.salarie ? {
+    id: fetchedEval.salarie.id,
+    ficheId: fetchedEval.id,
+    nom: fetchedEval.salarie.nom,
+    prenom: fetchedEval.salarie.prenom,
+    poste: fetchedEval.salarie.poste,
+    direction: (fetchedEval.salarie as any)?.direction,
+  } : null);
+
+  // Identifiant de la fiche d'évaluation résolu avec plusieurs fallbacks de sécurité
+  const resolvedFicheId =
+    evaluationId ||
+    (dossier as any)?.ficheId ||
+    (dossier as any)?.evaluationId ||
+    (effectiveObjectifs?.[0] as any)?.ficheId ||
+    fetchedEval?.id ||
+    dossier?.id ||
+    "";
 
   // Détermination des droits d'édition
   // Sur l'onglet SALARIE : le collaborateur peut s'auto-évaluer s'il est salarié ou en mode auto-évaluation
@@ -97,15 +114,6 @@ export function FicheEvaluationModal({
       setFetchedEval(null);
     }
   }, [isOpen, resolvedFicheId, apiObjectifs]);
-
-  const effectiveObjectifs = (apiObjectifs && apiObjectifs.length > 0) ? apiObjectifs : (fetchedEval?.objectifs ?? []);
-  const effectiveDossier = dossier || (fetchedEval?.salarie ? {
-    id: fetchedEval.salarie.id,
-    nom: fetchedEval.salarie.nom,
-    prenom: fetchedEval.salarie.prenom,
-    poste: fetchedEval.salarie.poste,
-    direction: (fetchedEval.salarie as any)?.direction,
-  } : null);
 
   // Clé stable basée sur le contenu réel (IDs) — immune aux références instables
   const apiObjectifsKey = effectiveObjectifs?.map((o: any) => o.id).join(",") ?? "";
@@ -127,6 +135,8 @@ export function FicheEvaluationModal({
     }
 
     const salarieId = effectiveDossier?.id || (effectiveDossier as any)?.salarieId || (effectiveDossier as any)?.userId || user?.id;
+    const count = effectiveObjectifs.length || 1;
+    const defaultPond = Math.round(100 / count);
 
     setObjectifs(effectiveObjectifs.map((obj: any, idx: number) => {
       // Résolution intelligente des évaluations passées
@@ -150,11 +160,15 @@ export function FicheEvaluationModal({
 
       const commentN1 = obj.commentaire || evalN1.observation || "";
 
+      const rawPond = Number(obj.ponderation);
+      const finalPond = (Number.isFinite(rawPond) && rawPond > 0) ? rawPond : defaultPond;
+
       return {
         id: obj.id,
+        ficheId: obj.ficheId || resolvedFicheId,
         numero: idx + 1,
         intitule: obj.intitule,
-        ponderation: obj.ponderation ?? (idx === 0 ? 50 : 25),
+        ponderation: finalPond,
         noteSalarie: noteSal,
         commentaireSalarie: commentSal,
         noteObtenue: noteN1,
@@ -222,15 +236,24 @@ export function FicheEvaluationModal({
 
   if (!isOpen) return null;
 
-  // Calcul dynamique de la Note Globale Pondérée N+1
-  const noteGlobaleN1 = objectifs.reduce((acc, obj) => {
-    return acc + (obj.noteObtenue * (obj.ponderation / 100));
-  }, 0);
+  // Calcul dynamique de la Note Globale Pondérée N+1 et Salarié avec fallback division-par-zéro
+  const totalPond = objectifs.reduce((acc, o) => acc + (Number(o.ponderation) || 0), 0);
 
-  // Calcul dynamique de l'Auto-Note Globale Pondérée Salarié
-  const noteGlobaleSalarie = objectifs.reduce((acc, obj) => {
-    return acc + (obj.noteSalarie * (obj.ponderation / 100));
-  }, 0);
+  const noteGlobaleN1 = totalPond > 0
+    ? objectifs.reduce((acc, obj) => {
+        return acc + (Number(obj.noteObtenue || 0) * (Number(obj.ponderation || 0) / 100));
+      }, 0)
+    : (objectifs.length > 0
+        ? objectifs.reduce((acc, obj) => acc + Number(obj.noteObtenue || 0), 0) / objectifs.length
+        : 0);
+
+  const noteGlobaleSalarie = totalPond > 0
+    ? objectifs.reduce((acc, obj) => {
+        return acc + (Number(obj.noteSalarie || 0) * (Number(obj.ponderation || 0) / 100));
+      }, 0)
+    : (objectifs.length > 0
+        ? objectifs.reduce((acc, obj) => acc + Number(obj.noteSalarie || 0), 0) / objectifs.length
+        : 0);
 
   const noteAffichee = activeTab === "SALARIE" ? noteGlobaleSalarie : noteGlobaleN1;
   const tauxGlobal = ((noteAffichee / 20) * 100).toFixed(1);
@@ -312,7 +335,13 @@ export function FicheEvaluationModal({
   };
 
   const handleSaveEvaluation = async () => {
-    if (!resolvedFicheId) {
+    const targetFicheId =
+      resolvedFicheId ||
+      fetchedEval?.id ||
+      (objectifs?.[0] as any)?.ficheId ||
+      (effectiveObjectifs?.[0] as any)?.ficheId;
+
+    if (!targetFicheId) {
       alert("⚠️ Aucune fiche d'évaluation associée n'a été trouvée pour enregistrer.");
       return;
     }
@@ -320,7 +349,7 @@ export function FicheEvaluationModal({
     setSaveSuccessMsg(null);
     try {
       if (activeTab === "SALARIE") {
-        await evaluationsApi.submitAutoEvaluation(resolvedFicheId, {
+        await evaluationsApi.submitAutoEvaluation(targetFicheId, {
           notes: objectifs.map((o) => ({
             objectifId: o.id,
             note: o.noteSalarie,
@@ -330,11 +359,12 @@ export function FicheEvaluationModal({
         });
         setSaveSuccessMsg("✓ Votre auto-évaluation a été enregistrée avec succès dans la base de données !");
       } else {
-        await evaluationsApi.submitNotesN1(resolvedFicheId, {
-          evaluationCycleId: resolvedFicheId,
+        await evaluationsApi.submitNotesN1(targetFicheId, {
+          evaluationCycleId: targetFicheId,
           notes: objectifs.map((o) => ({
             objectifId: o.id,
             note: o.noteObtenue,
+            commentaire: o.commentaire,
           })),
           observations: "",
         });
@@ -354,12 +384,18 @@ export function FicheEvaluationModal({
       alert("Veuillez sélectionner soit 'Accord (OK)', soit 'Désaccord (NON OK)'.");
       return;
     }
-    if (!resolvedFicheId) {
+    const targetFicheId =
+      resolvedFicheId ||
+      fetchedEval?.id ||
+      (objectifs?.[0] as any)?.ficheId ||
+      (effectiveObjectifs?.[0] as any)?.ficheId;
+
+    if (!targetFicheId) {
       alert("⚠️ Aucune fiche d'évaluation trouvée pour apposer votre visa.");
       return;
     }
     try {
-      await evaluationsApi.signSalarie(resolvedFicheId, {
+      await evaluationsApi.signSalarie(targetFicheId, {
         observation: visaSalarieObservation || (visaSalarieAccord ? "Accord du salarié sur l'évaluation N+1" : "Désaccord du salarié sur l'évaluation N+1"),
       });
       setVisaSalarieSubmitted(true);
@@ -370,8 +406,8 @@ export function FicheEvaluationModal({
       );
       if (onSaved) onSaved();
     } catch (err: any) {
-      console.error("[FicheEvaluationModal] handleSubmitVisa error:", err);
-      alert("Erreur lors de l'enregistrement du visa : " + (err.message || "Erreur serveur"));
+      console.error("[FicheEvaluationModal] Sign error:", err);
+      alert("Erreur lors de la signature : " + (err.message || "Erreur serveur"));
     }
   };
 
