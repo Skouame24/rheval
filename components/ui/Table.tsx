@@ -56,14 +56,15 @@ export function Table<T>({
         {/* Body */}
         <tbody>
           {loading ? (
-            <tr>
-              <td colSpan={columns.length} className="py-16 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <Spinner size="lg" />
-                  <span className="text-sm" style={{ color: "var(--neutral-400)" }}>Chargement...</span>
-                </div>
-              </td>
-            </tr>
+            Array.from({ length: 5 }).map((_, r) => (
+              <tr key={r} className="border-b border-gray-100">
+                {columns.map((col, c) => (
+                  <td key={String(col.key || c)} className="py-4 px-4">
+                    <div className="h-4 bg-slate-200/80 animate-shimmer rounded-none w-3/4" />
+                  </td>
+                ))}
+              </tr>
+            ))
           ) : data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="py-16 text-center">

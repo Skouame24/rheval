@@ -5,7 +5,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Card, CardHeader, Button } from "@/components/ui";
+import { Card, CardHeader, Button, PageHeaderSkeleton, StatCardSkeleton, Skeleton } from "@/components/ui";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { STATUT_FLOW, STATUT_METADATA } from "@/lib/constants/statuts";
@@ -121,10 +121,46 @@ export function DashboardSalarie() {
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 320 }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: 40, height: 40, border: "4px solid #F0822A", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-          <p style={{ color: "#64748b", fontSize: 14, fontWeight: 600 }}>Chargement de votre évaluation…</p>
+      <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full animate-fade-in">
+        <PageHeaderSkeleton />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+        <Card padding="lg">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <Skeleton className="h-6 w-56" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+            <div className="flex items-center justify-between gap-4 py-4 px-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-2 flex-1">
+                  <Skeleton className="w-8 h-8" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card padding="lg">
+              <Skeleton className="h-6 w-48 mb-4" />
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            </Card>
+          </div>
+          <div>
+            <Card padding="lg">
+              <Skeleton className="h-6 w-36 mb-4" />
+              <Skeleton className="h-24 w-full" />
+            </Card>
+          </div>
         </div>
       </div>
     );

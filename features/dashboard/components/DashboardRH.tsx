@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
-import { Card, CardHeader, ProgressBar, AvatarWithName, Badge, Button } from "@/components/ui";
+import { Card, CardHeader, ProgressBar, AvatarWithName, Badge, Button, StatCardsGridSkeleton, Skeleton } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatDateCourte } from "@/lib/utils/formatDate";
 import { formatNote, formatTaux } from "@/lib/utils/formatNote";
@@ -114,11 +114,15 @@ export function DashboardRH() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        {dynamicStats.map((s) => (
-          <StatCard key={s.label} {...s} />
-        ))}
-      </div>
+      {isLoading ? (
+        <StatCardsGridSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          {dynamicStats.map((s) => (
+            <StatCard key={s.label} {...s} />
+          ))}
+        </div>
+      )}
 
       {/* Ligne 2 — Pipeline + Évaluations récentes */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -126,27 +130,39 @@ export function DashboardRH() {
         <Card className="xl:col-span-1" padding="md">
           <CardHeader title="Pipeline des évaluations" subtitle="Cycle 2026" icon={<ChartBarIcon size={20} className="text-agilly-primary" />} />
           <div className="flex flex-col gap-4 mt-6">
-            {pipeline.map((p) => (
-              <div key={p.label} className="flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="flex justify-between mb-1.5">
-                    <span className="text-[11px] font-bold text-agilly-gray uppercase tracking-wider">
-                      {p.label}
-                    </span>
-                    <span className="text-xs font-bold text-agilly-black">
-                      {p.count}
-                    </span>
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-3 w-8" />
                   </div>
-                  <ProgressBar
-                    value={stats?.totalSalaries ? (p.count / stats.totalSalaries) * 100 : 0}
-                    size="sm"
-                    colorAuto={false}
-                    color={p.color}
-                    animated
-                  />
+                  <Skeleton className="h-2 w-full" />
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              pipeline.map((p) => (
+                <div key={p.label} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex justify-between mb-1.5">
+                      <span className="text-[11px] font-bold text-agilly-gray uppercase tracking-wider">
+                        {p.label}
+                      </span>
+                      <span className="text-xs font-bold text-agilly-black">
+                        {p.count}
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={stats?.totalSalaries ? (p.count / stats.totalSalaries) * 100 : 0}
+                      size="sm"
+                      colorAuto={false}
+                      color={p.color}
+                      animated
+                    />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
 
@@ -159,8 +175,22 @@ export function DashboardRH() {
 
           <div className="bg-[#F4F7FB]">
             {isLoading ? (
-              <div className="p-10 text-center text-gray-500 font-semibold animate-pulse">
-                Chargement des données...
+              <div className="divide-y divide-gray-100">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="px-5 py-4 flex items-center justify-between gap-4 bg-white">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-9 h-9" />
+                      <div>
+                        <Skeleton className="h-4 w-36 mb-1.5" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-6 w-28" />
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : evaluations.length === 0 ? (
               <div className="p-10 text-center">

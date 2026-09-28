@@ -3,20 +3,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 import { useRouter } from "next/navigation";
+import PortailLoading from "./loading";
 
 export default function PortailPage() {
   const { user, role, isLoading, logout } = useAuth();
   const router = useRouter();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#F0822A] border-t-transparent animate-spin rounded-none" />
-          <p className="text-sm font-bold text-slate-600">Chargement de votre session Microsoft Entra ID...</p>
-        </div>
-      </div>
-    );
+    return <PortailLoading />;
   }
 
   // Sécurité si non connecté

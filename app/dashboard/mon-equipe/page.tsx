@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardHeader } from "@/components/ui";
+import { Card, CardHeader, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { useMyTeam } from "@/lib/hooks/useTeam";
 import type { User } from "@/types";
@@ -34,23 +34,24 @@ export default function CollaborateursN1Page() {
           />
         )}
 
-        {isLoading && (
-          <div style={{ textAlign: "center", padding: 48 }}>
-            <div style={{ width: 36, height: 36, border: "4px solid #F0822A", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-            <p style={{ color: "#64748b", fontSize: 14 }}>Chargement de l'équipe…</p>
-          </div>
-        )}
-        {error && (
-          <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 16 }}>
-            <p style={{ color: "#B91C1C", fontWeight: 700, margin: 0 }}>⚠️ {error}</p>
-          </div>
-        )}
+        {isLoading ? (
+          <>
+            <PageHeaderSkeleton />
+            <CollaborateursListSkeleton count={4} />
+          </>
+        ) : (
+          <>
+            {error && (
+              <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 16 }}>
+                <p style={{ color: "#B91C1C", fontWeight: 700, margin: 0 }}>⚠️ {error}</p>
+              </div>
+            )}
 
-        <PageHeader
-          title="Mes Collaborateurs Directs"
-          subtitle="Définissez et gérez les objectifs de performance de votre équipe"
-          breadcrumbs={[{ label: "Espace N+1" }, { label: "Collaborateurs" }]}
-        />
+            <PageHeader
+              title="Mes Collaborateurs Directs"
+              subtitle="Définissez et gérez les objectifs de performance de votre équipe"
+              breadcrumbs={[{ label: "Espace N+1" }, { label: "Collaborateurs" }]}
+            />
 
         <Card padding="lg">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
@@ -111,6 +112,8 @@ export default function CollaborateursN1Page() {
             ))}
           </div>
         </Card>
+          </>
+        )}
       </div>
     </AppShell>
   );

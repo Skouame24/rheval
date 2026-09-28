@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
-import { Card, CardHeader, AvatarWithName, ProgressBar, Button } from "@/components/ui";
+import { Card, CardHeader, AvatarWithName, ProgressBar, Button, CollaborateurRowSkeleton } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatDateRelative } from "@/lib/utils/formatDate";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
@@ -76,8 +76,10 @@ export function DashboardN1() {
 
         <div className="bg-[#F4F7FB]">
           {isLoading ? (
-            <div className="p-10 text-center text-gray-500 font-semibold animate-pulse">
-              Chargement des collaborateurs...
+            <div className="divide-y divide-gray-100">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <CollaborateurRowSkeleton key={i} />
+              ))}
             </div>
           ) : collaborateurs.length === 0 ? (
             <div className="p-10 text-center">

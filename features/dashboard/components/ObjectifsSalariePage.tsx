@@ -4,17 +4,17 @@
 
 "use client";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardHeader, Button } from "@/components/ui";
+import { Card, CardHeader, Button, ObjectifsPageSkeleton } from "@/components/ui";
 import { TargetIcon, ClockIcon, DownloadIcon } from "@/components/ui/Icons";
 import { useCurrentEvaluation } from "@/lib/hooks/useEvaluation";
-
-
 
 export function ObjectifsSalariePage() {
   const { evaluation, isLoading } = useCurrentEvaluation();
   const objectifs = evaluation?.objectifs || [];
 
-  if (isLoading) return <div>Chargement de vos objectifs...</div>;
+  if (isLoading) {
+    return <ObjectifsPageSkeleton count={3} />;
+  }
   return (
     <div className="flex flex-col gap-8 pb-10 max-w-[1200px] mx-auto w-full">
       <PageHeader

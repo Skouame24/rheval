@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card } from "@/components/ui";
+import { Card, Skeleton } from "@/components/ui";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalArbitrageRH } from "@/features/evaluation/components/ModalArbitrageRH";
 import { ScaleIcon, CheckCircleIcon } from "@/components/ui/Icons";
@@ -50,9 +50,23 @@ export default function RhArbitragesPage() {
 
         {/* Loading / Error states */}
         {isLoading && (
-          <div style={{ textAlign: "center", padding: 48 }}>
-            <div style={{ width: 36, height: 36, border: "4px solid #F0822A", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-            <p style={{ color: "#64748b", fontSize: 14 }}>Chargement des arbitrages…</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 20 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} padding="lg">
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Skeleton className="w-11 h-11" />
+                    <div>
+                      <Skeleton className="h-4 w-32 mb-2" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-6 w-24" />
+                </div>
+                <Skeleton className="h-16 w-full mb-4" />
+                <Skeleton className="h-9 w-full" />
+              </Card>
+            ))}
           </div>
         )}
         {error && <div style={{ background: "#FEF2F2", padding: 16, borderRadius: 8 }}><p style={{ color: "#B91C1C", margin: 0 }}>⚠️ {error}</p></div>}

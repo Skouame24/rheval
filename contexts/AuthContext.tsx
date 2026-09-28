@@ -8,6 +8,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
+import { client } from "@/lib/api/client";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -167,11 +168,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Synchronisation immédiate avec la base de données PostgreSQL
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api";
-      fetch(`${apiUrl}/auth/sync-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      client
+        .post("/auth/sync-session", {
           id_microsoft: realUser.id,
           nom: realUser.nom,
           prenom: realUser.prenom,
@@ -181,10 +179,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           telephone: realUser.telephone,
           role: realUser.role,
           managerId: u.manager?.id || undefined,
-        }),
-      })
-        .then(async (res) => {
-          const syncRes = await res.json().catch(() => null);
+        })
+        .then((syncRes) => {
           console.log("🔄 [AuthContext] Réponse sync-session backend :", syncRes);
         })
         .catch((err) => console.warn("[AuthContext] Erreur synchronisation session en base:", err));

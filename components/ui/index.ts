@@ -29,3 +29,19 @@ export { Avatar, AvatarWithName } from "./Avatar";
 export { Spinner } from "./Spinner";
 
 export { ProgressBar, CircularProgress } from "./ProgressBar";
+
+export {
+  Skeleton,
+  SkeletonText,
+  PageHeaderSkeleton,
+  StatCardSkeleton,
+  StatCardsGridSkeleton,
+  CollaborateurRowSkeleton,
+  CollaborateursListSkeleton,
+  ObjectiveCardSkeleton,
+  ObjectifsPageSkeleton,
+  TableSkeleton,
+  ProfileSkeleton,
+  HistoriqueSkeleton,
+  BrandSpinner,
+} from "./Skeleton";

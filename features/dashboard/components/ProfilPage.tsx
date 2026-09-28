@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, ProfileSkeleton } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
 import { employeesApi } from "@/lib/api/employees.api";
 import type { User } from "@/types";
@@ -78,14 +78,7 @@ export function ProfilPage({ role }: { role: string }) {
   } as User) : null;
 
   if (!ssoUser || isLoadingProfile) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-3 text-gray-400">
-          <div className="w-8 h-8 border-2 border-agilly-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-medium">Chargement du profil...</span>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!user) return null;

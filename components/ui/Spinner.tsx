@@ -3,18 +3,20 @@
 // ============================================================
 
 interface SpinnerProps {
-  size?: "sm" | "md" | "lg";
-  color?: "white" | "dark" | "brand";
+  size?: "sm" | "md" | "lg" | "xl";
+  color?: "white" | "dark" | "brand" | "primary" | "orange";
 }
 
-const sizeMap = { sm: 14, md: 20, lg: 28 };
+const sizeMap = { sm: 14, md: 20, lg: 28, xl: 36 };
 const colorMap = {
   white: "#ffffff",
-  dark: "var(--neutral-700)",
-  brand: "var(--agilly-blue-600)",
+  dark: "#0F172A",
+  brand: "#F0822A",
+  primary: "#F0822A",
+  orange: "#F0822A",
 };
 
-export function Spinner({ size = "md", color = "brand" }: SpinnerProps) {
+export function Spinner({ size = "md", color = "primary" }: SpinnerProps) {
   const s = sizeMap[size];
   const c = colorMap[color];
 

@@ -6,7 +6,16 @@
 
 import type { ApiError } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api";
+function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    // Si la page est chargée en HTTPS (ex: https://10.5.6.7:3000), router automatiquement via /api/proxy
+    // pour éviter les erreurs de Mixed Content (HTTPS -> HTTP non chiffré)
+    if (window.location.protocol === "https:") {
+      return "/api/proxy";
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api";
+}
 
 // ─── Classe d'erreur API ────────────────────────────────────
 
@@ -83,7 +92,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export const client = {
   get: async <T>(endpoint: string): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${getBaseUrl()}${endpoint}`, {
       method: "GET",
       headers: getHeaders(),
     });
@@ -91,7 +100,7 @@ export const client = {
   },
 
   post: async <T>(endpoint: string, body: unknown): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${getBaseUrl()}${endpoint}`, {
       method: "POST",
       headers: getHeaders(true),
       body: JSON.stringify(body),
@@ -100,7 +109,7 @@ export const client = {
   },
 
   put: async <T>(endpoint: string, body?: unknown): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${getBaseUrl()}${endpoint}`, {
       method: "PUT",
       headers: getHeaders(!!body),
       body: body ? JSON.stringify(body) : undefined,
@@ -109,7 +118,7 @@ export const client = {
   },
 
   patch: async <T>(endpoint: string, body: unknown): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${getBaseUrl()}${endpoint}`, {
       method: "PATCH",
       headers: getHeaders(true),
       body: JSON.stringify(body),
@@ -118,7 +127,7 @@ export const client = {
   },
 
   delete: async <T>(endpoint: string): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${getBaseUrl()}${endpoint}`, {
       method: "DELETE",
       headers: getHeaders(),
     });
@@ -127,7 +136,7 @@ export const client = {
 
   // Téléchargement de fichier (ex: export Excel)
   download: async (endpoint: string, filename: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${getBaseUrl()}${endpoint}`, {
       method: "GET",
       headers: getHeaders(),
     });

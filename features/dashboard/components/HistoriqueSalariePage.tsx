@@ -5,7 +5,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardHeader, Button } from "@/components/ui";
+import { Card, CardHeader, Button, HistoriqueSkeleton } from "@/components/ui";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { CalendarIcon, EyeIcon, ChartBarIcon } from "@/components/ui/Icons";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
@@ -17,6 +17,10 @@ export function HistoriqueSalariePage() {
   const [selectedEvalId, setSelectedEvalId] = useState<string | null>(null);
 
   const { history, isLoading, error } = useEvaluationHistory();
+
+  if (isLoading) {
+    return <HistoriqueSkeleton count={3} />;
+  }
 
   // Années disponibles issues des données réelles
   const anneesDisponibles = useMemo(() => {
@@ -76,15 +80,6 @@ export function HistoriqueSalariePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Liste */}
         <div className="md:col-span-2 flex flex-col gap-4">
-
-          {/* État chargement */}
-          {isLoading && (
-            <div className="flex flex-col gap-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-28 bg-gray-100 border border-gray-200 animate-pulse rounded" />
-              ))}
-            </div>
-          )}
 
           {/* État erreur */}
           {!isLoading && error && (
