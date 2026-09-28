@@ -23,6 +23,7 @@ export interface SignResponse {
 }
 
 export interface HistoriqueItem {
+  id?: string;
   annee: number;
   libelle: string;
   note: number;
@@ -56,6 +57,21 @@ export const evaluationsApi = {
   },
 
   /**
+   * GET /api/evaluations/:id
+   * Récupère le détail d'une évaluation spécifique.
+   */
+  getById: async (id: string): Promise<EvaluationCycle | null> => {
+    try {
+      const res = await client.get<EvaluationCycle>(`/evaluations/${id}`);
+      if (res) return res;
+      return null;
+    } catch (err) {
+      console.error("[evaluationsApi.getById] Backend error:", err);
+      return null;
+    }
+  },
+
+  /**
    * GET /api/evaluations/me/history?annee=&statut=
    * Récupère l'historique des évaluations du salarié connecté.
    * US-03 — HistoriqueSalariePage
@@ -66,11 +82,11 @@ export const evaluationsApi = {
       if (filters?.annee) params.set("annee", String(filters.annee));
       if (filters?.statut) params.set("statut", filters.statut);
       const res = await client.get<HistoriqueItem[]>(`/evaluations/me/history?${params}`);
-      if (res && res.length > 0) return res;
+      if (res && Array.isArray(res)) return res;
       return [];
     } catch (err) {
       console.error("[evaluationsApi.getMyHistory] Backend error:", err);
-      throw err;
+      return [];
     }
   },
 

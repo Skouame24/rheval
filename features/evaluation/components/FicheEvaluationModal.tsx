@@ -73,6 +73,7 @@ export function FicheEvaluationModal({
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [fetchedEval, setFetchedEval] = useState<any | null>(null);
 
   const isSalarie = role === "SALARIE";
 
@@ -86,8 +87,28 @@ export function FicheEvaluationModal({
   const canEditN1 = activeTab === "N1" && (role === "N1" || role === "ADMIN" || role === "RH" || (!readOnly && !isSalarie));
   const canEdit = activeTab === "SALARIE" ? canEditSalarie : canEditN1;
 
+  // Récupération automatique si seule l'ID est fournie
+  useEffect(() => {
+    if (isOpen && resolvedFicheId && (!apiObjectifs || apiObjectifs.length === 0)) {
+      evaluationsApi.getById(resolvedFicheId).then((data) => {
+        if (data) setFetchedEval(data);
+      });
+    } else if (!isOpen) {
+      setFetchedEval(null);
+    }
+  }, [isOpen, resolvedFicheId, apiObjectifs]);
+
+  const effectiveObjectifs = (apiObjectifs && apiObjectifs.length > 0) ? apiObjectifs : (fetchedEval?.objectifs ?? []);
+  const effectiveDossier = dossier || (fetchedEval?.salarie ? {
+    id: fetchedEval.salarie.id,
+    nom: fetchedEval.salarie.nom,
+    prenom: fetchedEval.salarie.prenom,
+    poste: fetchedEval.salarie.poste,
+    direction: (fetchedEval.salarie as any)?.direction,
+  } : null);
+
   // Clé stable basée sur le contenu réel (IDs) — immune aux références instables
-  const apiObjectifsKey = apiObjectifs?.map((o: any) => o.id).join(",") ?? "";
+  const apiObjectifsKey = effectiveObjectifs?.map((o: any) => o.id).join(",") ?? "";
 
   // Initialisation de l'onglet par défaut
   useEffect(() => {
@@ -99,15 +120,15 @@ export function FicheEvaluationModal({
   }, [isAutoEvaluationMode, isSalarie, isOpen]);
 
   useEffect(() => {
-    // Guard: si apiObjectifs est vide on réinitialise
-    if (!apiObjectifs || apiObjectifs.length === 0) {
+    // Guard: si aucun objectif on réinitialise
+    if (!effectiveObjectifs || effectiveObjectifs.length === 0) {
       setObjectifs(INITIAL_OBJECTIFS);
       return;
     }
 
-    const salarieId = dossier?.id || (dossier as any)?.salarieId || (dossier as any)?.userId || user?.id;
+    const salarieId = effectiveDossier?.id || (effectiveDossier as any)?.salarieId || (effectiveDossier as any)?.userId || user?.id;
 
-    setObjectifs(apiObjectifs.map((obj: any, idx: number) => {
+    setObjectifs(effectiveObjectifs.map((obj: any, idx: number) => {
       // Résolution intelligente des évaluations passées
       const evalSalarie = obj.evaluations?.find((e: any) => 
         (salarieId && e.examinateurId === salarieId) || e.type === "SALARIE"
@@ -188,11 +209,11 @@ export function FicheEvaluationModal({
       };
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiObjectifsKey, dossier?.id, user?.id]);
+  }, [apiObjectifsKey, effectiveDossier?.id, user?.id]);
 
-  const collabNom = dossier ? `${dossier.prenom} ${dossier.nom}` : (user ? `${user.prenom} ${user.nom}` : "Collaborateur Agilly");
-  const collabInitials = dossier ? `${dossier.prenom.charAt(0)}${dossier.nom.charAt(0)}` : (user ? `${user.prenom.charAt(0)}${user.nom.charAt(0)}` : "AG");
-  const collabPoste = dossier ? `${dossier.poste}${dossier.direction ? ` · ${dossier.direction}` : ""}` : (user ? `${user.poste || "Collaborateur"} · ${user.departement || "Direction Générale"}` : "Collaborateur Agilly");
+  const collabNom = effectiveDossier ? `${effectiveDossier.prenom} ${effectiveDossier.nom}` : (user ? `${user.prenom} ${user.nom}` : "Collaborateur Agilly");
+  const collabInitials = effectiveDossier ? `${effectiveDossier.prenom.charAt(0)}${effectiveDossier.nom.charAt(0)}` : (user ? `${user.prenom.charAt(0)}${user.nom.charAt(0)}` : "AG");
+  const collabPoste = effectiveDossier ? `${effectiveDossier.poste}${effectiveDossier.direction ? ` · ${effectiveDossier.direction}` : ""}` : (user ? `${user.poste || "Collaborateur"} · ${user.departement || "Direction Générale"}` : "Collaborateur Agilly");
 
   // Visa Salarié State
   const [visaSalarieAccord, setVisaSalarieAccord] = useState<boolean | null>(true);
