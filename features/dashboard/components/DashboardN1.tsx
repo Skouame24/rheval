@@ -15,15 +15,6 @@ import { employeesApi } from "@/lib/api/employees.api";
 
 import { UsersIcon, CheckCircleIcon, ClockIcon, GraduationCapIcon, GridIcon, ListIcon, PencilIcon, EyeIcon, ChartBarIcon } from "@/components/ui/Icons";
 
-const STATS = [
-  { label: "Collaborateurs à évaluer", value: "5", subValue: "2 restants", icon: <UsersIcon size={20} className="text-agilly-primary" />, progress: 60 },
-  { label: "Évaluations soumises", value: "3", subValue: "ce cycle", icon: <CheckCircleIcon size={20} className="text-green-600" />, color: "text-green-600", bg: "bg-green-50" },
-  { label: "En attente de ma part", value: "2", subValue: "À compléter", icon: <ClockIcon size={20} className="text-orange-600" />, color: "text-orange-600", bg: "bg-orange-50" },
-  { label: "Besoins de formation", value: "4", subValue: "identifiés", icon: <GraduationCapIcon size={20} className="text-blue-600" />, color: "text-blue-600", bg: "bg-blue-50" },
-];
-
-
-
 export function DashboardN1() {
   const [selectedCollab, setSelectedCollab] = useState<string | null>(null);
   const [collaborateurs, setCollaborateurs] = useState<User[]>([]);
@@ -31,12 +22,47 @@ export function DashboardN1() {
 
   useEffect(() => {
     employeesApi.getMyTeam().then((data) => {
-      setCollaborateurs(data);
+      setCollaborateurs(data || []);
       setIsLoading(false);
     }).catch(() => {
       setIsLoading(false);
     });
   }, []);
+
+  const totalCollabs = collaborateurs.length;
+  const stats = [
+    {
+      label: "Collaborateurs rattachés",
+      value: String(totalCollabs),
+      subValue: `${totalCollabs} membre(s) direct(s)`,
+      icon: <UsersIcon size={20} className="text-agilly-primary" />,
+      progress: totalCollabs > 0 ? 100 : 0,
+    },
+    {
+      label: "Évaluations soumises",
+      value: "0",
+      subValue: "ce cycle",
+      icon: <CheckCircleIcon size={20} className="text-green-600" />,
+      color: "text-green-600",
+      bg: "bg-green-50",
+    },
+    {
+      label: "Fixation d'objectifs",
+      value: String(totalCollabs),
+      subValue: "Campagne 2026",
+      icon: <ClockIcon size={20} className="text-orange-600" />,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+    },
+    {
+      label: "Besoins de formation",
+      value: "0",
+      subValue: "À définir en entretien",
+      icon: <GraduationCapIcon size={20} className="text-blue-600" />,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+    },
+  ];
 
   const activeCollab = collaborateurs.find((c) => c.id === selectedCollab);
 
@@ -62,7 +88,7 @@ export function DashboardN1() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {STATS.map((s) => <StatCard key={s.label} {...s} />)}
+        {stats.map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
       {/* Liste collaborateurs */}
@@ -70,7 +96,7 @@ export function DashboardN1() {
         <div className="p-5 md:p-6 border-b border-gray-200 flex items-center justify-between bg-white">
           <CardHeader title="Mes collaborateurs" subtitle="Statut de leurs fiches de performance" />
           <span className="text-[10px] font-bold px-3 py-1 bg-[#FFF0E0] text-agilly-primary border border-[#F0822A33] uppercase tracking-wider hidden sm:block">
-            2 en attente
+            {totalCollabs} collaborateur{totalCollabs > 1 ? "s" : ""}
           </span>
         </div>
 
@@ -124,11 +150,11 @@ export function DashboardN1() {
 
       {/* Progression globale */}
       <Card padding="lg">
-        <CardHeader title="Ma progression ce cycle" subtitle="5 collaborateurs sous votre responsabilité" icon={<ChartBarIcon size={20} className="text-agilly-primary" />} />
+        <CardHeader title="Ma progression ce cycle" subtitle={`${totalCollabs} collaborateur(s) sous votre responsabilité`} icon={<ChartBarIcon size={20} className="text-agilly-primary" />} />
         <div className="mt-4">
-          <ProgressBar value={60} showLabel size="lg" animated color="#FF8C00" colorAuto={false} />
+          <ProgressBar value={totalCollabs > 0 ? 0 : 0} showLabel size="lg" animated color="#FF8C00" colorAuto={false} />
           <p className="text-sm font-semibold text-agilly-gray mt-4 m-0">
-            3 fiches d'évaluation transmises sur 5 — 2 restantes à compléter
+            Campagne d'évaluation en cours — 0 fiche validée sur {totalCollabs}
           </p>
         </div>
       </Card>

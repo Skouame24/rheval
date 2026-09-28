@@ -10,19 +10,23 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { useMyTeam } from "@/lib/hooks/useTeam";
+import { useAuth } from "@/contexts/AuthContext";
 import type { User } from "@/types";
 
 // TEAM data supprimée — remplacée par useMyTeam()
 
 export default function CollaborateursN1Page() {
+  const { user, role } = useAuth();
   const [selectedCollab, setSelectedCollab] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { isLoading, error, search } = useMyTeam();
 
   const filteredTeam = search(searchQuery);
+  const managerName = user ? `${user.prenom} ${user.nom}`.trim() : "Manager N+1";
+  const managerEmail = user?.email || "manager@agilly.com";
 
   return (
-    <AppShell role="N1" userName="Sevan AKOUMIA" userEmail="sevan.akoumia@agilly.com" notifCount={2}>
+    <AppShell role={role || "N1"} userName={managerName} userEmail={managerEmail} notifCount={0}>
       <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
         
         {selectedCollab && (
