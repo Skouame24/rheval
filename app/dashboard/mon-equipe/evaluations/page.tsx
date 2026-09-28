@@ -14,6 +14,7 @@ import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEval
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { useAuth } from "@/contexts/AuthContext";
+import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
 import type { EvaluationCycle, StatutEvaluation } from "@/types";
 
 export default function EvaluationsN1Page() {
@@ -47,6 +48,30 @@ export default function EvaluationsN1Page() {
   useEffect(() => {
     loadEvaluations();
   }, []);
+
+  const handleExportExcel = (item: EvaluationCycle) => {
+    exportEvaluationToExcel({
+      salarie: {
+        nom: item.salarie?.nom || "",
+        prenom: item.salarie?.prenom || "",
+        matricule: (item.salarie as any)?.matricule || "EMP-2026-001",
+        poste: item.salarie?.poste || "",
+        departement: (item.salarie as any)?.departement || "Direction Technique",
+        direction: (item.salarie as any)?.direction || "Executive",
+        site: "Abidjan - AGILLY 1",
+      },
+      n1: {
+        nom: user ? `${user.prenom ? user.prenom + " " : ""}${user.nom}`.trim() : "Marc AUBERT",
+        poste: user?.poste || "Responsable Technique",
+      },
+      cycle: item.cycle,
+      statut: item.statut,
+      noteGlobale: item.noteGlobale,
+      objectifs: item.objectifs || [],
+      formations: (item as any)?.formations || [],
+      observationN1: item.observation || "",
+    });
+  };
 
   const getStatutBadge = (statut?: StatutEvaluation | string) => {
     switch (statut) {
@@ -183,10 +208,12 @@ export default function EvaluationsN1Page() {
             />
             {evaluations.length > 0 && (
               <button
-                onClick={() => alert("Génération du pack officiel Excel Agilly pour l'équipe en cours...")}
-                className="px-4 py-2.5 bg-slate-900 text-white font-extrabold text-xs rounded-none border border-transparent hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-2"
+                onClick={() => {
+                  evaluations.forEach((ev) => handleExportExcel(ev));
+                }}
+                className="px-4 py-2.5 bg-[#107C41] text-white font-extrabold text-xs rounded-none border border-transparent hover:bg-[#0E6C38] transition-all cursor-pointer flex items-center gap-2 shadow-sm"
               >
-                📊 Exporter Tout en Excel
+                📊 Exporter Tout en Excel (.xlsx)
               </button>
             )}
           </div>
@@ -305,10 +332,10 @@ export default function EvaluationsN1Page() {
 
                       {/* Export Excel */}
                       <button
-                        onClick={() => alert(`Exportation officielle de la fiche Agilly pour ${collabName}...`)}
-                        className="px-3.5 py-2 bg-white text-slate-800 font-bold text-xs rounded-none border border-slate-300 hover:bg-slate-50 transition-all cursor-pointer flex items-center gap-1.5"
+                        onClick={() => handleExportExcel(item)}
+                        className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-[#107C41] font-extrabold text-xs rounded-none border border-emerald-300 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
                       >
-                        📥 Excel
+                        📊 Excel
                       </button>
                     </div>
                   </div>

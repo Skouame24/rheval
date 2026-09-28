@@ -7,10 +7,37 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, Button, ObjectifsPageSkeleton } from "@/components/ui";
 import { TargetIcon, ClockIcon, DownloadIcon } from "@/components/ui/Icons";
 import { useCurrentEvaluation } from "@/lib/hooks/useEvaluation";
+import { useAuth } from "@/contexts/AuthContext";
+import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
 
 export function ObjectifsSalariePage() {
   const { evaluation, isLoading } = useCurrentEvaluation();
+  const { user } = useAuth();
   const objectifs = evaluation?.objectifs || [];
+
+  const handleExportExcel = () => {
+    exportEvaluationToExcel({
+      salarie: {
+        nom: user?.nom || evaluation?.salarie?.nom || "KOUAME",
+        prenom: user?.prenom || evaluation?.salarie?.prenom || "Ebenezer Samuel",
+        matricule: (user as any)?.matricule || "EMP-2026-001",
+        poste: user?.poste || evaluation?.salarie?.poste || "Développeur Full-Stack",
+        departement: user?.departement || (evaluation?.salarie as any)?.departement || "Direction Technique",
+        direction: (user as any)?.direction || "Executive",
+        site: "Abidjan - AGILLY 1",
+      },
+      n1: {
+        nom: user?.n1?.nom || "Marc AUBERT",
+        poste: user?.n1?.poste || "Responsable Technique",
+      },
+      cycle: evaluation?.cycle,
+      statut: evaluation?.statut,
+      noteGlobale: evaluation?.noteGlobale,
+      objectifs: evaluation?.objectifs || [],
+      formations: (evaluation as any)?.formations || [],
+      observationN1: (evaluation as any)?.observations || "",
+    });
+  };
 
   if (isLoading) {
     return <ObjectifsPageSkeleton count={3} />;
@@ -22,11 +49,22 @@ export function ObjectifsSalariePage() {
         subtitle="Consultez les objectifs fixés par votre manager pour la campagne 2026."
         breadcrumbs={[{ label: "Tableau de bord", href: "/dashboard/salarie" }, { label: "Objectifs" }]}
         actions={
-          <Button variant="secondary" leftIcon={<DownloadIcon size={16} />}>
-            Télécharger (PDF)
-          </Button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportExcel}
+              className="px-4 py-2 bg-[#107C41] hover:bg-[#0E6C38] text-white font-extrabold text-xs rounded-none border border-transparent transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+            >
+              📊 Télécharger en Excel (.xlsx)
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs rounded-none border border-slate-300 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <DownloadIcon size={14} />
+              Télécharger (PDF)
+            </button>
+          </div>
         }
-
       />
 
       <div className="flex flex-col gap-6">

@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 import { WorkflowStepper } from "@/components/shared/WorkflowStepper";
 import { useAuth } from "@/contexts/AuthContext";
+import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
 
 interface FicheEvaluationModalProps {
   isOpen: boolean;
@@ -899,10 +900,38 @@ export function FicheEvaluationModal({
               Fermer
             </button>
             <button
-              onClick={() => alert("Génération de la Fiche Officielle Excel d'Agilly en cours...")}
-              style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: "pointer" }}
+              onClick={() => {
+                exportEvaluationToExcel({
+                  salarie: {
+                    nom: dossier?.nom || user?.nom || "KOUAME",
+                    prenom: dossier?.prenom || user?.prenom || "Ebenezer Samuel",
+                    poste: dossier?.poste || user?.poste || "Développeur Full-Stack",
+                    direction: dossier?.direction || user?.departement || "Executive",
+                    site: "Abidjan - AGILLY 1",
+                  },
+                  n1: {
+                    nom: user?.n1?.nom || "Marc AUBERT",
+                    poste: user?.n1?.poste || "Responsable Technique",
+                  },
+                  objectifs: objectifs.map((o) => ({
+                    intitule: o.intitule,
+                    ponderation: o.ponderation,
+                    criteres: {
+                      t18_20: o.criteres?.find((c) => c.min === 18)?.texte || "",
+                      t15_17: o.criteres?.find((c) => c.min === 15)?.texte || "",
+                      t12_14: o.criteres?.find((c) => c.min === 12)?.texte || "",
+                      t0_11: o.criteres?.find((c) => c.min === 0)?.texte || "",
+                    },
+                    noteGlobale: o.noteObtenue || undefined,
+                    observation: o.commentaire || "",
+                  })),
+                  observationN1: "",
+                  observationSalarie: "",
+                });
+              }}
+              style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: "#107C41", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
             >
-              📥 Exporter la Fiche Excel Officielle
+              📊 Exporter la Fiche Excel Officielle (.xlsx)
             </button>
           </div>
         </div>
