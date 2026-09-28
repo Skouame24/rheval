@@ -1,10 +1,11 @@
 // ============================================================
 // lib/utils/exportExcelEvaluation.ts
-// Générateur Excel (.xlsx) pour la Fiche d'Évaluation de Performance AGILLY RHEVAL
-// Modèle officiel 1:1 conforme à la version RH d'Agilly
+// Générateur Excel (.xlsx) Haute Fidélité pour AGILLY RHEVAL
+// Rendu 100% conforme à la Fiche d'évaluation officielle RH d'Agilly
+// Utilise ExcelJS avec mise en forme complète (couleurs, bordures, typographie, fusions)
 // ============================================================
 
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export interface EvaluationExportData {
   salarie?: {
@@ -57,17 +58,114 @@ export interface EvaluationExportData {
   observationSalarie?: string;
 }
 
-export function exportEvaluationToExcel(data: EvaluationExportData) {
-  const wb = XLSX.utils.book_new();
+// ─── STYLES CONSTANTS AGILLY ────────────────────────────────
 
-  // Nom complet salarié
+const FONT_FAMILY = "Arial";
+
+// Bordure fine standard noire pour toutes les cellules du tableau
+const thinBorder: Partial<ExcelJS.Borders> = {
+  top: { style: "thin", color: { argb: "FF000000" } },
+  left: { style: "thin", color: { argb: "FF000000" } },
+  bottom: { style: "thin", color: { argb: "FF000000" } },
+  right: { style: "thin", color: { argb: "FF000000" } },
+};
+
+// Bordure épaisse pour les encadrements de signatures
+const thickBoxBorder: Partial<ExcelJS.Borders> = {
+  top: { style: "medium", color: { argb: "FF000000" } },
+  left: { style: "medium", color: { argb: "FF000000" } },
+  bottom: { style: "medium", color: { argb: "FF000000" } },
+  right: { style: "medium", color: { argb: "FF000000" } },
+};
+
+// Gris moyen officiel pour les bandeaux de titre des sections
+const grayBannerFill: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFA6A6A6" }, // Gris soutenu conforme à la capture
+};
+
+// Gris clair officiel pour les en-têtes de colonnes
+const headerTableFill: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFD9D9D9" },
+};
+
+// Gris très doux pour les étiquettes du bloc informations salarié
+const labelLightFill: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFF2F2F2" },
+};
+
+// Helper pour appliquer les bordures et fonds sur une plage
+function styleRange(
+  ws: ExcelJS.Worksheet,
+  startR: number,
+  startC: number,
+  endR: number,
+  endC: number,
+  options: {
+    border?: Partial<ExcelJS.Borders>;
+    fill?: ExcelJS.Fill;
+    font?: Partial<ExcelJS.Font>;
+    alignment?: Partial<ExcelJS.Alignment>;
+  }
+) {
+  for (let r = startR; r <= endR; r++) {
+    for (let c = startC; c <= endC; c++) {
+      const cell = ws.getCell(r, c);
+      if (options.border) cell.border = options.border;
+      if (options.fill) cell.fill = options.fill;
+      if (options.font) cell.font = { ...cell.font, ...options.font };
+      if (options.alignment) cell.alignment = { ...cell.alignment, ...options.alignment };
+    }
+  }
+}
+
+// Helper pour créer un bandeau gris officiel fusionné
+function createSectionBanner(
+  ws: ExcelJS.Worksheet,
+  row: number,
+  text: string,
+  align: "center" | "left" = "center"
+) {
+  ws.mergeCells(row, 1, row, 4);
+  styleRange(ws, row, 1, row, 4, {
+    border: thinBorder,
+    fill: grayBannerFill,
+    font: { name: FONT_FAMILY, size: 10, bold: true, color: { argb: "FF000000" } },
+    alignment: { vertical: "middle", horizontal: align, indent: align === "left" ? 1 : 0 },
+  });
+  ws.getCell(row, 1).value = text;
+  ws.getRow(row).height = 24;
+}
+
+export async function exportEvaluationToExcel(data: EvaluationExportData): Promise<void> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "AGILLY RHEVAL";
+  wb.lastModifiedBy = "AGILLY Direction RH";
+  wb.created = new Date();
+
+  const ws = wb.addWorksheet("Fiche évaluation version RH", {
+    views: [{ showGridLines: true }],
+  });
+
+  // ─── LARGEURS DES COLONNES (A, B, C, D) ──────────────────────
+  ws.columns = [
+    { key: "A", width: 34 }, // Objectifs de Performance
+    { key: "B", width: 70 }, // Indicateurs de Mesure
+    { key: "C", width: 16 }, // Note Obtenue /20
+    { key: "D", width: 38 }, // Commentaires & Justification
+  ];
+
+  // Identité Salarié
   const prenomSalarie = data.salarie?.prenom || "";
-  const nomSalarie = data.salarie?.nom || "Collaborateur";
+  const nomSalarie = data.salarie?.nom || "KOUAME";
   const fullNameSalarie = `${prenomSalarie ? prenomSalarie + " " : ""}${nomSalarie}`.trim();
-
-  // Informations de base
-  const poste = data.salarie?.poste || "Développeur Full-Stack";
   const matricule = data.salarie?.matricule || "EMP-2026-001";
+  const poste = data.salarie?.poste || "Développeur Full-Stack";
   const direction = data.salarie?.direction || data.salarie?.departement || "Executive";
   const site = data.salarie?.site || "Abidjan - AGILLY 1";
   const periode = data.cycle?.dateDebut && data.cycle?.dateFin
@@ -77,202 +175,285 @@ export function exportEvaluationToExcel(data: EvaluationExportData) {
   const n1Nom = data.n1?.nom || "Marc AUBERT";
   const n1Poste = data.n1?.poste || "Responsable Technique";
 
-  // Grille de lignes (Tableau 2D)
-  const rows: (string | number)[][] = [];
-  const merges: XLSX.Range[] = [];
+  // ── LIGNE 1 : Titre Général Centré & Souligné ────────────────
+  ws.mergeCells("A1:D1");
+  const titleCell = ws.getCell("A1");
+  titleCell.value = "Fiche d'évaluation de performance";
+  titleCell.font = { name: FONT_FAMILY, size: 14, bold: true, underline: true, color: { argb: "FF000000" } };
+  titleCell.alignment = { vertical: "middle", horizontal: "center" };
+  ws.getRow(1).height = 32;
 
-  // Ligne 1 : Titre principal (Row 0)
-  rows.push(["Fiche d'évaluation de performance", "", "", ""]);
-  merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } });
+  // Ligne 2 : Espacement
+  ws.getRow(2).height = 10;
 
-  // Ligne 2 : Vide (Row 1)
-  rows.push([]);
+  // ── LIGNE 3 : Bandeau Informations Salarié ───────────────────
+  createSectionBanner(ws, 3, "Informations Salarié", "center");
 
-  // Ligne 3 : Bannière Informations Salarié (Row 2)
-  rows.push(["Informations Salarié", "", "", ""]);
-  merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: 3 } });
+  // ── LIGNES 4 & 5 : Grille Identité Salarié (Rangée 1) ─────────
+  ws.getRow(4).height = 20;
+  ws.getCell("A4").value = "Prénoms & Nom du salarié";
+  ws.getCell("B4").value = "Matricule";
+  ws.getCell("C4").value = "Poste";
+  ws.getCell("D4").value = "Ancienneté à ce poste";
+  styleRange(ws, 4, 1, 4, 4, {
+    border: thinBorder,
+    fill: labelLightFill,
+    font: { name: FONT_FAMILY, size: 9, bold: true },
+    alignment: { vertical: "middle", horizontal: "center" },
+  });
 
-  // Ligne 4-5 : En-têtes et valeurs identité salarié (Rows 3, 4)
-  rows.push(["Prénoms & Nom du salarié", "Matricule", "Poste", "Ancienneté à ce poste"]);
-  rows.push([fullNameSalarie, matricule, poste, "2 ans"]);
+  ws.getRow(5).height = 22;
+  ws.getCell("A5").value = fullNameSalarie;
+  ws.getCell("B5").value = matricule;
+  ws.getCell("C5").value = poste;
+  ws.getCell("D5").value = "2 ans";
+  styleRange(ws, 5, 1, 5, 4, {
+    border: thinBorder,
+    font: { name: FONT_FAMILY, size: 9.5, bold: false },
+    alignment: { vertical: "middle", horizontal: "center" },
+  });
+  ws.getCell("A5").font = { name: FONT_FAMILY, size: 10, bold: true };
 
-  // Ligne 6-7 : Direction, Période, Site (Rows 5, 6)
-  rows.push(["Direction", "Période couverte", "Site", ""]);
-  merges.push({ s: { r: 5, c: 2 }, e: { r: 5, c: 3 } });
-  rows.push([direction, periode, site, ""]);
-  merges.push({ s: { r: 6, c: 2 }, e: { r: 6, c: 3 } });
+  // ── LIGNES 6 & 7 : Grille Direction, Période & Site ──────────
+  ws.getRow(6).height = 20;
+  ws.getCell("A6").value = "Direction";
+  ws.getCell("B6").value = "Période couverte";
+  ws.mergeCells(6, 3, 6, 4);
+  ws.getCell("C6").value = "Site";
+  styleRange(ws, 6, 1, 6, 4, {
+    border: thinBorder,
+    fill: labelLightFill,
+    font: { name: FONT_FAMILY, size: 9, bold: true },
+    alignment: { vertical: "middle", horizontal: "center" },
+  });
 
-  // Ligne 8 : Vide (Row 7)
-  rows.push([]);
+  ws.getRow(7).height = 22;
+  ws.getCell("A7").value = direction;
+  ws.getCell("B7").value = periode;
+  ws.mergeCells(7, 3, 7, 4);
+  ws.getCell("C7").value = site;
+  styleRange(ws, 7, 1, 7, 4, {
+    border: thinBorder,
+    font: { name: FONT_FAMILY, size: 9.5 },
+    alignment: { vertical: "middle", horizontal: "center" },
+  });
 
-  // Ligne 9 : En-tête N+1 (Row 8)
-  rows.push([`N+1 : ${n1Nom} / Fonction : ${n1Poste}`, "", "", ""]);
-  merges.push({ s: { r: 8, c: 0 }, e: { r: 8, c: 3 } });
+  // Ligne 8 : Espacement
+  ws.getRow(8).height = 10;
 
-  // Ligne 10 : Vide (Row 9)
-  rows.push([]);
+  // ── LIGNE 9 : Bandeau N+1 ────────────────────────────────────
+  createSectionBanner(ws, 9, `N+1 : ${n1Nom} / Fonction : ${n1Poste}`, "left");
 
-  // Ligne 11 : En-têtes du tableau d'évaluation (Row 10)
-  rows.push([
-    "Objectifs de Performance",
-    "Indicateurs de Mesure",
-    "Note Obtenue /20",
-    "Commentaires & Justification (facultatif)",
-  ]);
+  // Ligne 10 : Espacement
+  ws.getRow(10).height = 10;
 
-  // Objectifs
-  let currentRow = 11;
+  // ── LIGNE 11 : En-têtes du Tableau des Objectifs ──────────────
+  ws.getRow(11).height = 28;
+  ws.getCell("A11").value = "";
+  ws.getCell("B11").value = "Indicateurs de Mesure";
+  ws.getCell("C11").value = "Note Obtenue /20";
+  ws.getCell("D11").value = "Commentaires & Justification (facultatif)";
+  styleRange(ws, 11, 1, 11, 4, {
+    border: thinBorder,
+    fill: headerTableFill,
+    font: { name: FONT_FAMILY, size: 9.5, bold: true },
+    alignment: { vertical: "middle", horizontal: "center", wrapText: true },
+  });
+
+  // ── LIGNES 12+ : Grille des Objectifs & 4 Tranches ────────────
+  let currentRow = 12;
 
   if (data.objectifs && data.objectifs.length > 0) {
     data.objectifs.forEach((obj, idx) => {
-      const objTitle = `OBJECTIF DE PERFORMANCE ${idx + 1}:\n${obj.intitule}${
-        obj.ponderation ? `\nPondération : ${obj.ponderation}%` : ""
-      }`;
+      const startR = currentRow;
+      const endR = currentRow + 3;
 
-      // Extraction des 4 critères
+      // Extraction propre des critères
       const crit18 =
         obj.criteres?.t18_20 ||
         obj.indicateurs?.find((i) => Number(i.noteMin) >= 18)?.intitule ||
         obj.indicateurs?.[0]?.intitule ||
-        "Performance exceptionnelle au-delà des attentes.";
+        "Validation autonome des livrables sans assistance avec dépassement des attentes.";
 
       const crit15 =
         obj.criteres?.t15_17 ||
         obj.indicateurs?.find((i) => Number(i.noteMin) === 15)?.intitule ||
         obj.indicateurs?.[1]?.intitule ||
-        "Objectif pleinement atteint selon les spécifications.";
+        "Validation autonome dans le calendrier convenu et conforme au cahier des charges.";
 
       const crit12 =
         obj.criteres?.t12_14 ||
         obj.indicateurs?.find((i) => Number(i.noteMin) === 12)?.intitule ||
         obj.indicateurs?.[2]?.intitule ||
-        "Objectif partiellement atteint avec réajustements mineurs.";
+        "Validation avec légers retards ou correctifs mineurs sans impact critique.";
 
       const crit0 =
         obj.criteres?.t0_11 ||
         obj.indicateurs?.find((i) => Number(i.noteMin) === 0)?.intitule ||
         obj.indicateurs?.[3]?.intitule ||
-        "Objectif non atteint ou écart significatif.";
+        "Non atteinte des objectifs ou retards bloquants.";
 
-      const noteCell = obj.noteGlobale !== undefined && obj.noteGlobale !== null
-        ? Number(obj.noteGlobale)
-        : "";
+      // Colonne A : Fusion sur les 4 lignes de l'objectif
+      ws.mergeCells(startR, 1, endR, 1);
+      const objTitle = `OBJECTIF DE PERFORMANCE ${idx + 1}:\n${obj.intitule}${
+        obj.ponderation ? `\nPondération : ${obj.ponderation}%` : ""
+      }`;
+      const cellObj = ws.getCell(startR, 1);
+      cellObj.value = objTitle;
+      cellObj.font = { name: FONT_FAMILY, size: 9.5, bold: true };
+      cellObj.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
 
-      const commentaireCell = obj.observation || "";
+      // Colonne B & C : 4 tranches
+      const tranches = [
+        { label: "18–20", text: crit18 },
+        { label: "15–17", text: crit15 },
+        { label: "12–14", text: crit12 },
+        { label: "0–11", text: crit0 },
+      ];
 
-      // 4 Lignes par objectif
-      rows.push([objTitle, crit18, "18–20", noteCell]);
-      rows.push(["", crit15, "15–17", ""]);
-      rows.push(["", crit12, "12–14", ""]);
-      rows.push(["", crit0, "0–11", commentaireCell]);
+      tranches.forEach((t, tIdx) => {
+        const rowNum = startR + tIdx;
+        ws.getRow(rowNum).height = 42; // Hauteur confortable pour le texte
 
-      // Fusionner la colonne Objectif sur les 4 lignes
-      merges.push({
-        s: { r: currentRow, c: 0 },
-        e: { r: currentRow + 3, c: 0 },
+        const cellB = ws.getCell(rowNum, 2);
+        cellB.value = t.text;
+        cellB.font = { name: FONT_FAMILY, size: 9 };
+        cellB.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+
+        const cellC = ws.getCell(rowNum, 3);
+        cellC.value = t.label;
+        cellC.font = { name: FONT_FAMILY, size: 9.5, bold: true };
+        cellC.alignment = { vertical: "middle", horizontal: "center" };
       });
 
-      // Fusionner la colonne Commentaire sur les 4 lignes
-      merges.push({
-        s: { r: currentRow, c: 3 },
-        e: { r: currentRow + 3, c: 3 },
-      });
+      // Colonne D : Fusion sur les 4 lignes pour les commentaires
+      ws.mergeCells(startR, 4, endR, 4);
+      const cellD = ws.getCell(startR, 4);
+      cellD.value = obj.observation || "";
+      cellD.font = { name: FONT_FAMILY, size: 9 };
+      cellD.alignment = { vertical: "top", horizontal: "left", wrapText: true };
 
-      currentRow += 4;
+      // Appliquer les bordures complètes sur l'ensemble du bloc de l'objectif
+      styleRange(ws, startR, 1, endR, 4, { border: thinBorder });
+
+      currentRow = endR + 1;
     });
   } else {
-    // Si aucun objectif encore défini
-    rows.push(["Aucun objectif défini", "En attente de fixation par le N+1", "—", ""]);
-    currentRow += 1;
-  }
-
-  // Ligne vide avant les formations
-  rows.push([]);
-  currentRow += 1;
-
-  // Section Formation à envisager
-  rows.push(["Formation à envisager", "", "Delai", ""]);
-  merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 1 } });
-  merges.push({ s: { r: currentRow, c: 2 }, e: { r: currentRow, c: 3 } });
-  currentRow += 1;
-
-  if (data.formations && data.formations.length > 0) {
-    data.formations.forEach((f) => {
-      const formNom = f.formation || f.intitule || "Formation technique";
-      const delai = f.delai || "Q1 2027";
-      rows.push([formNom, "", delai, ""]);
-      merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 1 } });
-      merges.push({ s: { r: currentRow, c: 2 }, e: { r: currentRow, c: 3 } });
-      currentRow += 1;
+    // Si aucun objectif
+    ws.mergeCells(currentRow, 1, currentRow, 4);
+    const emptyCell = ws.getCell(currentRow, 1);
+    emptyCell.value = "Aucun objectif défini pour le moment.";
+    styleRange(ws, currentRow, 1, currentRow, 4, {
+      border: thinBorder,
+      alignment: { vertical: "middle", horizontal: "center" },
     });
-  } else {
-    // Lignes vierges pour saisie
-    rows.push(["", "", "", ""]);
-    merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 1 } });
-    merges.push({ s: { r: currentRow, c: 2 }, e: { r: currentRow, c: 3 } });
-    currentRow += 1;
-
-    rows.push(["", "", "", ""]);
-    merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 1 } });
-    merges.push({ s: { r: currentRow, c: 2 }, e: { r: currentRow, c: 3 } });
-    currentRow += 1;
+    ws.getRow(currentRow).height = 30;
+    currentRow++;
   }
 
-  // Ligne vide
-  rows.push([]);
-  currentRow += 1;
+  // Ligne d'espacement
+  ws.getRow(currentRow).height = 12;
+  currentRow++;
 
-  // Box Signature Supérieur Hiérarchique N+1
-  rows.push(["Observation, Signature du Supérieur Hiérarchique et date", "", "", ""]);
-  merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 3 } });
-  currentRow += 1;
+  // ── SECTION FORMATION À ENVISAGER ────────────────────────────
+  const rowFormHeader = currentRow;
+  ws.mergeCells(rowFormHeader, 1, rowFormHeader, 2);
+  ws.getCell(rowFormHeader, 1).value = "Formation à envisager";
+  ws.mergeCells(rowFormHeader, 3, rowFormHeader, 4);
+  ws.getCell(rowFormHeader, 3).value = "Delai";
+  styleRange(ws, rowFormHeader, 1, rowFormHeader, 4, {
+    border: thinBorder,
+    fill: grayBannerFill,
+    font: { name: FONT_FAMILY, size: 10, bold: true },
+    alignment: { vertical: "middle", horizontal: "center" },
+  });
+  ws.getRow(rowFormHeader).height = 24;
+  currentRow++;
 
-  // 3 lignes d'espace pour la signature N+1
-  const obsN1 = data.observationN1 || "";
-  rows.push([obsN1, "", "", ""]);
-  merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow + 2, c: 3 } });
-  rows.push([]);
-  rows.push([]);
-  currentRow += 3;
+  // Lignes de formations (au moins 5 lignes pour le modèle papier)
+  const formationsList = data.formations && data.formations.length > 0
+    ? data.formations
+    : [
+        { intitule: "Architecture Fine-Tuning & Sécurité Cloud Azure", delai: "Q1 2027" },
+        { intitule: "", delai: "" },
+        { intitule: "", delai: "" },
+        { intitule: "", delai: "" },
+      ];
 
-  // Ligne vide
-  rows.push([]);
-  currentRow += 1;
+  formationsList.forEach((f) => {
+    const r = currentRow;
+    ws.mergeCells(r, 1, r, 2);
+    ws.getCell(r, 1).value = f.formation || f.intitule || "";
+    ws.mergeCells(r, 3, r, 4);
+    ws.getCell(r, 3).value = f.delai || "";
 
-  // Box Signature Salarié
-  rows.push(["Observation, Signature de l'évalué et date", "", "", ""]);
-  merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 3 } });
-  currentRow += 1;
+    styleRange(ws, r, 1, r, 4, {
+      border: thinBorder,
+      font: { name: FONT_FAMILY, size: 9.5 },
+      alignment: { vertical: "middle", horizontal: "left", indent: 1 },
+    });
+    ws.getCell(r, 3).alignment = { vertical: "middle", horizontal: "center" };
+    ws.getRow(r).height = 22;
+    currentRow++;
+  });
 
-  // 3 lignes d'espace pour la signature salarié
-  const obsSalarie = data.observationSalarie || "";
-  rows.push([obsSalarie, "", "", ""]);
-  merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow + 2, c: 3 } });
-  rows.push([]);
-  rows.push([]);
-  currentRow += 3;
+  // Ligne d'espacement
+  ws.getRow(currentRow).height = 14;
+  currentRow++;
 
-  // Conversion en feuille Excel
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+  // ── SECTION SIGNATURE SUPÉRIEUR HIÉRARCHIQUE (N+1) ───────────
+  createSectionBanner(ws, currentRow, "Observation, Signature du Supérieur Hiérarchique et date", "left");
+  currentRow++;
 
-  // Application des fusions de cellules
-  ws["!merges"] = merges;
+  const sigN1Start = currentRow;
+  const sigN1End = currentRow + 6;
+  ws.mergeCells(sigN1Start, 1, sigN1End, 4);
+  styleRange(ws, sigN1Start, 1, sigN1End, 4, {
+    border: thickBoxBorder,
+    font: { name: FONT_FAMILY, size: 9.5, italic: true },
+    alignment: { vertical: "top", horizontal: "left" },
+  });
+  ws.getCell(sigN1Start, 1).value = data.observationN1 || "";
+  for (let r = sigN1Start; r <= sigN1End; r++) {
+    ws.getRow(r).height = 18;
+  }
+  currentRow = sigN1End + 1;
 
-  // Largeurs de colonnes optimisées (A, B, C, D)
-  ws["!cols"] = [
-    { wch: 32 }, // Col A : Objectif
-    { wch: 68 }, // Col B : Indicateurs de Mesure (texte long)
-    { wch: 18 }, // Col C : Note Obtenue /20
-    { wch: 38 }, // Col D : Commentaires & Justification
-  ];
+  // Ligne d'espacement
+  ws.getRow(currentRow).height = 14;
+  currentRow++;
 
-  // Nom de la feuille : "Fiche évaluation version RH" (exactement comme le modèle officiel)
-  XLSX.utils.book_append_sheet(wb, ws, "Fiche évaluation version RH");
+  // ── SECTION SIGNATURE DE L'ÉVALUÉ (SALARIÉ) ──────────────────
+  createSectionBanner(ws, currentRow, "Observation, Signature de l'évalué et date", "left");
+  currentRow++;
 
-  // Nom du fichier généré
+  const sigSalStart = currentRow;
+  const sigSalEnd = currentRow + 6;
+  ws.mergeCells(sigSalStart, 1, sigSalEnd, 4);
+  styleRange(ws, sigSalStart, 1, sigSalEnd, 4, {
+    border: thickBoxBorder,
+    font: { name: FONT_FAMILY, size: 9.5, italic: true },
+    alignment: { vertical: "top", horizontal: "left" },
+  });
+  ws.getCell(sigSalStart, 1).value = data.observationSalarie || "";
+  for (let r = sigSalStart; r <= sigSalEnd; r++) {
+    ws.getRow(r).height = 18;
+  }
+
+  // ── GÉNÉRATION ET TÉLÉCHARGEMENT DU FICHIER .XLSX DANS LE NAVIGATEUR ──
   const cleanName = fullNameSalarie.replace(/[^a-zA-Z0-9_-]/g, "_");
   const fileName = `AGILLY_RHEVAL_${cleanName}_2026.xlsx`;
 
-  // Téléchargement dans le navigateur
-  XLSX.writeFile(wb, fileName);
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
 }
