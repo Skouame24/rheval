@@ -349,17 +349,30 @@ export function FicheEvaluationModal({
     }
   };
 
-  const handleSubmitVisa = () => {
+  const handleSubmitVisa = async () => {
     if (visaSalarieAccord === null) {
       alert("Veuillez sélectionner soit 'Accord (OK)', soit 'Désaccord (NON OK)'.");
       return;
     }
-    setVisaSalarieSubmitted(true);
-    alert(
-      visaSalarieAccord
-        ? "✓ Votre Visa 'Accord (OK)' sur l'évaluation N+1 a été enregistré avec succès !"
-        : "⚠️ Votre Visa 'Désaccord (NON OK)' a été enregistré. Le dossier passe en revue N+2 / RH."
-    );
+    if (!resolvedFicheId) {
+      alert("⚠️ Aucune fiche d'évaluation trouvée pour apposer votre visa.");
+      return;
+    }
+    try {
+      await evaluationsApi.signSalarie(resolvedFicheId, {
+        observation: visaSalarieObservation || (visaSalarieAccord ? "Accord du salarié sur l'évaluation N+1" : "Désaccord du salarié sur l'évaluation N+1"),
+      });
+      setVisaSalarieSubmitted(true);
+      alert(
+        visaSalarieAccord
+          ? "✓ Votre Visa 'Accord (OK)' sur l'évaluation N+1 a été enregistré avec succès dans la base de données !"
+          : "⚠️ Votre Visa 'Désaccord (NON OK)' a été enregistré. Le dossier passe en revue N+2 / RH."
+      );
+      if (onSaved) onSaved();
+    } catch (err: any) {
+      console.error("[FicheEvaluationModal] handleSubmitVisa error:", err);
+      alert("Erreur lors de l'enregistrement du visa : " + (err.message || "Erreur serveur"));
+    }
   };
 
   return (
@@ -869,116 +882,190 @@ export function FicheEvaluationModal({
               4. Validation, Visa Salarié & Signatures des 4 Acteurs
             </h3>
 
-            {/* MODULE VISA SALARIÉ (SI VISA EN COURS OU SALARIÉ CONNECTÉ) */}
-            {(isVisaMode || isSalarie) && (
-              <div style={{
-                marginBottom: 24,
-                padding: 20,
-                background: visaSalarieSubmitted ? "#F0FDF4" : "#FFF7ED",
-                border: visaSalarieSubmitted ? "2px solid #10B981" : "2px solid #F0822A",
-                borderRadius: 0,
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <h4 style={{ fontSize: 15, fontWeight: 900, color: "#000000", margin: 0 }}>
-                    ✍️ Avis & Visa du Salarié sur la Note N+1 ({noteGlobaleN1.toFixed(2)}/20)
-                  </h4>
-                  {visaSalarieSubmitted ? (
-                    <span style={{ fontSize: 11, fontWeight: 900, color: "#059669", background: "#D1FAE5", padding: "4px 10px", borderRadius: 0 }}>
-                      ✓ Visa Enregistré
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 11, fontWeight: 900, color: "#EA580C", background: "#FFEDD5", padding: "4px 10px", borderRadius: 0 }}>
-                      ⚡ Action Requise Salarié
-                    </span>
-                  )}
-                </div>
-
-                <p style={{ fontSize: 13, color: "#475569", margin: "0 0 16px 0" }}>
-                  Après la saisie des évaluations par votre N+1, veuillez donner votre accord ou désaccord sur la note et les appréciations.
-                </p>
-
-                <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+            {/* 1. BLOC RÉCAPITULATIF AUTO-ÉVALUATION DU SALARIÉ */}
+            <div style={{
+              marginBottom: 20,
+              padding: "18px 22px",
+              background: noteGlobaleSalarie > 0 ? "#F0FDF4" : "#EFF6FF",
+              border: noteGlobaleSalarie > 0 ? "2px solid #10B981" : "2px solid #0284C7",
+              borderRadius: 0,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 10 }}>
+                <h4 style={{ fontSize: 16, fontWeight: 900, color: noteGlobaleSalarie > 0 ? "#065F46" : "#0369A1", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>✍️</span> Auto-évaluation du Salarié : <strong style={{ color: "#0284C7", fontSize: 18 }}>{noteGlobaleSalarie.toFixed(2)} / 20</strong>
+                </h4>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 900,
+                  color: noteGlobaleSalarie > 0 ? "#059669" : "#0284C7",
+                  background: noteGlobaleSalarie > 0 ? "#D1FAE5" : "#E0F2FE",
+                  padding: "4px 12px",
+                }}>
+                  {noteGlobaleSalarie > 0 ? "✓ Auto-évaluation enregistrée" : "Saisie en cours"}
+                </span>
+              </div>
+              <p style={{ fontSize: 13, color: "#334155", margin: 0, fontWeight: 500 }}>
+                {noteGlobaleSalarie > 0
+                  ? `Votre auto-évaluation globale de ${noteGlobaleSalarie.toFixed(2)} / 20 est bien prise en compte et synchronisée dans la base PostgreSQL. Votre responsable N+1 doit maintenant saisir ses propres notes d'évaluation.`
+                  : "Renseignez vos auto-notes et commentaires sur les objectifs ci-dessus, puis enregistrez votre auto-évaluation."}
+              </p>
+              {canEditSalarie && (
+                <div style={{ marginTop: 12 }}>
                   <button
-                    onClick={() => setVisaSalarieAccord(true)}
-                    disabled={visaSalarieSubmitted}
+                    onClick={handleSaveEvaluation}
+                    disabled={isSaving}
                     style={{
-                      flex: 1,
-                      padding: "12px",
-                      borderRadius: 0,
-                      border: visaSalarieAccord === true ? "2px solid #10B981" : "1px solid #CBD5E1",
-                      background: visaSalarieAccord === true ? "#ECFDF5" : "#FFFFFF",
-                      color: visaSalarieAccord === true ? "#047857" : "#475569",
-                      fontWeight: 900,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8
-                    }}
-                  >
-                    👍 D'accord / OK (Note & Appréciation Validées)
-                  </button>
-
-                  <button
-                    onClick={() => setVisaSalarieAccord(false)}
-                    disabled={visaSalarieSubmitted}
-                    style={{
-                      flex: 1,
-                      padding: "12px",
-                      borderRadius: 0,
-                      border: visaSalarieAccord === false ? "2px solid #EF4444" : "1px solid #CBD5E1",
-                      background: visaSalarieAccord === false ? "#FEF2F2" : "#FFFFFF",
-                      color: visaSalarieAccord === false ? "#B91C1C" : "#475569",
-                      fontWeight: 900,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8
-                    }}
-                  >
-                    👎 Pas d'accord / NON OK (Motif d'observation requis)
-                  </button>
-                </div>
-
-                <textarea
-                  disabled={visaSalarieSubmitted}
-                  placeholder="Remarques ou observations du salarié..."
-                  value={visaSalarieObservation}
-                  onChange={(e) => setVisaSalarieObservation(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    fontSize: 13,
-                    borderRadius: 0,
-                    border: "1px solid #CBD5E1",
-                    background: "#FFFFFF",
-                    marginBottom: 14,
-                    outline: "none"
-                  }}
-                  rows={2}
-                />
-
-                {!visaSalarieSubmitted && (
-                  <button
-                    onClick={handleSubmitVisa}
-                    style={{
-                      padding: "10px 24px",
-                      background: "#F0822A",
+                      padding: "8px 18px",
+                      background: "#0284C7",
                       color: "#FFFFFF",
                       fontWeight: 900,
-                      fontSize: 13,
+                      fontSize: 12,
                       border: "none",
                       cursor: "pointer",
-                      borderRadius: 0
+                      borderRadius: 0,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
                     }}
                   >
-                    💾 Valider mon Visa Salarié
+                    {isSaving ? "Enregistrement..." : "💾 Enregistrer mon Auto-Évaluation"}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
+
+            {/* 2. BLOC AVIS & VISA SALARIÉ SUR LA NOTE N+1 */}
+            {(isVisaMode || isSalarie) && (
+              noteGlobaleN1 > 0 ? (
+                <div style={{
+                  marginBottom: 24,
+                  padding: 20,
+                  background: visaSalarieSubmitted ? "#F0FDF4" : "#FFF7ED",
+                  border: visaSalarieSubmitted ? "2px solid #10B981" : "2px solid #F0822A",
+                  borderRadius: 0,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <h4 style={{ fontSize: 15, fontWeight: 900, color: "#000000", margin: 0 }}>
+                      ✍️ Avis & Visa du Salarié sur la Note N+1 ({noteGlobaleN1.toFixed(2)}/20)
+                    </h4>
+                    {visaSalarieSubmitted ? (
+                      <span style={{ fontSize: 11, fontWeight: 900, color: "#059669", background: "#D1FAE5", padding: "4px 10px", borderRadius: 0 }}>
+                        ✓ Visa Enregistré
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, fontWeight: 900, color: "#EA580C", background: "#FFEDD5", padding: "4px 10px", borderRadius: 0 }}>
+                        ⚡ Action Requise Salarié
+                      </span>
+                    )}
+                  </div>
+
+                  <p style={{ fontSize: 13, color: "#475569", margin: "0 0 16px 0" }}>
+                    Après consultation des notes et appréciations saisies par votre responsable N+1, veuillez donner votre accord ou désaccord formel.
+                  </p>
+
+                  <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+                    <button
+                      onClick={() => setVisaSalarieAccord(true)}
+                      disabled={visaSalarieSubmitted}
+                      style={{
+                        flex: 1,
+                        padding: "12px",
+                        borderRadius: 0,
+                        border: visaSalarieAccord === true ? "2px solid #10B981" : "1px solid #CBD5E1",
+                        background: visaSalarieAccord === true ? "#ECFDF5" : "#FFFFFF",
+                        color: visaSalarieAccord === true ? "#047857" : "#475569",
+                        fontWeight: 900,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8
+                      }}
+                    >
+                      👍 D'accord / OK (Note & Appréciation Validées)
+                    </button>
+
+                    <button
+                      onClick={() => setVisaSalarieAccord(false)}
+                      disabled={visaSalarieSubmitted}
+                      style={{
+                        flex: 1,
+                        padding: "12px",
+                        borderRadius: 0,
+                        border: visaSalarieAccord === false ? "2px solid #EF4444" : "1px solid #CBD5E1",
+                        background: visaSalarieAccord === false ? "#FEF2F2" : "#FFFFFF",
+                        color: visaSalarieAccord === false ? "#B91C1C" : "#475569",
+                        fontWeight: 900,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8
+                      }}
+                    >
+                      👎 Pas d'accord / NON OK (Motif d'observation requis)
+                    </button>
+                  </div>
+
+                  <textarea
+                    disabled={visaSalarieSubmitted}
+                    placeholder="Remarques ou observations du salarié..."
+                    value={visaSalarieObservation}
+                    onChange={(e) => setVisaSalarieObservation(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      fontSize: 13,
+                      borderRadius: 0,
+                      border: "1px solid #CBD5E1",
+                      background: "#FFFFFF",
+                      marginBottom: 14,
+                      outline: "none"
+                    }}
+                    rows={2}
+                  />
+
+                  {!visaSalarieSubmitted && (
+                    <button
+                      onClick={handleSubmitVisa}
+                      style={{
+                        padding: "10px 24px",
+                        background: "#F0822A",
+                        color: "#FFFFFF",
+                        fontWeight: 900,
+                        fontSize: 13,
+                        border: "none",
+                        cursor: "pointer",
+                        borderRadius: 0
+                      }}
+                    >
+                      💾 Valider mon Visa Salarié
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  marginBottom: 24,
+                  padding: 18,
+                  background: "#F8FAFC",
+                  border: "1px dashed #CBD5E1",
+                  borderRadius: 0,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 22 }}>⏳</span>
+                    <div>
+                      <h5 style={{ fontSize: 14, fontWeight: 800, color: "#334155", margin: 0 }}>
+                        Visa Salarié : En attente de la notation par le Responsable N+1
+                      </h5>
+                      <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0 0" }}>
+                        La note N+1 est actuellement à <strong>0.00 / 20</strong> car votre supérieur direct n'a pas encore validé son évaluation. Vous pourrez apposer votre Visa (Accord ou Désaccord) dès que la notation N+1 sera finalisée.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
             )}
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 16 }}>
@@ -987,9 +1074,9 @@ export function FicheEvaluationModal({
                 step={1}
                 role="Supérieur N+1"
                 nom={user?.n1 ? `${user.n1.prenom} ${user.n1.nom}` : (dossier?.n1 || "N+1")}
-                signe={false}
-                date="En attente"
-                observation="En attente de l'évaluation N+1."
+                signe={noteGlobaleN1 > 0}
+                date={noteGlobaleN1 > 0 ? "Évalué" : "En attente"}
+                observation={noteGlobaleN1 > 0 ? `Notation N+1 effectuée (${noteGlobaleN1.toFixed(2)}/20)` : "En attente de l'évaluation N+1."}
               />
 
               {/* Salarié */}
@@ -997,9 +1084,9 @@ export function FicheEvaluationModal({
                 step={2}
                 role="Évalué (Salarié)"
                 nom={collabNom}
-                signe={visaSalarieSubmitted}
-                date={visaSalarieSubmitted ? "16 déc. 2026" : "En attente"}
-                observation={visaSalarieSubmitted ? (visaSalarieAccord ? `✓ OK / Accord — "${visaSalarieObservation || "Vu et approuvé."}"` : `⚠️ NON OK / Désaccord — "${visaSalarieObservation}"`) : "Visa salarié en cours."}
+                signe={noteGlobaleSalarie > 0 || visaSalarieSubmitted}
+                date={visaSalarieSubmitted ? "Visa accordé" : noteGlobaleSalarie > 0 ? "Auto-évaluation faite" : "En attente"}
+                observation={visaSalarieSubmitted ? (visaSalarieAccord ? `✓ OK / Accord — "${visaSalarieObservation || "Vu et approuvé."}"` : `⚠️ NON OK / Désaccord — "${visaSalarieObservation}"`) : (noteGlobaleSalarie > 0 ? `Auto-évaluation effectuée (${noteGlobaleSalarie.toFixed(2)}/20)` : "Auto-évaluation en cours.")}
               />
 
               {/* N+2 */}

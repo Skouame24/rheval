@@ -67,6 +67,8 @@ export interface EvaluationCycle {
   salarie: UserSummary;
   statut: StatutEvaluation;
   noteGlobale?: number;
+  noteAutoEvaluation?: number;
+  hasAutoEvaluation?: boolean;
   observation?: string;
   objectifs: any[]; // TODO: type précis
   competences?: any[];
