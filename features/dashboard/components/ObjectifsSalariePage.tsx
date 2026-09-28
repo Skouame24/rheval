@@ -63,22 +63,22 @@ export function ObjectifsSalariePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white p-4 border border-[#A7F3D0] shadow-sm">
                   <span className="inline-block px-2 py-0.5 bg-[#ECFDF5] text-[#10B981] text-xs font-bold uppercase tracking-wider mb-2 border border-[#A7F3D0]">18 à 20 (Excellence)</span>
-                  <p className="text-sm text-gray-700 m-0">{obj.indicateurs?.[0]?.intitule || "Performance exceptionnelle"}</p>
+                  <p className="text-sm text-gray-700 m-0">{obj.indicateurs?.find((i: any) => Number(i.noteMin) >= 18)?.intitule || obj.indicateurs?.[0]?.intitule || "Performance exceptionnelle"}</p>
                 </div>
                 
                 <div className="bg-white p-4 border border-[#FFEDD5] shadow-sm">
                   <span className="inline-block px-2 py-0.5 bg-[#FFF7ED] text-[#F0822A] text-xs font-bold uppercase tracking-wider mb-2 border border-[#FFEDD5]">15 à 17 (Très Bon)</span>
-                  <p className="text-sm text-gray-700 m-0">Objectif atteint avec succès</p>
+                  <p className="text-sm text-gray-700 m-0">{obj.indicateurs?.find((i: any) => Number(i.noteMin) === 15)?.intitule || obj.indicateurs?.[1]?.intitule || "Objectif atteint avec succès"}</p>
                 </div>
                 
                 <div className="bg-white p-4 border border-[#BFDBFE] shadow-sm">
                   <span className="inline-block px-2 py-0.5 bg-[#EFF6FF] text-[#3B82F6] text-xs font-bold uppercase tracking-wider mb-2 border border-[#BFDBFE]">12 à 14 (Satisfaisant)</span>
-                  <p className="text-sm text-gray-700 m-0">Objectif partiellement atteint</p>
+                  <p className="text-sm text-gray-700 m-0">{obj.indicateurs?.find((i: any) => Number(i.noteMin) === 12)?.intitule || obj.indicateurs?.[2]?.intitule || "Objectif partiellement atteint"}</p>
                 </div>
                 
                 <div className="bg-white p-4 border border-[#FEE2E2] shadow-sm">
                   <span className="inline-block px-2 py-0.5 bg-[#FEF2F2] text-[#EF4444] text-xs font-bold uppercase tracking-wider mb-2 border border-[#FEE2E2]">0 à 11 (Insuffisant)</span>
-                  <p className="text-sm text-gray-700 m-0">Objectif non atteint</p>
+                  <p className="text-sm text-gray-700 m-0">{obj.indicateurs?.find((i: any) => Number(i.noteMin) === 0)?.intitule || obj.indicateurs?.[3]?.intitule || "Objectif non atteint"}</p>
                 </div>
               </div>
             </div>

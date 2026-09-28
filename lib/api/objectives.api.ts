@@ -9,10 +9,23 @@ import type { Objectif, CreateObjectifDto } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────
 
+export interface CreateObjectifItemDto {
+  id?: string;
+  intitule: string;
+  description?: string;
+  ponderation?: number;
+  criteres?: {
+    t18_20?: string;
+    t15_17?: string;
+    t12_14?: string;
+    t0_11?: string;
+  };
+}
+
 export interface CreateObjectifsDto {
   salarieId: string;
-  cycleId: string;
-  objectifs: CreateObjectifDto[];
+  cycleId?: string;
+  objectifs: CreateObjectifItemDto[];
 }
 
 // ─── Service ────────────────────────────────────────────────
@@ -23,26 +36,25 @@ export const objectivesApi = {
    * Récupère les objectifs définis pour le salarié connecté.
    * US-02 — ObjectifsSalariePage
    */
-  getMyObjectifs: async (): Promise<Objectif[]> => {
-    return client.get<Objectif[]>("/objectifs/me");
+  getMyObjectifs: async (): Promise<any[]> => {
+    return client.get<any[]>("/objectifs/me");
   },
 
   /**
    * GET /api/n1/objectifs/:salarieId
    * Récupère les objectifs définis par le N+1 pour un salarié donné.
    */
-  getBySalarieId: async (salarieId: string): Promise<Objectif[]> => {
-    return client.get<Objectif[]>(`/n1/objectifs/${salarieId}`);
+  getBySalarieId: async (salarieId: string): Promise<any[]> => {
+    return client.get<any[]>(`/n1/objectifs/${salarieId}`);
   },
 
   /**
    * POST /api/n1/objectifs
-   * Crée les objectifs pour un salarié (avec pondérations — total doit = 100%).
+   * Crée / met à jour les objectifs pour un salarié.
    * US-06 — ModalDefinirObjectifs
-   * Body : { salarieId, cycleId, objectifs: [{ intitule, description, ponderation }] }
    */
-  create: async (dto: CreateObjectifsDto): Promise<Objectif[]> => {
-    return client.post<Objectif[]>("/n1/objectifs", dto);
+  create: async (dto: CreateObjectifsDto): Promise<any[]> => {
+    return client.post<any[]>("/n1/objectifs", dto);
   },
 
   /**
@@ -52,7 +64,7 @@ export const objectivesApi = {
   update: async (
     id: string,
     dto: Partial<CreateObjectifDto>
-  ): Promise<Objectif> => {
-    return client.put<Objectif>(`/n1/objectifs/${id}`, dto);
+  ): Promise<any> => {
+    return client.put<any>(`/n1/objectifs/${id}`, dto);
   },
 };

@@ -61,11 +61,23 @@ export function DashboardManager() {
       />
 
       {/* Modal pour définir les objectifs */}
-      <ModalDefinirObjectifs
-        isOpen={objectifsModalOpen !== null}
-        onClose={() => setObjectifsModalOpen(null)}
-        salarieName={equipeDirecte.find(e => e.id === objectifsModalOpen)?.nom || ""}
-      />
+      {objectifsModalOpen && (
+        <ModalDefinirObjectifs
+          isOpen={true}
+          onClose={() => setObjectifsModalOpen(null)}
+          salariedId={objectifsModalOpen}
+          salariedName={
+            equipeDirecte.find(e => e.id === objectifsModalOpen)?.nom ||
+            equipeN2.find(e => e.id === objectifsModalOpen)?.nom ||
+            "Collaborateur"
+          }
+          salariedPoste={
+            equipeDirecte.find(e => e.id === objectifsModalOpen)?.poste ||
+            equipeN2.find(e => e.id === objectifsModalOpen)?.poste ||
+            ""
+          }
+        />
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <PageHeader

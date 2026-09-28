@@ -29,6 +29,7 @@ export default function CollaborateursN1Page() {
           <ModalDefinirObjectifs
             isOpen={true}
             onClose={() => setSelectedCollab(null)}
+            salariedId={selectedCollab.id}
             salariedName={`${selectedCollab.prenom} ${selectedCollab.nom}`}
             salariedPoste={selectedCollab.poste}
           />

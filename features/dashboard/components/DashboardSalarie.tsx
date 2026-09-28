@@ -217,6 +217,7 @@ export function DashboardSalarie() {
       <ModalDefinirObjectifs
         isOpen={isDefinirObjectifsOpen}
         onClose={() => setIsDefinirObjectifsOpen(false)}
+        salariedId={user?.id}
         salariedName={`${user?.prenom ?? ""} ${user?.nom ?? ""}`.trim() || "Collaborateur"}
         salariedPoste={user?.poste ?? "Collaborateur Agilly"}
         isN1Validated={false}
