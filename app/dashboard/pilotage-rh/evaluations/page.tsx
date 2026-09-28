@@ -1,67 +1,134 @@
 // ============================================================
-// app/dashboard/rh/evaluations/page.tsx
-// Page Évaluations RH — Vue par cartes (Soft UI + Vector SVG Icons)
+// app/dashboard/pilotage-rh/evaluations/page.tsx
+// Page Évaluations RH — 100% Données Réelles Neon PostgreSQL
 // ============================================================
 
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card } from "@/components/ui";
+import { Card, Skeleton } from "@/components/ui";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
-import { ScaleIcon, CheckCircleIcon, EyeIcon } from "@/components/ui/Icons";
-
-const EVALUATIONS_RH = [
-  { id: "1", nom: "KOUAME", prenom: "Ebenezer Samuel", poste: "Dev Full-Stack", direction: "Executive", n1: "Marc AUBERT", noteN1: 18.5, noteN2: 18.0, statut: "EN_ATTENTE_RH", statutLabel: "En attente Validation RH", date: "28/07/2026" },
-  { id: "2", nom: "Koné", prenom: "Mariam", poste: "Designer UI/UX", direction: "Executive", n1: "Marc AUBERT", noteN1: 17.5, noteN2: 14.0, statut: "ARBITRAGE", statutLabel: "Arbitrage RH requis (Écart 3.5 pts)", date: "27/07/2026" },
-  { id: "3", nom: "Bah", prenom: "Oumar", poste: "Dev Mobile", direction: "Technique", n1: "Marc AUBERT", noteN1: 15.0, noteN2: 15.0, statut: "VALIDE", statutLabel: "Validé & Clôturé", date: "25/07/2026" },
-  { id: "4", nom: "Camara", prenom: "Aissatou", poste: "QA Engineer", direction: "Technique", n1: "Marc AUBERT", noteN1: 14.5, noteN2: 14.5, statut: "VALIDE", statutLabel: "Validé & Clôturé", date: "24/07/2026" },
-  { id: "5", nom: "Sylla", prenom: "Mamadou", poste: "DevOps", direction: "Infrastructure", n1: "Marc AUBERT", noteN1: 17.0, noteN2: 17.0, statut: "VALIDE", statutLabel: "Validé & Clôturé", date: "22/07/2026" },
-];
+import { ScaleIcon, CheckCircleIcon, EyeIcon, FileSpreadsheetIcon, ArrowPathIcon } from "@/components/ui/Icons";
+import { evaluationsApi } from "@/lib/api/evaluations.api";
+import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
+import type { EvaluationCycle } from "@/types";
 
 export default function RhEvaluationsPage() {
   const [filter, setFilter] = useState<string>("TOUT");
-  const [selectedModal, setSelectedModal] = useState<string | null>(null);
+  const [selectedModal, setSelectedModal] = useState<EvaluationCycle | null>(null);
+  const [evaluations, setEvaluations] = useState<EvaluationCycle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredItems = EVALUATIONS_RH.filter(item => {
-    if (filter === "EN_ATTENTE") return item.statut === "EN_ATTENTE_RH";
+  const fetchEvaluations = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await evaluationsApi.getAllForRh();
+      setEvaluations(data || []);
+    } catch (err: any) {
+      console.error("[RhEvaluationsPage] Error loading evaluations:", err);
+      setError("Erreur lors de la récupération des évaluations.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvaluations();
+  }, []);
+
+  const filteredItems = evaluations.filter((item) => {
+    if (filter === "EN_ATTENTE") {
+      return ["EN_ATTENTE_RH", "EN_ATTENTE_N1", "EN_ATTENTE_N2", "FIXATION_OBJECTIFS"].includes(item.statut);
+    }
     if (filter === "ARBITRAGE") return item.statut === "ARBITRAGE";
-    if (filter === "VALIDE") return item.statut === "VALIDE";
+    if (filter === "VALIDE") return ["VALIDE", "CLOTURE"].includes(item.statut);
     return true;
   });
 
-  return (
-    <AppShell role="RH" userName="Pôle Ressources Humaines" userEmail="drh@agilly.com" notifCount={5}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 28, paddingBottom: 40 }}>
-        <FicheEvaluationModal isOpen={selectedModal !== null} onClose={() => setSelectedModal(null)} />
+  const getStatutBadge = (statut: string) => {
+    switch (statut) {
+      case "ARBITRAGE":
+        return { label: "Arbitrage RH Requis", bg: "#FEF2F2", color: "#DC2626", border: "#FEE2E2" };
+      case "VALIDE":
+      case "CLOTURE":
+        return { label: "Validé & Clôturé", bg: "#D1FAE5", color: "#059669", border: "#A7F3D0" };
+      case "EN_ATTENTE_RH":
+        return { label: "En attente RH", bg: "#FFF7ED", color: "#EA580C", border: "#FFEDD5" };
+      case "EN_ATTENTE_N1":
+        return { label: "En attente N+1", bg: "#EFF6FF", color: "#2563EB", border: "#DBEAFE" };
+      default:
+        return { label: statut, bg: "#F1F5F9", color: "#475569", border: "#E2E8F0" };
+    }
+  };
 
-        <PageHeader
-          title="Toutes les Évaluations"
-          subtitle="Suivi complet des fiches d'évaluation du cycle 2026"
-          breadcrumbs={[{ label: "Espace RH" }, { label: "Évaluations" }]}
+  return (
+    <AppShell role="RH" userName="Pôle Ressources Humaines" userEmail="drh@agilly.com" notifCount={0}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 28, paddingBottom: 40 }}>
+        
+        <FicheEvaluationModal 
+          isOpen={selectedModal !== null} 
+          onClose={() => setSelectedModal(null)} 
+          dossier={selectedModal ? {
+            nom: selectedModal.salarie?.nom || "",
+            prenom: selectedModal.salarie?.prenom || "",
+            poste: selectedModal.salarie?.poste || "",
+            direction: (selectedModal.salarie as any)?.departement || "Direction",
+          } : null}
+          objectifs={selectedModal?.objectifs || []}
+          readOnly={true}
         />
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <PageHeader
+            title="Toutes les Évaluations"
+            subtitle={`${evaluations.length} fiche(s) d'évaluation enregistrée(s)`}
+            breadcrumbs={[{ label: "Espace RH" }, { label: "Évaluations" }]}
+          />
+
+          <button
+            onClick={fetchEvaluations}
+            title="Rafraîchir"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              background: "#FFFFFF",
+              border: "1px solid #CBD5E1",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#334155",
+              cursor: "pointer",
+            }}
+          >
+            <ArrowPathIcon size={14} />
+            Actualiser
+          </button>
+        </div>
 
         {/* Filtres */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {[
-            { id: "TOUT", label: "Toutes les fiches (5)" },
-            { id: "EN_ATTENTE", label: "En attente RH (1)" },
-            { id: "ARBITRAGE", label: "Arbitrages (1)" },
-            { id: "VALIDE", label: "Validées (3)" },
+            { id: "TOUT", label: `Toutes les fiches (${evaluations.length})` },
+            { id: "EN_ATTENTE", label: `En cours (${evaluations.filter(e => !["VALIDE", "CLOTURE", "ARBITRAGE"].includes(e.statut)).length})` },
+            { id: "ARBITRAGE", label: `Arbitrages (${evaluations.filter(e => e.statut === "ARBITRAGE").length})` },
+            { id: "VALIDE", label: `Validées (${evaluations.filter(e => ["VALIDE", "CLOTURE"].includes(e.statut)).length})` },
           ].map(f => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
               style={{
                 padding: "8px 16px",
-                borderRadius: 10,
-                border: filter === f.id ? "none" : "1px solid #E2E8F0",
+                borderRadius: 0,
+                border: filter === f.id ? "1px solid #F0822A" : "1px solid #E2E8F0",
                 background: filter === f.id ? "#F0822A" : "#FFFFFF",
                 color: filter === f.id ? "#FFFFFF" : "#475569",
                 fontWeight: 800,
                 fontSize: 13,
                 cursor: "pointer",
-                boxShadow: filter === f.id ? "0 4px 12px rgba(240, 130, 42, 0.25)" : "none"
               }}
             >
               {f.label}
@@ -69,87 +136,151 @@ export default function RhEvaluationsPage() {
           ))}
         </div>
 
-        {/* Cartes Évaluations */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
-          {filteredItems.map(item => (
-            <Card key={item.id} hoverable padding="lg" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {item.prenom.charAt(0)}
+        {/* Chargement */}
+        {isLoading && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} padding="lg">
+                <Skeleton className="h-10 w-10 mb-4" />
+                <Skeleton className="h-5 w-40 mb-2" />
+                <Skeleton className="h-4 w-28 mb-4" />
+                <Skeleton className="h-20 w-full" />
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Erreur */}
+        {error && (
+          <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", padding: 16, color: "#991B1B", fontSize: 13, fontWeight: 700 }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Liste vide */}
+        {!isLoading && !error && filteredItems.length === 0 && (
+          <div style={{ textAlign: "center", padding: "60px 20px", background: "#FFFFFF", border: "1px solid #E2E8F0" }}>
+            <CheckCircleIcon size={40} color="#94A3B8" />
+            <h4 style={{ fontSize: 16, fontWeight: 800, color: "#1E293B", margin: "12px 0 4px 0" }}>
+              Aucune évaluation dans cette catégorie
+            </h4>
+            <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>
+              Toutes les évaluations sont à jour ou aucune fiche ne correspond au filtre sélectionné.
+            </p>
+          </div>
+        )}
+
+        {/* Cartes Évaluations Réelles */}
+        {!isLoading && !error && filteredItems.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+            {filteredItems.map(item => {
+              const badge = getStatutBadge(item.statut);
+              const note = item.noteGlobale != null ? `${Number(item.noteGlobale).toFixed(1)} / 20` : "En attente";
+              const dateCreation = item.dateCreation ? new Date(item.dateCreation).toLocaleDateString("fr-FR") : "-";
+
+              return (
+                <Card key={item.id} hoverable padding="lg" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 0, background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {(item.salarie?.prenom || item.salarie?.nom || "?").charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: 16, fontWeight: 900, color: "#000000", margin: 0 }}>
+                            {item.salarie?.prenom} {item.salarie?.nom}
+                          </h3>
+                          <p style={{ fontSize: 12, fontWeight: 600, color: "#64748b", margin: "2px 0 0 0" }}>
+                            {item.salarie?.poste || "Collaborateur"}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 900, color: "#000000", margin: 0 }}>{item.prenom} {item.nom}</h3>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: "#64748b", margin: "2px 0 0 0" }}>{item.poste}</p>
+
+                    <div style={{ background: "#F8FAFC", padding: 14, borderRadius: 0, border: "1px solid #E2E8F0", marginBottom: 16, display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Direction :</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: "#0F172A" }}>{(item.salarie as any)?.departement || "Agilly"}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Note Finale :</span>
+                        <span style={{ fontSize: 12, fontWeight: 900, color: "#F0822A" }}>{note}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Date ouverture :</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>{dateCreation}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Objectifs fixés :</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>{item.objectifs?.length || 0}</span>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div style={{ background: "#F8FAFC", padding: 14, borderRadius: 12, marginBottom: 16, display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Direction :</span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "#0F172A" }}>{item.direction}</span>
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 11,
+                      fontWeight: 900,
+                      padding: "6px 12px",
+                      borderRadius: 0,
+                      marginBottom: 16,
+                      background: badge.bg,
+                      color: badge.color,
+                      border: `1px solid ${badge.border}`
+                    }}>
+                      {item.statut === "ARBITRAGE" && <ScaleIcon size={14} color="#DC2626" />}
+                      {["VALIDE", "CLOTURE"].includes(item.statut) && <CheckCircleIcon size={14} color="#059669" />}
+                      {badge.label}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>N+1 Note & Taux :</span>
-                    <span style={{ fontSize: 12, fontWeight: 900, color: "#F0822A" }}>{item.noteN1} / 20 ({((item.noteN1 / 20) * 100).toFixed(1)} %)</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>N+2 Note & Taux :</span>
-                    <span style={{ fontSize: 12, fontWeight: 900, color: "#3B82F6" }}>{item.noteN2} / 20 ({((item.noteN2 / 20) * 100).toFixed(1)} %)</span>
-                  </div>
-                </div>
 
-                <span style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 11,
-                  fontWeight: 900,
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  marginBottom: 16,
-                  background: item.statut === "ARBITRAGE" ? "#FEF2F2" : item.statut === "VALIDE" ? "#D1FAE5" : "#FFF7ED",
-                  color: item.statut === "ARBITRAGE" ? "#DC2626" : item.statut === "VALIDE" ? "#059669" : "#EA580C",
-                  border: item.statut === "ARBITRAGE" ? "1px solid #FEE2E2" : "none"
-                }}>
-                  {item.statut === "ARBITRAGE" && <ScaleIcon size={14} color="#DC2626" />}
-                  {item.statut === "VALIDE" && <CheckCircleIcon size={14} color="#059669" />}
-                  {item.statutLabel}
-                </span>
-              </div>
-
-              <button
-                onClick={() => setSelectedModal(item.id)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: item.statut === "ARBITRAGE" ? "#DC2626" : item.statut === "EN_ATTENTE_RH" ? "#F0822A" : "#000000",
-                  color: "#FFFFFF",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  boxShadow: item.statut === "EN_ATTENTE_RH" ? "0 4px 14px rgba(240, 130, 42, 0.3)" : "none"
-                }}
-              >
-                {item.statut === "ARBITRAGE" ? (
-                  <><ScaleIcon size={16} color="#FFFFFF" /> Ouvrir Arbitrage</>
-                ) : item.statut === "EN_ATTENTE_RH" ? (
-                  <><CheckCircleIcon size={16} color="#FFFFFF" /> Valider & Clôturer</>
-                ) : (
-                  <><EyeIcon size={16} color="#FFFFFF" /> Consulter la Fiche</>
-                )}
-              </button>
-            </Card>
-          ))}
-        </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => setSelectedModal(item)}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: 0,
+                        border: "none",
+                        background: "#0F172A",
+                        color: "#FFFFFF",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <EyeIcon size={14} color="#FFFFFF" /> Consulter la Fiche
+                    </button>
+                    <button
+                      onClick={() => exportEvaluationToExcel(item)}
+                      title="Télécharger la fiche Excel officielle"
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 0,
+                        border: "1px solid #A7F3D0",
+                        background: "#ECFDF5",
+                        color: "#059669",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <FileSpreadsheetIcon size={14} color="#059669" /> Excel
+                    </button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AppShell>
   );

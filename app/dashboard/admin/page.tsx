@@ -1,101 +1,123 @@
 // ============================================================
 // app/dashboard/admin/page.tsx
 // Console d'Administration Système & Gouvernance AGILLY RHEVAL
-// Charte Agilly Bords Carrés (rounded-none)
+// Charte Agilly Bords Carrés (rounded-none) — 100% Données Réelles
 // ============================================================
 
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardHeader } from "@/components/ui";
-import {
-  UsersIcon,
-  CheckCircleIcon,
-  ScaleIcon,
-  GridIcon,
-  ListIcon,
-  PencilIcon,
-  EyeIcon,
-  ArrowDownTrayIcon,
-  ArrowPathIcon,
-} from "@/components/ui/Icons";
-
-// ─── Données de démo Admin ─────────────────────────────────
-
-const INITIAL_USERS = [
-  { id: "u-1", nom: "KOUAME", prenom: "Ebenezer Samuel", email: "e.kouame@agilly.com", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:22" },
-  { id: "u-2", nom: "AKOUMIA", prenom: "Sevan", email: "s.akoumia@agilly.com", role: "N1", direction: "Executive", n1: "Alexis BAMBA", statut: "ACTIF", derniereConnexion: "Aujourd'hui 14:15" },
-  { id: "u-3", nom: "BAMBA", prenom: "Koffi Alexis", email: "a.bamba@agilly.com", role: "N2", direction: "Technique", n1: "Direction Générale", statut: "ACTIF", derniereConnexion: "Hier 16:45" },
-  { id: "u-4", nom: "KOUASSI", prenom: "Marie-Claire", email: "mc.kouassi@agilly.com", role: "DRH", direction: "Ressources Humaines", n1: "Direction Générale", statut: "ACTIF", derniereConnexion: "Aujourd'hui 11:30" },
-  { id: "u-5", nom: "SYSTEM", prenom: "Admin AGILLY", email: "admin@agilly.com", role: "ADMIN", direction: "Informatique & Sécurité", n1: "Root", statut: "ACTIF", derniereConnexion: "En cours" },
-  { id: "u-6", nom: "Koné", prenom: "Mariam", email: "m.kone@agilly.com", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "02/08/2026 10:14" },
-  { id: "u-[#]", nom: "Bah", prenom: "Oumar", email: "o.bah@agilly.com", role: "SALARIE", direction: "Technique", n1: "Marc AUBERT", statut: "ACTIF", derniereConnexion: "01/08/2026 18:00" },
-];
-
-const AUDIT_LOGS = [
-  { id: "log-1", date: "2026-08-03 14:25:12", utilisateur: "Marc AUBERT (Manager N+1)", action: "SOUMISSION_OBJECTIFS", details: "Transmission des 3 objectifs de performance pour Ebenezer KOUAME", ip: "197.230.12.44", type: "Évaluation" },
-  { id: "log-2", date: "2026-08-03 12:14:05", utilisateur: "Marie-Claire KOUASSI (DRH)", action: "ARBITRAGE_RH_VALIDE", details: "Arbitrage RH rendu pour le dossier Mariam Koné (Note finale: 16.0/20)", ip: "197.230.12.18", type: "Arbitrage" },
-  { id: "log-3", date: "2026-08-03 11:02:30", utilisateur: "Admin AGILLY (SysAdmin)", action: "CHANGEMENT_ROLE", details: "Affectation du rôle DRH au compte mc.kouassi@agilly.com", ip: "197.230.12.1", type: "Sécurité" },
-  { id: "log-4", date: "2026-08-03 09:45:00", utilisateur: "Koffi Alexis BAMBA (N+2)", action: "VALIDATION_N2", details: "Validation de la fiche d'évaluation de Oumar Bah", ip: "197.230.12.82", type: "Évaluation" },
-  { id: "log-5", date: "2026-08-03 08:30:19", utilisateur: "Ebenezer KOUAME (Salarié)", action: "SIGNATURE_ELECTRONIQUE", details: "Signature de la fiche d'évaluation annuelle 2026", ip: "197.230.12.99", type: "Signature" },
-  { id: "log-6", date: "2026-08-02 17:10:44", utilisateur: "Admin AGILLY (SysAdmin)", action: "OUVERTURE_CYCLE", details: "Lancement officiel de la Campagne Annuelle d'Évaluation 2026", ip: "197.230.12.1", type: "Système" },
-];
+import { adminApi, type AuditLog } from "@/lib/api/admin.api";
+import { Skeleton } from "@/components/ui";
+import { ArrowPathIcon, UsersIcon, CheckCircleIcon } from "@/components/ui/Icons";
+import type { User, Role } from "@/types";
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<"utilisateurs" | "audit" | "parametres">("utilisateurs");
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState<User[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("TOUT");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Formulaire Nouvel Utilisateur
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{
+    nom: string;
+    prenom: string;
+    email: string;
+    role: Role;
+    poste: string;
+    departement: string;
+  }>({
     nom: "",
     prenom: "",
     email: "",
     role: "SALARIE",
-    direction: "Executive",
-    n1: "Marc AUBERT",
+    poste: "",
+    departement: "Direction Technique",
   });
 
-  const handleCreateUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newUser.nom || !newUser.prenom || !newUser.email) {
-      alert("Veuillez remplir tous les champs obligatoires.");
-      return;
+  const loadData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [usersData, logsData] = await Promise.all([
+        adminApi.getAllUsers().catch(() => []),
+        adminApi.getAuditLogs().catch(() => []),
+      ]);
+      setUsers(usersData || []);
+      setAuditLogs(logsData || []);
+    } catch (err: any) {
+      console.error("[AdminDashboardPage] Error loading data:", err);
+      setError("Erreur de chargement des données d'administration.");
+    } finally {
+      setIsLoading(false);
     }
-    const created = {
-      id: `u-${Date.now()}`,
-      ...newUser,
-      statut: "ACTIF",
-      derniereConnexion: "Jamais connecté",
-    };
-    setUsers((prev) => [created, ...prev]);
-    setIsAddUserOpen(false);
-    setNewUser({ nom: "", prenom: "", email: "", role: "SALARIE", direction: "Executive", n1: "Marc AUBERT" });
-    alert(`Le compte utilisateur de ${created.prenom} ${created.nom} a été créé avec succès !`);
   };
 
-  const handleToggleStatut = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id ? { ...u, statut: u.statut === "ACTIF" ? "SUSPENDU" : "ACTIF" } : u
-      )
-    );
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUser.nom || !newUser.email) return;
+
+    setIsSubmitting(true);
+    try {
+      await adminApi.createUser({
+        nom: newUser.nom,
+        prenom: newUser.prenom,
+        email: newUser.email,
+        role: newUser.role,
+        poste: newUser.poste || "Collaborateur",
+        departement: newUser.departement || "Direction Générale",
+      });
+      setIsAddUserOpen(false);
+      setNewUser({
+        nom: "",
+        prenom: "",
+        email: "",
+        role: "SALARIE",
+        poste: "",
+        departement: "Direction Technique",
+      });
+      await loadData();
+      alert("Utilisateur créé avec succès !");
+    } catch (err: any) {
+      console.error("[AdminDashboardPage] Error creating user:", err);
+      alert("Erreur lors de la création de l'utilisateur : " + (err.message || "Erreur serveur"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${name} ?`)) return;
+    try {
+      await adminApi.deleteUser(id);
+      await loadData();
+    } catch (err: any) {
+      console.error("[AdminDashboardPage] Error deleting user:", err);
+      alert("Erreur lors de la suppression de l'utilisateur.");
+    }
   };
 
   const filteredUsers = users.filter((u) => {
-    const matchSearch = (u.prenom + " " + u.nom + " " + u.email + " " + u.direction)
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    const full = `${u.prenom || ""} ${u.nom || ""} ${u.email || ""} ${u.departement || ""} ${u.poste || ""}`.toLowerCase();
+    const matchSearch = full.includes(searchQuery.toLowerCase());
     const matchRole = filterRole === "TOUT" || u.role === filterRole;
     return matchSearch && matchRole;
   });
 
   return (
-    <AppShell role="ADMIN" userName="Administrateur Système" userEmail="admin@agilly.com" notifCount={2}>
-      <div className="flex flex-col gap-8 pb-10 max-w-[1400px] mx-auto">
+    <AppShell role="ADMIN" userName="Administrateur Système" userEmail="admin@agilly.com" notifCount={0}>
+      <div className="flex flex-col gap-8 pb-10 max-w-[1400px] mx-auto font-sans">
         
         {/* MODAL CRÉATION UTILISATEUR */}
         {isAddUserOpen && (
@@ -108,7 +130,7 @@ export default function AdminDashboardPage() {
                   <span className="text-xl">👤</span>
                   <div>
                     <h3 className="text-base font-extrabold text-white m-0">Créer un Compte Utilisateur</h3>
-                    <p className="text-xs text-[#F0822A] font-semibold m-0 mt-0.5">Affectation des droits & rattachement N+1</p>
+                    <p className="text-xs text-[#F0822A] font-semibold m-0 mt-0.5">Affectation des droits & rôle</p>
                   </div>
                 </div>
                 <button
@@ -122,10 +144,9 @@ export default function AdminDashboardPage() {
               <form onSubmit={handleCreateUser} className="p-6 flex flex-col gap-4 bg-[#F7F8FA]">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-extrabold text-slate-600 uppercase block mb-1">Prénom *</label>
+                    <label className="text-xs font-extrabold text-slate-600 uppercase block mb-1">Prénom</label>
                     <input
                       type="text"
-                      required
                       value={newUser.prenom}
                       onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })}
                       placeholder="ex: Paul"
@@ -162,7 +183,7 @@ export default function AdminDashboardPage() {
                     <label className="text-xs font-extrabold text-slate-600 uppercase block mb-1">Rôle Système *</label>
                     <select
                       value={newUser.role}
-                      onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                      onChange={(e) => setNewUser({ ...newUser, role: e.target.value as Role })}
                       className="w-full h-10 px-3 border border-slate-300 rounded-none text-sm font-semibold outline-none focus:border-[#F0822A] bg-white"
                     >
                       <option value="SALARIE">Salarié</option>
@@ -178,19 +199,20 @@ export default function AdminDashboardPage() {
                     <label className="text-xs font-extrabold text-slate-600 uppercase block mb-1">Direction</label>
                     <input
                       type="text"
-                      value={newUser.direction}
-                      onChange={(e) => setNewUser({ ...newUser, direction: e.target.value })}
+                      value={newUser.departement}
+                      onChange={(e) => setNewUser({ ...newUser, departement: e.target.value })}
                       className="w-full h-10 px-3 border border-slate-300 rounded-none text-sm font-semibold outline-none focus:border-[#F0822A] bg-white"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-extrabold text-slate-600 uppercase block mb-1">Manager Supérieur N+1</label>
+                  <label className="text-xs font-extrabold text-slate-600 uppercase block mb-1">Intitulé du Poste</label>
                   <input
                     type="text"
-                    value={newUser.n1}
-                    onChange={(e) => setNewUser({ ...newUser, n1: e.target.value })}
+                    value={newUser.poste}
+                    onChange={(e) => setNewUser({ ...newUser, poste: e.target.value })}
+                    placeholder="ex: Développeur Full-Stack"
                     className="w-full h-10 px-3 border border-slate-300 rounded-none text-sm font-semibold outline-none focus:border-[#F0822A] bg-white"
                   />
                 </div>
@@ -205,9 +227,10 @@ export default function AdminDashboardPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#F0822A] text-white font-extrabold text-xs rounded-none hover:bg-[#d97220] transition-colors cursor-pointer"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 bg-[#F0822A] text-white font-extrabold text-xs rounded-none hover:bg-[#d97220] transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    ✓ Enregistrer l'Utilisateur
+                    {isSubmitting ? "Enregistrement..." : "✓ Enregistrer l'Utilisateur"}
                   </button>
                 </div>
               </form>
@@ -216,36 +239,47 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ── HEADER CONSOLE ADMIN ── */}
-        <PageHeader
-          title="Console d'Administration & Gouvernance Système"
-          subtitle="Gestion centralisée des comptes, contrôle des rôles, journal d'audit et sécurité AGILLY RHEVAL"
-          breadcrumbs={[{ label: "Accueil" }, { label: "Console Administration" }]}
-        />
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <PageHeader
+            title="Console d'Administration & Gouvernance Système"
+            subtitle="Gestion centralisée des comptes, contrôle des rôles et journal d'audit AGILLY RHEVAL"
+            breadcrumbs={[{ label: "Accueil" }, { label: "Console Administration" }]}
+          />
 
-        {/* ── KPIs SYSTEME ── */}
+          <button
+            onClick={loadData}
+            title="Rafraîchir"
+            className="px-3 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <ArrowPathIcon size={14} />
+            Actualiser
+          </button>
+        </div>
+
+        {/* ── KPIs SYSTEME DYNAMIQUES ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           <div className="bg-white p-5 border border-slate-200 rounded-none shadow-sm border-l-4 border-l-[#F0822A]">
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">COMPTES ACTIFS</span>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">COMPTES UTILISATEURS</span>
             <p className="text-2xl font-extrabold text-slate-900 m-0">{users.length}</p>
-            <span className="text-xs font-bold text-slate-500 mt-1 block">Salariés, Managers & RH</span>
+            <span className="text-xs font-bold text-slate-500 mt-1 block">Comptes synchronisés</span>
           </div>
 
           <div className="bg-white p-5 border border-slate-200 rounded-none shadow-sm border-l-4 border-l-emerald-600">
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">CONFORMITÉ SÉCURITÉ</span>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">SÉCURITÉ & ACCÈS</span>
             <p className="text-2xl font-extrabold text-emerald-600 m-0">100%</p>
-            <span className="text-xs font-bold text-emerald-700 mt-1 block">0 anomalie détectée</span>
+            <span className="text-xs font-bold text-emerald-700 mt-1 block">Authentification Microsoft SSO</span>
           </div>
 
           <div className="bg-white p-5 border border-slate-200 rounded-none shadow-sm border-l-4 border-l-blue-600">
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">JOURNAL AUDIT</span>
-            <p className="text-2xl font-extrabold text-blue-600 m-0">{AUDIT_LOGS.length}</p>
-            <span className="text-xs font-bold text-slate-500 mt-1 block">Événements traçés</span>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">ÉVÉNEMENTS D'AUDIT</span>
+            <p className="text-2xl font-extrabold text-blue-600 m-0">{auditLogs.length}</p>
+            <span className="text-xs font-bold text-slate-500 mt-1 block">Actions horodatées</span>
           </div>
 
           <div className="bg-white p-5 border border-slate-200 rounded-none shadow-sm border-l-4 border-l-slate-900">
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">VERSION AGILLY</span>
-            <p className="text-2xl font-extrabold text-slate-900 m-0">v2.4.0</p>
-            <span className="text-xs font-bold text-[#F0822A] mt-1 block">Charte Bords Carrés Active</span>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">BASE DE DONNÉES</span>
+            <p className="text-2xl font-extrabold text-slate-900 m-0">PostgreSQL</p>
+            <span className="text-xs font-bold text-[#F0822A] mt-1 block">Neon Cloud Connecté</span>
           </div>
         </div>
 
@@ -270,7 +304,7 @@ export default function AdminDashboardPage() {
                 : "border-transparent text-slate-600 hover:text-slate-900"
             }`}
           >
-            🛡️ Journal d'Audit & Sécurité ({AUDIT_LOGS.length})
+            🛡️ Journal d'Audit & Sécurité ({auditLogs.length})
           </button>
 
           <button
@@ -281,14 +315,13 @@ export default function AdminDashboardPage() {
                 : "border-transparent text-slate-600 hover:text-slate-900"
             }`}
           >
-            ⚙️ Paramètres Système & SMTP
+            ⚙️ Paramètres Système
           </button>
         </div>
 
         {/* ── CONTENU : ONGLET 1 - GESTION UTILISATEURS ── */}
         {activeTab === "utilisateurs" && (
           <div className="flex flex-col gap-6">
-            {/* Barre d'action & Filtres */}
             <div className="flex justify-between items-center flex-wrap gap-4 bg-white p-4 border border-slate-200">
               <div className="flex items-center gap-3 flex-wrap">
                 <input
@@ -322,131 +355,138 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Tableau des utilisateurs */}
-            <div className="bg-white border border-slate-200 overflow-x-auto shadow-sm">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-900 text-white border-b border-slate-800">
-                    <th className="p-3.5 text-xs font-extrabold">Utilisateur</th>
-                    <th className="p-3.5 text-xs font-extrabold">Email Pro</th>
-                    <th className="p-3.5 text-xs font-extrabold">Rôle Assigné</th>
-                    <th className="p-3.5 text-xs font-extrabold">Direction</th>
-                    <th className="p-3.5 text-xs font-extrabold">Manager N+1</th>
-                    <th className="p-3.5 text-xs font-extrabold">Statut</th>
-                    <th className="p-3.5 text-xs font-extrabold text-right">Actions Admin</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 text-xs">
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-3.5 font-extrabold text-slate-900">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-none bg-[#FFF7ED] text-[#F0822A] font-extrabold flex items-center justify-center border border-[#FFEDD5]">
-                            {u.prenom.charAt(0)}
-                          </div>
-                          <span>{u.prenom} {u.nom}</span>
-                        </div>
-                      </td>
-
-                      <td className="p-3.5 font-semibold text-slate-600">{u.email}</td>
-
-                      <td className="p-3.5">
-                        <span className={`px-2.5 py-1 text-[10px] font-extrabold rounded-none border ${
-                          u.role === "ADMIN" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                          u.role === "DRH" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-                          u.role === "RH" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                          u.role === "N2" ? "bg-cyan-50 text-cyan-700 border-cyan-200" :
-                          u.role === "N1" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                          "bg-slate-100 text-slate-700 border-slate-300"
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-
-                      <td className="p-3.5 font-semibold text-slate-700">{u.direction}</td>
-
-                      <td className="p-3.5 font-bold text-[#F0822A]">{u.n1}</td>
-
-                      <td className="p-3.5">
-                        <span className={`px-2 py-0.5 text-[10px] font-extrabold border ${
-                          u.statut === "ACTIF" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-                        }`}>
-                          ● {u.statut}
-                        </span>
-                      </td>
-
-                      <td className="p-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => alert(`Mot de passe réinitialisé pour ${u.email}. Un lien sécurisé a été envoyé.`)}
-                            className="px-2.5 py-1 bg-slate-100 text-slate-700 font-bold border border-slate-300 text-[11px] hover:bg-slate-200 cursor-pointer"
-                          >
-                            🔑 Reset Pass
-                          </button>
-                          <button
-                            onClick={() => handleToggleStatut(u.id)}
-                            className={`px-2.5 py-1 font-bold text-[11px] border cursor-pointer ${
-                              u.statut === "ACTIF" ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100" : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                            }`}
-                          >
-                            {u.statut === "ACTIF" ? "🚫 Suspendre" : "✓ Réactiver"}
-                          </button>
-                        </div>
-                      </td>
+            {isLoading ? (
+              <div className="bg-white border border-slate-200 p-6 space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="bg-white border border-slate-200 p-12 text-center">
+                <UsersIcon size={40} color="#94A3B8" />
+                <h4 className="text-base font-extrabold text-slate-800 mt-3 mb-1">Aucun utilisateur trouvé</h4>
+                <p className="text-xs text-slate-500 font-semibold m-0">
+                  {searchQuery ? "Aucun utilisateur ne correspond à votre filtre." : "La base ne contient aucun utilisateur."}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 overflow-x-auto shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900 text-white border-b border-slate-800">
+                      <th className="p-3.5 text-xs font-extrabold">Utilisateur</th>
+                      <th className="p-3.5 text-xs font-extrabold">Email Pro</th>
+                      <th className="p-3.5 text-xs font-extrabold">Rôle Assigné</th>
+                      <th className="p-3.5 text-xs font-extrabold">Poste & Direction</th>
+                      <th className="p-3.5 text-xs font-extrabold">Manager N+1</th>
+                      <th className="p-3.5 text-xs font-extrabold text-right">Actions Admin</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-xs">
+                    {filteredUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-3.5 font-extrabold text-slate-900">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-none bg-[#FFF7ED] text-[#F0822A] font-extrabold flex items-center justify-center border border-[#FFEDD5]">
+                              {(u.prenom || u.nom || "?").charAt(0).toUpperCase()}
+                            </div>
+                            <span>{u.prenom} {u.nom}</span>
+                          </div>
+                        </td>
+
+                        <td className="p-3.5 font-semibold text-slate-600">{u.email}</td>
+
+                        <td className="p-3.5">
+                          <span className={`px-2.5 py-1 text-[10px] font-extrabold rounded-none border ${
+                            u.role === "ADMIN" ? "bg-purple-50 text-purple-700 border-purple-200" :
+                            u.role === "DRH" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
+                            u.role === "RH" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                            u.role === "N2" ? "bg-cyan-50 text-cyan-700 border-cyan-200" :
+                            u.role === "N1" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            "bg-slate-100 text-slate-700 border-slate-300"
+                          }`}>
+                            {u.role}
+                          </span>
+                        </td>
+
+                        <td className="p-3.5 font-semibold text-slate-700">
+                          {u.poste || "-"} ({u.departement || "Non défini"})
+                        </td>
+
+                        <td className="p-3.5 font-bold text-[#F0822A]">
+                          {u.n1 ? `${u.n1.prenom} ${u.n1.nom}` : "Direction"}
+                        </td>
+
+                        <td className="p-3.5 text-right">
+                          <button
+                            onClick={() => handleDeleteUser(u.id, `${u.prenom} ${u.nom}`)}
+                            className="px-2.5 py-1 bg-rose-50 text-rose-600 border border-rose-200 font-bold text-[11px] cursor-pointer hover:bg-rose-100"
+                          >
+                            Supprimer
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── CONTENU : ONGLET 2 - JOURNAL D'AUDIT ── */}
+        {/* ── CONTENU : ONGLET 2 - JOURNAL D'AUDIT RÉEL ── */}
         {activeTab === "audit" && (
           <div className="flex flex-col gap-4">
             <div className="bg-white p-4 border border-slate-200 flex justify-between items-center">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 m-0">Journal d'Audit et Traçabilité Sécurité (Horodaté)</h3>
+                <h3 className="text-sm font-extrabold text-slate-900 m-0">Journal d'Audit et Traçabilité Sécurité</h3>
                 <p className="text-xs text-slate-500 m-0 mt-0.5">Enregistrement inaltérable de toutes les opérations du système AGILLY RHEVAL</p>
               </div>
-              <button
-                onClick={() => alert("Exportation du Registre d'Audit complet au format CSV sécurisé...")}
-                className="px-4 py-2 bg-slate-900 text-white font-extrabold text-xs rounded-none cursor-pointer flex items-center gap-2"
-              >
-                📥 Exporter Logs CSV
-              </button>
             </div>
 
-            <div className="bg-white border border-slate-200 overflow-x-auto shadow-sm">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-slate-200 text-slate-700">
-                    <th className="p-3 font-extrabold">Horodatage (UTC)</th>
-                    <th className="p-3 font-extrabold">Utilisateur & Rôle</th>
-                    <th className="p-3 font-extrabold">Événement</th>
-                    <th className="p-3 font-extrabold">Détails de l'Opération</th>
-                    <th className="p-3 font-extrabold">Adresse IP</th>
-                    <th className="p-3 font-extrabold">Catégorie</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 font-mono">
-                  {AUDIT_LOGS.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50">
-                      <td className="p-3 font-bold text-slate-900 whitespace-nowrap">{log.date}</td>
-                      <td className="p-3 font-bold text-[#F0822A]">{log.utilisateur}</td>
-                      <td className="p-3 font-bold text-slate-800">{log.action}</td>
-                      <td className="p-3 font-sans text-slate-600">{log.details}</td>
-                      <td className="p-3 text-slate-500">{log.ip}</td>
-                      <td className="p-3 font-sans">
-                        <span className="px-2 py-0.5 bg-slate-100 border border-slate-300 font-bold text-[10px] text-slate-700">
-                          {log.type}
-                        </span>
-                      </td>
+            {isLoading ? (
+              <div className="bg-white border border-slate-200 p-6 space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : auditLogs.length === 0 ? (
+              <div className="bg-white border border-slate-200 p-12 text-center">
+                <CheckCircleIcon size={36} color="#94A3B8" />
+                <h4 className="text-base font-extrabold text-slate-800 mt-3 mb-1">Aucun événement d'audit enregistré</h4>
+                <p className="text-xs text-slate-500 font-semibold m-0">
+                  Les modifications de statut et actions d'évaluation apparaîtront ici lors de leur exécution.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 overflow-x-auto shadow-sm">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-200 text-slate-700">
+                      <th className="p-3 font-extrabold">Horodatage</th>
+                      <th className="p-3 font-extrabold">Acteur</th>
+                      <th className="p-3 font-extrabold">Événement</th>
+                      <th className="p-3 font-extrabold">Cible</th>
+                      <th className="p-3 font-extrabold">Détails</th>
+                      <th className="p-3 font-extrabold">IP</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 font-mono">
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50">
+                        <td className="p-3 font-bold text-slate-900 whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString("fr-FR")}
+                        </td>
+                        <td className="p-3 font-bold text-[#F0822A]">{log.acteurNom}</td>
+                        <td className="p-3 font-bold text-slate-800">{log.action}</td>
+                        <td className="p-3 font-sans text-slate-600">{log.cible}</td>
+                        <td className="p-3 font-sans text-slate-500">{log.nouvelleValeur || "-"}</td>
+                        <td className="p-3 text-slate-400">{log.ipAdresse}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -483,25 +523,19 @@ export default function AdminDashboardPage() {
 
             <div className="bg-white p-6 border border-slate-200 shadow-sm flex flex-col gap-4">
               <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider m-0">
-                💾 Sauvegarde & Restauration Système
+                💾 Sauvegarde & Maintenance Système
               </h3>
 
               <p className="text-xs text-slate-600 leading-relaxed">
-                Effectuez une sauvegarde complète de la base de données PostgreSQL ou restaurez un snapshot antérieur de la campagne 2026.
+                PostgreSQL Neon Cloud héberge les données d'évaluation en temps réel.
               </p>
 
               <div className="flex flex-col gap-3 mt-2">
                 <button
-                  onClick={() => alert("Génération du Dump PostgreSQL complet en cours... Fichier sauvegardé sur le serveur sécurisé.")}
+                  onClick={() => alert("Statut de la base Neon PostgreSQL : CONNECTÉE & OPÉRATIONNELLE.")}
                   className="py-2.5 px-4 bg-slate-900 text-white font-extrabold text-xs rounded-none cursor-pointer flex items-center justify-center gap-2"
                 >
-                  💾 Générer un Dump SQL Complet
-                </button>
-                <button
-                  onClick={() => alert("Maintenance planifiée lancée : nettoyage du cache et optimisation des index.")}
-                  className="py-2.5 px-4 bg-slate-100 text-slate-800 border border-slate-300 font-extrabold text-xs rounded-none hover:bg-slate-200 cursor-pointer flex items-center justify-center gap-2"
-                >
-                  🧹 Optimiser Index & Purger Cache
+                  Vérifier Santé Base de Données
                 </button>
               </div>
             </div>

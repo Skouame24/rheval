@@ -18,35 +18,31 @@ export function HistoriqueSalariePage() {
 
   const { history, isLoading, error } = useEvaluationHistory();
 
-  const safeHistory = useMemo(() => {
-    return Array.isArray(history) ? history : [];
-  }, [history]);
+  if (isLoading) {
+    return <HistoriqueSkeleton count={3} />;
+  }
 
   // Années disponibles issues des données réelles
   const anneesDisponibles = useMemo(() => {
-    const years = [...new Set(safeHistory.map((h) => String(h.annee)))].sort((a, b) => Number(b) - Number(a));
+    const years = [...new Set(history.map((h) => String(h.annee)))].sort((a, b) => Number(b) - Number(a));
     return ["Toutes", ...years];
-  }, [safeHistory]);
+  }, [history]);
 
   const filteredHistory = useMemo(
-    () => safeHistory.filter((h) => filtreAnnee === "Toutes" || String(h.annee) === filtreAnnee),
-    [safeHistory, filtreAnnee]
+    () => history.filter((h) => filtreAnnee === "Toutes" || String(h.annee) === filtreAnnee),
+    [history, filtreAnnee]
   );
 
   // Stats d'évolution calculées dynamiquement
   const sortedByYear = useMemo(
-    () => [...safeHistory].sort((a, b) => Number(b.annee) - Number(a.annee)),
-    [safeHistory]
+    () => [...history].sort((a, b) => Number(b.annee) - Number(a.annee)),
+    [history]
   );
   const derniereEval = sortedByYear[0] ?? null;
   const avantDerniereEval = sortedByYear[1] ?? null;
   const evolution = derniereEval && avantDerniereEval
-    ? Number(((derniereEval.note || 0) - (avantDerniereEval.note || 0)).toFixed(1))
+    ? Number((derniereEval.note - avantDerniereEval.note).toFixed(1))
     : null;
-
-  if (isLoading) {
-    return <HistoriqueSkeleton count={3} />;
-  }
 
   return (
     <div className="flex flex-col gap-8 pb-10 max-w-[1200px] mx-auto w-full">

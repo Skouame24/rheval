@@ -71,11 +71,8 @@ export function useEvaluationHistory(): UseEvaluationHistoryReturn {
   useEffect(() => {
     setIsLoading(true);
     evaluationsApi.getMyHistory(filters)
-      .then((data) => setHistory(Array.isArray(data) ? data : []))
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : "Erreur historique");
-        setHistory([]);
-      })
+      .then(setHistory)
+      .catch((e) => setError(e instanceof Error ? e.message : "Erreur historique"))
       .finally(() => setIsLoading(false));
   }, [filters]);
 
