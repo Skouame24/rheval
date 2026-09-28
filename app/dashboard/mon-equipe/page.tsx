@@ -55,7 +55,7 @@ export default function CollaborateursN1Page() {
 
         <Card padding="lg">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
-            <CardHeader title="Liste des Collaborateurs" subtitle={`${filteredTeam.length} salariés rattachés à Sevan AKOUMIA`} icon="👥" />
+            <CardHeader title="Liste des Collaborateurs" subtitle={`${filteredTeam.length} salarié(s) rattaché(s) directement`} icon="👥" />
             <div className="w-full sm:w-64">
               <input
                 type="text"

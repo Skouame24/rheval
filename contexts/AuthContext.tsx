@@ -17,8 +17,10 @@ interface AuthContextValue {
   role: Role | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isSimulated: boolean;
   login: (email: string, password: string) => Promise<void>;
   switchRole: (newRole: Role) => void;
+  resetToSsoUser: () => void;
   logout: () => void;
 }
 
@@ -26,57 +28,57 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// ─── Users Démo par Rôle ────────────────────────────────────
+// ─── Users Démo & Test par Rôle (Synchronisés avec la Base PostgreSQL) ───
 
-const DEMO_USERS_BY_ROLE: Record<Role, User> = {
+export const DEMO_USERS_BY_ROLE: Record<Role, User> = {
   SALARIE: {
-    id: "sal-001",
+    id: "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb",
     nom: "KOUAME",
     prenom: "Ebenezer Samuel",
-    email: "e.kouame@agilly.com",
+    email: "ebenezer.kouame@agilly.net",
     role: "SALARIE",
-    poste: "Développeur Fullstack",
+    poste: "Ingénieur Cloud & Mobilité",
     departement: "Direction Technique",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   N1: {
-    id: "n1-001",
-    nom: "AKOUMIA",
-    prenom: "Sevan",
-    email: "s.akoumia@agilly.com",
+    id: "manager-id-5678",
+    nom: "AUBERT",
+    prenom: "Marc",
+    email: "manager@agilly.com",
     role: "N1",
-    poste: "Lead Developer / Manager N+1",
+    poste: "Responsable Technique N+1",
     departement: "Direction Technique",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   N2: {
-    id: "n2-001",
-    nom: "BAMBA",
-    prenom: "Koffi Alexis",
-    email: "k.bamba@agilly.com",
+    id: "drh-id-1234",
+    nom: "DELMAS",
+    prenom: "Claire",
+    email: "drh@agilly.com",
     role: "N2",
-    poste: "Directeur des Opérations N+2",
-    departement: "Direction Générale",
+    poste: "Directrice des Ressources Humaines",
+    departement: "Direction des Ressources Humaines",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   RH: {
-    id: "rh-001",
-    nom: "DIALLO",
-    prenom: "Mariam",
-    email: "m.diallo@agilly.com",
+    id: "drh-id-1234",
+    nom: "DELMAS",
+    prenom: "Claire",
+    email: "drh@agilly.com",
     role: "RH",
-    poste: "Chargée des Ressources Humaines",
-    departement: "Direction RH",
+    poste: "Directrice des Ressources Humaines",
+    departement: "Direction des Ressources Humaines",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   DRH: {
-    id: "drh-001",
-    nom: "KOUASSI",
-    prenom: "Marie-Claire",
+    id: "drh-id-1234",
+    nom: "DELMAS",
+    prenom: "Claire",
     email: "drh@agilly.com",
     role: "DRH",
     poste: "Directrice des Ressources Humaines",
@@ -84,14 +86,13 @@ const DEMO_USERS_BY_ROLE: Record<Role, User> = {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
-
   ADMIN: {
     id: "adm-001",
     nom: "AGILLY",
     prenom: "Admin",
     email: "admin@agilly.com",
     role: "ADMIN",
-    poste: "Administrateur Système",
+    poste: "Administrateur Système RHEVAL",
     departement: "IT & Sécurité",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -104,13 +105,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSimulated, setIsSimulated] = useState(false);
 
-  // Synchronisation dynamique avec la session Microsoft Entra ID
+  // Synchronisation dynamique avec la session Microsoft Entra ID ou rôle simulé
   useEffect(() => {
     if (status === "loading") {
       setIsLoading(true);
       return;
     }
+
+    // 1. Priorité au rôle simulé pour les tests (sessionStorage)
+    const simulatedRole = typeof window !== "undefined" ? (sessionStorage.getItem("agilly_simulated_role") as Role) : null;
+    if (simulatedRole && DEMO_USERS_BY_ROLE[simulatedRole]) {
+      const simUser = DEMO_USERS_BY_ROLE[simulatedRole];
+      setUser(simUser);
+      setIsSimulated(true);
+      localStorage.setItem("agilly_user", JSON.stringify(simUser));
+      localStorage.setItem("agilly_token", "simulated_token_" + simulatedRole);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsSimulated(false);
 
     if (status === "authenticated" && session?.user) {
       const u = session.user as any;
@@ -234,17 +250,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const switchRole = (newRole: Role) => {
+    if (newRole === "SALARIE") {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("agilly_simulated_role");
+      }
+      setIsSimulated(false);
+      const salarieUser = DEMO_USERS_BY_ROLE["SALARIE"];
+      setUser(salarieUser);
+      localStorage.setItem("agilly_user", JSON.stringify(salarieUser));
+      localStorage.setItem("agilly_token", "sso_token_salarie");
+      window.location.href = ROLE_DASHBOARD["SALARIE"] || "/dashboard/mon-espace";
+      return;
+    }
+
     const newUser = DEMO_USERS_BY_ROLE[newRole] || DEMO_USERS_BY_ROLE["SALARIE"];
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("agilly_simulated_role", newRole);
+    }
+    setIsSimulated(true);
     localStorage.setItem("agilly_user", JSON.stringify(newUser));
-    localStorage.setItem("agilly_token", "demo_token_" + newRole);
+    localStorage.setItem("agilly_token", "simulated_token_" + newRole);
     setUser(newUser);
     window.location.href = ROLE_DASHBOARD[newRole] || "/dashboard/mon-espace";
   };
 
+  const resetToSsoUser = () => {
+    switchRole("SALARIE");
+  };
+
   const logout = async () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("agilly_simulated_role");
+    }
     localStorage.removeItem("agilly_user");
     localStorage.removeItem("agilly_token");
     setUser(null);
+    setIsSimulated(false);
     try {
       await nextAuthSignOut({ redirect: false });
     } catch {}
@@ -258,8 +299,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: user?.role ?? null,
         isLoading,
         isAuthenticated: !!user,
+        isSimulated,
         login,
         switchRole,
+        resetToSsoUser,
         logout,
       }}
     >

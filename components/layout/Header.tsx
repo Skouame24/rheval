@@ -26,7 +26,7 @@ const ROLES_LIST: { role: Role; label: string; badgeBg: string }[] = [
 ];
 
 export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 2 }: HeaderProps) {
-  const { user, switchRole, logout } = useAuth();
+  const { user, switchRole, resetToSsoUser, isSimulated, logout } = useAuth();
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
@@ -46,11 +46,24 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
 
   return (
     <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
-      {/* Gauche — Titre de Page */}
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+      {/* Gauche — Titre de Page & Indicateur Mode Test */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <h1 className="text-lg font-bold text-slate-900 tracking-tight m-0">
           {pageTitle || "AGILLY RHEVAL"}
         </h1>
+        {isSimulated && (
+          <div className="flex items-center gap-2 bg-amber-500 text-white px-3 py-1 rounded-none text-xs font-bold shadow-xs">
+            <span className="w-2 h-2 rounded-none bg-white animate-pulse" />
+            <span>MODE TEST : {userName} ({roleInfo.labelCourt})</span>
+            <button
+              onClick={resetToSsoUser}
+              className="ml-2 bg-white text-slate-900 px-2 py-0.5 text-[10px] font-extrabold hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Revenir au compte réel SSO"
+            >
+              Quitter ✕
+            </button>
+          </div>
+        )}
       </div>
 
 
@@ -111,8 +124,92 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 </div>
               </div>
 
+              {/* Section Switcher de Rôle pour Tests & Recette */}
+              <div className="px-3 py-2.5 border-b border-slate-200 bg-amber-50/70">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <p className="text-[10px] font-extrabold text-amber-900 uppercase tracking-widest flex items-center gap-1.5 m-0">
+                    <span>🎭</span> Switcher de Compte (Tests)
+                  </p>
+                  {isSimulated && (
+                    <button
+                      onClick={() => { resetToSsoUser(); setIsDropdownOpen(false); }}
+                      className="text-[10px] font-bold text-amber-800 underline hover:text-amber-950 cursor-pointer"
+                    >
+                      Reset SSO
+                    </button>
+                  )}
+                </div>
 
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    onClick={() => { switchRole("SALARIE"); setIsDropdownOpen(false); }}
+                    className={`text-left text-xs px-2.5 py-1.5 rounded-none font-semibold flex items-center justify-between border transition-all cursor-pointer ${
+                      currentRole === "SALARIE" && !isSimulated
+                        ? "bg-emerald-50 border-emerald-300 text-emerald-900 font-bold"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-emerald-300"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-bold m-0 leading-tight">👤 Ebenezer KOUAME</p>
+                      <p className="text-[10px] text-slate-500 m-0">Mon compte Salarié</p>
+                    </div>
+                    {currentRole === "SALARIE" && !isSimulated && (
+                      <span className="text-[10px] text-emerald-600 font-extrabold">Actif</span>
+                    )}
+                  </button>
 
+                  <button
+                    onClick={() => { switchRole("N1"); setIsDropdownOpen(false); }}
+                    className={`text-left text-xs px-2.5 py-1.5 rounded-none font-semibold flex items-center justify-between border transition-all cursor-pointer ${
+                      currentRole === "N1"
+                        ? "bg-orange-50 border-orange-300 text-orange-900 font-bold shadow-xs"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-orange-50/50 hover:border-[#F0822A]"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-bold text-[#F0822A] m-0 leading-tight">👔 Marc AUBERT (Manager N+1)</p>
+                      <p className="text-[10px] text-slate-500 m-0">Attribuer objectifs & évaluer</p>
+                    </div>
+                    {currentRole === "N1" && (
+                      <span className="text-[10px] text-[#F0822A] font-extrabold">Actif</span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => { switchRole("N2"); setIsDropdownOpen(false); }}
+                    className={`text-left text-xs px-2.5 py-1.5 rounded-none font-semibold flex items-center justify-between border transition-all cursor-pointer ${
+                      currentRole === "N2"
+                        ? "bg-blue-50 border-blue-300 text-blue-900 font-bold shadow-xs"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-blue-50/50 hover:border-blue-300"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-bold text-blue-800 m-0 leading-tight">🏛️ Claire DELMAS (Directrice N+2)</p>
+                      <p className="text-[10px] text-slate-500 m-0">Valider N+2 & arbitrages</p>
+                    </div>
+                    {currentRole === "N2" && (
+                      <span className="text-[10px] text-blue-600 font-extrabold">Actif</span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => { switchRole("RH"); setIsDropdownOpen(false); }}
+                    className={`text-left text-xs px-2.5 py-1.5 rounded-none font-semibold flex items-center justify-between border transition-all cursor-pointer ${
+                      currentRole === "RH"
+                        ? "bg-purple-50 border-purple-300 text-purple-900 font-bold shadow-xs"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-purple-50/50 hover:border-purple-300"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-bold text-purple-800 m-0 leading-tight">⚖️ Pôle Pilotage RH</p>
+                      <p className="text-[10px] text-slate-500 m-0">Campagnes, stats & exports</p>
+                    </div>
+                    {currentRole === "RH" && (
+                      <span className="text-[10px] text-purple-600 font-extrabold">Actif</span>
+                    )}
+                  </button>
+                </div>
+              </div>
 
               <div className="py-1">
                 <Link
