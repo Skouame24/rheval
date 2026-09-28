@@ -73,6 +73,7 @@ export function ProfilPage({ role }: { role: string }) {
     prenom: prenom || backendProfile?.prenom || ssoUser?.prenom || "",
     nom: nom || backendProfile?.nom || ssoUser?.nom || "",
     n1: backendProfile?.n1 || ssoUser?.n1,
+    n2: backendProfile?.n2 || ssoUser?.n2,
     telephone: telephone || backendProfile?.telephone || (ssoUser as any)?.telephone || "",
     poste: (backendProfile?.poste && backendProfile.poste !== "Collaborateur Agilly") ? backendProfile.poste : (ssoUser?.poste || backendProfile?.poste || "Collaborateur Agilly"),
   } as User) : null;
@@ -146,13 +147,26 @@ export function ProfilPage({ role }: { role: string }) {
             <Input label="Poste" value={posteDisplay} disabled />
           </div>
 
-          {user.n1 && (
+          {(user.n1 || user.n2) && (
             <>
-              <h3 className="text-lg font-bold text-agilly-black m-0 border-b border-gray-200 pb-2 mt-4">Management</h3>
-              <div className="bg-[#F4F7FB] border border-gray-200 p-4">
-                <p className="text-sm font-medium text-gray-600 m-0 mb-1">Votre Manager N+1 :</p>
-                <p className="text-base font-bold text-agilly-black m-0">{user.n1.prenom} {user.n1.nom}</p>
-                <p className="text-xs text-gray-500 m-0 mt-0.5">{user.n1.poste}</p>
+              <h3 className="text-lg font-bold text-agilly-black m-0 border-b border-gray-200 pb-2 mt-4">Ligne Hiérarchique & Évaluation</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {user.n1 && (
+                  <div className="bg-[#F4F7FB] border border-gray-200 p-4 border-l-4 border-l-[#F0822A]">
+                    <span className="text-[10px] font-bold text-[#F0822A] uppercase tracking-wider block mb-1">Évaluateur Direct (N+1)</span>
+                    <p className="text-base font-bold text-agilly-black m-0">{user.n1.prenom} {user.n1.nom}</p>
+                    <p className="text-xs text-gray-500 m-0 mt-0.5">{user.n1.poste || "Manager N+1"}</p>
+                    {user.n1.email && <p className="text-xs text-slate-400 m-0 mt-1 font-mono">{user.n1.email}</p>}
+                  </div>
+                )}
+                {user.n2 && (
+                  <div className="bg-[#F4F7FB] border border-gray-200 p-4 border-l-4 border-l-slate-700">
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">Validateur Final (N+2)</span>
+                    <p className="text-base font-bold text-agilly-black m-0">{user.n2.prenom} {user.n2.nom}</p>
+                    <p className="text-xs text-gray-500 m-0 mt-0.5">{user.n2.poste || "Directeur N+2"}</p>
+                    {user.n2.email && <p className="text-xs text-slate-400 m-0 mt-1 font-mono">{user.n2.email}</p>}
+                  </div>
+                )}
               </div>
             </>
           )}

@@ -180,8 +180,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: realUser.role,
           managerId: u.manager?.id || undefined,
         })
-        .then((syncRes) => {
+        .then((syncRes: any) => {
           console.log("🔄 [AuthContext] Réponse sync-session backend :", syncRes);
+          if (syncRes?.user) {
+            const enrichedUser: User = {
+              ...realUser,
+              ...syncRes.user,
+              id: syncRes.user.id || realUser.id,
+              n1: syncRes.user.n1 || realUser.n1,
+              n2: syncRes.user.n2 || realUser.n2,
+              role: (syncRes.user.role as Role) || realUser.role,
+            };
+            setUser(enrichedUser);
+            localStorage.setItem("agilly_user", JSON.stringify(enrichedUser));
+            console.log("✨ [AuthContext] Session enrichie avec N1/N2 et rôle BD :", enrichedUser);
+          }
         })
         .catch((err) => console.warn("[AuthContext] Erreur synchronisation session en base:", err));
 
