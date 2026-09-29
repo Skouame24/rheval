@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const backendInternalUrl = process.env.BACKEND_INTERNAL_URL || "http://10.5.6.8:3001";
+const backendInternalUrl = process.env.BACKEND_INTERNAL_URL || "http://127.0.0.1:3001";
 
 const nextConfig: NextConfig = {
   async rewrites() {
