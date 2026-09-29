@@ -102,6 +102,8 @@ export function FicheEvaluationModal({
   // RH State
   const [decisionRH, setDecisionRH] = useState<"VALIDE" | "CLOTURE" | "ARBITRAGE">("VALIDE");
   const [commentaireRH, setCommentaireRH] = useState("");
+  const [noteArbitrage, setNoteArbitrage] = useState<number | "">(""); // Note finale saisie après arbitrage
+
 
   // Visa Salarié State
   const [visaSalarieAccord, setVisaSalarieAccord] = useState<boolean | null>(true);
@@ -1287,109 +1289,163 @@ export function FicheEvaluationModal({
             </div>
           )}
 
-          {/* SECTION 5 : DÉCISION & CLÔTURE DRH (VOLET DÉDIÉ RH) */}
+          {/* SECTION 5 : DÉCISION & VALIDATION RH */}
           {activeTab === "RH" && (
-            <div style={{ background: "#ECFDF5", padding: 20, border: "2px solid #059669" }}>
+            <div style={{
+              background: currentStatut === "ARBITRAGE" ? "#FFF7ED" : "#ECFDF5",
+              padding: 20,
+              border: `2px solid ${currentStatut === "ARBITRAGE" ? "#F97316" : "#059669"}`
+            }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 900, color: "#065F46", margin: 0 }}>
-                  🏢 Décision Finale & Validation de la Direction RH
+                <h3 style={{ fontSize: 14, fontWeight: 900, color: currentStatut === "ARBITRAGE" ? "#9A3412" : "#065F46", margin: 0 }}>
+                  {currentStatut === "ARBITRAGE" ? "⚖️ Dossier en Arbitrage — Saisir la Note Finale" : "🏢 Décision Finale de la Direction RH"}
                 </h3>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#059669", background: "#D1FAE5", padding: "3px 8px" }}>
-                  Moyenne Finale : {noteAffichee.toFixed(2)}/20
+                <span style={{ fontSize: 11, fontWeight: 800, color: currentStatut === "ARBITRAGE" ? "#EA580C" : "#059669", background: currentStatut === "ARBITRAGE" ? "#FED7AA" : "#D1FAE5", padding: "3px 8px" }}>
+                  {currentStatut === "ARBITRAGE" ? "⚠️ EN ARBITRAGE" : `Moyenne : ${noteAffichee.toFixed(2)}/20`}
                 </span>
               </div>
 
-              <p style={{ fontSize: 12, color: "#047857", margin: "0 0 12px 0" }}>
-                La Direction RH entérine l'évaluation définitive, valide les bonus associés et inscrit les formations au catalogue officiel.
-              </p>
-
+              {/* ── CAS 1 : FICHE CLÔTURÉE ── */}
               {isFicheCloturee ? (
                 <div style={{ background: "#ECFDF5", border: "1px solid #10B981", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 36, height: 36, background: "#059669", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18 }}>
-                      ✓
-                    </div>
+                    <div style={{ width: 36, height: 36, background: "#059669", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18 }}>✓</div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#065F46" }}>
-                        Fiche d'Évaluation Validée et Clôturée Définitivement
-                      </h4>
+                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#065F46" }}>Fiche Validée et Clôturée Définitivement</h4>
                       <p style={{ margin: "2px 0 0", fontSize: 12, color: "#047857" }}>
-                        La Direction RH a validé l'évaluation. La note officielle retenue est de <strong>{noteAffichee.toFixed(2)} / 20 ({tauxGlobal}%)</strong>.
+                        Note officielle retenue : <strong>{noteAffichee.toFixed(2)} / 20 ({tauxGlobal}%)</strong>
                       </p>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 16, background: "#FFFFFF", padding: 12, border: "1px solid #D1FAE5", flexWrap: "wrap" }}>
                     <div>
-                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Statut Actuel</span>
+                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Statut</span>
                       <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 800, color: "#059669" }}>{currentStatut}</p>
                     </div>
                     <div>
-                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Étape Workflow</span>
-                      <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 800, color: "#0F172A" }}>8 / 8 — Clôturé Définitivement</p>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Export Officiel</span>
-                      <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 800, color: "#0284C7" }}>Excel Conforme Disponible</p>
+                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Étape</span>
+                      <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 800, color: "#0F172A" }}>8 / 8 — Clôturé</p>
                     </div>
                   </div>
                 </div>
-              ) : (
+
+              ) : currentStatut === "ARBITRAGE" ? (
+                /* ── CAS 2 : DOSSIER EN ARBITRAGE → RH saisit la note finale ── */
                 <>
+                  <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", padding: 12, marginBottom: 14, borderRadius: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#92400E", margin: 0 }}>
+                      ℹ️ Ce dossier a été placé en arbitrage. Après la réunion interne, saisissez la note finale retenue et validez.
+                    </p>
+                  </div>
+
+                  {/* Note finale d'arbitrage */}
+                  <div style={{ display: "flex", gap: 16, marginBottom: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                        Note finale retenue après arbitrage / 20
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.25"
+                        value={noteArbitrage}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setNoteArbitrage(isNaN(v) ? "" : Math.min(20, Math.max(0, v)));
+                        }}
+                        placeholder={noteAffichee.toFixed(2)}
+                        style={{
+                          width: 110,
+                          height: 38,
+                          textAlign: "center",
+                          fontSize: 16,
+                          fontWeight: 800,
+                          border: "2px solid #F97316",
+                          background: "#FFFFFF",
+                          padding: "0 8px",
+                        }}
+                      />
+                      <span style={{ fontSize: 11, color: "#64748B", marginLeft: 8 }}>
+                        (laisser vide = conserver la moyenne actuelle de {noteAffichee.toFixed(2)}/20)
+                      </span>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={commentaireRH}
+                    onChange={(e) => setCommentaireRH(e.target.value)}
+                    placeholder="Décision d'arbitrage : motif, note retenue, commentaire officiel RH..."
+                    style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: "#FFFFFF", marginBottom: 12 }}
+                  />
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                    <button
+                      onClick={async () => {
+                        if (!resolvedFicheId) { alert("⚠️ Aucune fiche trouvée."); return; }
+                        setIsSaving(true);
+                        try {
+                          await evaluationsApi.validerParRh(resolvedFicheId, {
+                            statut: "VALIDE",
+                            commentaire: commentaireRH || "Note d'arbitrage retenue et dossier validé par la Direction RH.",
+                            noteFinale: noteArbitrage !== "" ? Number(noteArbitrage) : Number(noteAffichee.toFixed(2)),
+                          });
+                          setFetchedEval((prev: any) => prev ? { ...prev, statut: "VALIDE" } : { statut: "VALIDE" });
+                          setSaveSuccessMsg("✓ Note d'arbitrage enregistrée. Dossier validé définitivement !");
+                          if (onSaved) onSaved();
+                          setTimeout(() => onClose(), 1500);
+                        } catch (err: any) {
+                          alert("Erreur : " + (err.message || "Erreur serveur"));
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                      disabled={isSaving}
+                      style={{ padding: "10px 20px", background: "#059669", color: "#FFFFFF", border: "none", fontSize: 13, fontWeight: 800, cursor: "pointer" }}
+                    >
+                      {isSaving ? "Enregistrement..." : "✅ Valider la Note d'Arbitrage"}
+                    </button>
+                  </div>
+                </>
+
+              ) : (
+                /* ── CAS 3 : VALIDATION NORMALE (VALIDATION_DRH) ── */
+                <>
+                  <p style={{ fontSize: 12, color: "#047857", margin: "0 0 14px 0" }}>
+                    La Direction RH valide l'évaluation définitive. En cas de désaccord sur les notes, le dossier peut être placé en arbitrage.
+                  </p>
+
                   <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
                     <button
                       type="button"
                       onClick={() => setDecisionRH("VALIDE")}
                       style={{
-                        flex: 1,
-                        padding: "8px",
+                        flex: 1, padding: "10px 8px",
                         border: decisionRH === "VALIDE" ? "2px solid #059669" : "1px solid #CBD5E1",
                         background: decisionRH === "VALIDE" ? "#D1FAE5" : "#FFFFFF",
-                        color: "#065F46",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
+                        color: "#065F46", fontSize: 12, fontWeight: 700, cursor: "pointer",
                       }}
                     >
-                      ✅ Valider Définitivement (Dossier Conforme)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDecisionRH("CLOTURE")}
-                      style={{
-                        flex: 1,
-                        padding: "8px",
-                        border: decisionRH === "CLOTURE" ? "2px solid #0284C7" : "1px solid #CBD5E1",
-                        background: decisionRH === "CLOTURE" ? "#E0F2FE" : "#FFFFFF",
-                        color: "#0369A1",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      🔒 Clôturer la Fiche (Campagne Terminée)
+                      ✅ Valider — Dossier conforme
                     </button>
                     <button
                       type="button"
                       onClick={() => setDecisionRH("ARBITRAGE")}
                       style={{
-                        flex: 1,
-                        padding: "8px",
+                        flex: 1, padding: "10px 8px",
                         border: decisionRH === "ARBITRAGE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
                         background: decisionRH === "ARBITRAGE" ? "#FEE2E2" : "#FFFFFF",
-                        color: "#991B1B",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
+                        color: "#991B1B", fontSize: 12, fontWeight: 700, cursor: "pointer",
                       }}
                     >
-                      ⚖️ Ouvrir un Arbitrage RH
+                      ⚖️ Envoyer en Arbitrage (désaccord)
                     </button>
                   </div>
 
                   <textarea
                     value={commentaireRH}
                     onChange={(e) => setCommentaireRH(e.target.value)}
-                    placeholder="Décisions RH, validation de la prime ou motifs d'arbitrage..."
+                    placeholder={decisionRH === "ARBITRAGE" ? "Motif du désaccord et objet de l'arbitrage..." : "Commentaire RH (optionnel)..."}
                     style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: "#FFFFFF", marginBottom: 12 }}
                   />
 
@@ -1398,22 +1454,19 @@ export function FicheEvaluationModal({
                       onClick={() => handleValiderRH(decisionRH)}
                       disabled={isSaving}
                       style={{
-                        padding: "8px 18px",
+                        padding: "10px 20px",
                         background: decisionRH === "ARBITRAGE" ? "#DC2626" : "#059669",
-                        color: "#FFFFFF",
-                        border: "none",
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: "pointer",
+                        color: "#FFFFFF", border: "none", fontSize: 13, fontWeight: 800, cursor: "pointer",
                       }}
                     >
-                      {isSaving ? "Traitement..." : decisionRH === "ARBITRAGE" ? "⚖️ Placer en Arbitrage RH" : "✅ Enregistrer la Décision RH"}
+                      {isSaving ? "Traitement..." : decisionRH === "ARBITRAGE" ? "⚖️ Placer en Arbitrage" : "✅ Valider Définitivement"}
                     </button>
                   </div>
                 </>
               )}
             </div>
           )}
+
 
 
 
