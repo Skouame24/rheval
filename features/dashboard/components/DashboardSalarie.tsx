@@ -99,25 +99,24 @@ export function DashboardSalarie() {
   const [isFicheModalOpen, setIsFicheModalOpen] = useState(false);
   const [isDefinirObjectifsOpen, setIsDefinirObjectifsOpen] = useState(false);
   const [autoEvalMode, setAutoEvalMode] = useState(false);
-  const [visaMode, setVisaMode] = useState(false);
 
   const { evaluation, isLoading, error, refetch } = useCurrentEvaluation();
 
   // ── Résolution des champs affichés depuis les données API ──
-  const statut = (evaluation?.statut ?? "EN_ATTENTE_N1") as StatutEvaluation;
+  const statut = (evaluation?.statut ?? "AUTO_EVALUATION") as StatutEvaluation;
   const cycleLibelle = evaluation?.cycle?.libelle ?? "Cycle d'Évaluation Annuelle 2026";
   const noteAffichee = evaluation?.noteGlobale ? Number(evaluation.noteGlobale) : null;
   const tauxAtteinte = noteAffichee !== null ? Math.round((noteAffichee / 20) * 100) : null;
   // Stabilise la référence du tableau — évite la boucle infinie dans FicheEvaluationModal
   const objectifs = useMemo(() => evaluation?.objectifs ?? [], [evaluation?.objectifs]);
-  const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : null; // Temporaire, l'API ne renvoie pas l'évaluateur directement comme avant
+  const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : null;
   const evaluateurN2 = user?.n2 ? { prenom: user.n2.prenom, nom: user.n2.nom } : null;
 
-  const openFicheModal = (options?: { autoEval?: boolean; visa?: boolean }) => {
+  const openFicheModal = (options?: { autoEval?: boolean }) => {
     setAutoEvalMode(!!options?.autoEval);
-    setVisaMode(!!options?.visa);
     setIsFicheModalOpen(true);
   };
+
 
   if (isLoading) {
     return (
@@ -206,8 +205,7 @@ export function DashboardSalarie() {
           refetch();
         }}
         isAutoEvaluationMode={autoEvalMode}
-        isVisaMode={visaMode}
-        currentStep={autoEvalMode ? 3 : visaMode ? 5 : 4}
+        currentStep={autoEvalMode ? 3 : 4}
         role="SALARIE"
         readOnly={false}
         evaluationId={evaluation?.id}
@@ -224,6 +222,7 @@ export function DashboardSalarie() {
         objectifs={objectifs}
         onSaved={refetch}
       />
+
 
       <ModalDefinirObjectifs
         isOpen={isDefinirObjectifsOpen}

@@ -1,5 +1,7 @@
 // ============================================================
 // components/shared/WorkflowStepper.tsx
+// Workflow officiel AGILLY — 6 étapes
+// FIXATION_OBJECTIFS → AUTO_EVALUATION → EVALUATION_N1 → EVALUATION_N2 → VALIDATION_DRH → VALIDE/CLOTURE
 // ============================================================
 
 "use client";
@@ -17,13 +19,13 @@ export interface WorkflowStep {
 
 export const WORKFLOW_STEPS: WorkflowStep[] = [
   { id: 1, label: "Ouverture Cycle", actor: "DRH", description: "Lancement de la campagne d'évaluation" },
-  { id: 2, label: "Fixation Objectifs", actor: "Manager N+1", description: "Fixation des objectifs par le Supérieur N+1" },
-  { id: 3, label: "Auto-évaluation", actor: "Salarié", description: "Saisie des auto-notes & auto-commentaires" },
-  { id: 4, label: "Évaluation /20", actor: "Manager N+1", description: "Attribution des notes et des appréciations" },
-  { id: 5, label: "Avis & Visa", actor: "Salarié", description: "Consultation N+1 et Visa (OK / NON OK)" },
-  { id: 6, label: "Revue & Contre-note", actor: "Direction N+2", description: "Validation ou contre-évaluation hiérarchique" },
-  { id: 7, label: "Arbitrage RH", actor: "DRH", description: "Uniquement si écart de note > 2.0 points" },
-  { id: 8, label: "Signatures & Clôture", actor: "4 Acteurs", description: "Validation finale, signatures & export Excel" },
+  { id: 2, label: "Fixation Objectifs", actor: "Manager N+1", description: "Fixation des objectifs et pondérations par le N+1" },
+  { id: 3, label: "Auto-évaluation", actor: "Salarié", description: "Saisie des auto-notes par le salarié (notes uniquement)" },
+  { id: 4, label: "Évaluation N+1", actor: "Manager N+1", description: "Notes, commentaires et formations par le N+1" },
+  { id: 5, label: "Avis & Visa", actor: "Salarié", description: "Consultation des notes N+1 (lecture seule)" },
+  { id: 6, label: "Évaluation N+2", actor: "Direction N+2", description: "Contre-évaluation et re-notation par le N+2" },
+  { id: 7, label: "Validation RH", actor: "DRH", description: "Validation finale ou arbitrage par la Direction RH" },
+  { id: 8, label: "Clôture", actor: "DRH", description: "Fiche validée et clôturée définitivement" },
 ];
 
 interface WorkflowStepperProps {
@@ -49,8 +51,8 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
           </span>
           <h3 className="text-sm font-bold text-slate-900 tracking-tight">
             {isCompleted
-              ? "Workflow Officiel AGILLY — Dossier Validé & Clôturé Définitivement (Étape 8 sur 8)"
-              : `Workflow Officiel AGILLY — Étape ${displayStep} sur 8 : ${WORKFLOW_STEPS[displayStep - 1]?.label}`}
+              ? "Workflow AGILLY — Dossier Validé & Clôturé"
+              : `Workflow AGILLY — Étape ${displayStep}/8 : ${WORKFLOW_STEPS[displayStep - 1]?.label}`}
           </h3>
         </div>
         <span className={`text-xs font-semibold px-3 py-1 rounded-none border ${
@@ -71,10 +73,10 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
         {WORKFLOW_STEPS.map((step) => {
           const isDone = isCompleted ? true : step.id < currentStep;
           const isCurrent = !isCompleted && step.id === currentStep;
-          const isArbitrageStep = step.id === 6;
+          const isArbitrageStep = step.id === 7;
 
           return (
-            <div key={step.id} className="flex-1 flex flex-col items-center min-w-[90px] relative group">
+            <div key={step.id} className="flex-1 flex flex-col items-center min-w-[80px] relative group">
               {/* Ligne connectrice */}
               {step.id > 1 && (
                 <div
@@ -84,7 +86,7 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
                 />
               )}
 
-              {/* Carre d'étape */}
+              {/* Carré d'étape */}
               <div
                 className={`w-8 h-8 rounded-none flex items-center justify-center font-bold text-xs transition-all duration-300 z-10 ${
                   isCurrent
@@ -107,7 +109,7 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
 
               {/* Libellé */}
               <span
-                className={`mt-2 text-[11px] font-semibold text-center leading-tight transition-colors ${
+                className={`mt-2 text-[10px] font-semibold text-center leading-tight transition-colors ${
                   isCurrent
                     ? "text-[#F0822A] font-bold"
                     : isDone
@@ -130,4 +132,3 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
     </div>
   );
 }
-

@@ -7,7 +7,6 @@
 import { useState, useEffect } from "react";
 import { WorkflowStepper } from "@/components/shared/WorkflowStepper";
 import { useAuth } from "@/contexts/AuthContext";
-import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 
 interface FicheEvaluationModalProps {
@@ -15,7 +14,6 @@ interface FicheEvaluationModalProps {
   onClose: () => void;
   readOnly?: boolean;
   isAutoEvaluationMode?: boolean;
-  isVisaMode?: boolean;
   currentStep?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   dossier?: {
     id?: string;
@@ -30,6 +28,7 @@ interface FicheEvaluationModalProps {
   role?: string;
   onSaved?: () => void;
 }
+
 
 interface ObjectifData {
   id: string;
@@ -63,7 +62,6 @@ export function FicheEvaluationModal({
   onClose,
   readOnly = false,
   isAutoEvaluationMode = false,
-  isVisaMode = false,
   currentStep = 4,
   dossier,
   evaluationId,
@@ -350,13 +348,11 @@ export function FicheEvaluationModal({
   let dynamicStep: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 = 4;
   if (isFicheCloturee) {
     dynamicStep = 8;
-  } else if (currentStatut === "VALIDATION_DRH" || currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") {
+  } else if (currentStatut === "VALIDATION_DRH" || currentStatut === "EN_ATTENTE_RH" || currentStatut === "ARBITRAGE") {
     dynamicStep = 7;
-  } else if (currentStatut === "VALIDATION_N2" || currentStatut === "CONTRE_EVALUATION_N2") {
+  } else if (currentStatut === "EVALUATION_N2" || currentStatut === "VALIDATION_N2" || currentStatut === "EN_ATTENTE_N2") {
     dynamicStep = 6;
-  } else if (currentStatut === "VISA_SALARIE" || currentStatut === "EN_ATTENTE_VISA") {
-    dynamicStep = 5;
-  } else if (currentStatut === "EN_ATTENTE_N1" || currentStatut === "EVALUATION_N1") {
+  } else if (currentStatut === "EVALUATION_N1" || currentStatut === "EN_ATTENTE_N1" || currentStatut === "VISA_SALARIE") {
     dynamicStep = 4;
   } else if (currentStatut === "AUTO_EVALUATION") {
     dynamicStep = 3;
@@ -367,6 +363,7 @@ export function FicheEvaluationModal({
   } else if (currentStep) {
     dynamicStep = currentStep;
   }
+
 
   // Gestion des notes
   const handleSelectTranche = (objId: string, critere: { tranche: string; min: number; max: number; defaultNote: number }) => {
@@ -814,7 +811,7 @@ export function FicheEvaluationModal({
                 gap: 6
               }}
             >
-              ⚖️ Contre-Évaluation N+2 ({noteGlobaleN2.toFixed(2)}/20)
+              ⚖️ Évaluation N+2 ({noteGlobaleN2.toFixed(2)}/20)
             </button>
 
             <button
@@ -1031,27 +1028,31 @@ export function FicheEvaluationModal({
                       />
                     </div>
 
-                    <div style={{ flex: 1, minWidth: 240 }}>
-                      <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
-                        Commentaire {activeTab === "SALARIE" ? "Salarié" : activeTab === "N2" ? "N+2" : "N+1"}
-                      </label>
-                      <input
-                        type="text"
-                        disabled={!canEditSalarie && !canEditN1 && !canEditN2}
-                        value={activeTab === "SALARIE" ? obj.commentaireSalarie : activeTab === "N2" ? (obj.commentaireN2 || "") : obj.commentaire}
-                        onChange={(e) => handleCommentaireChange(obj.id, e.target.value)}
-                        placeholder="Commentaires, justifications opérationnelles..."
-                        style={{
-                          width: "100%",
-                          height: 32,
-                          padding: "0 10px",
-                          fontSize: 12,
-                          border: "1px solid #CBD5E1",
-                          background: "#FFFFFF",
-                        }}
-                      />
-                    </div>
+                    {/* Commentaire uniquement pour N+1 et N+2 — le salarié note seulement */}
+                    {activeTab !== "SALARIE" && (
+                      <div style={{ flex: 1, minWidth: 240 }}>
+                        <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                          Commentaire {activeTab === "N2" ? "N+2" : "N+1"}
+                        </label>
+                        <input
+                          type="text"
+                          disabled={!canEditN1 && !canEditN2}
+                          value={activeTab === "N2" ? (obj.commentaireN2 || "") : obj.commentaire}
+                          onChange={(e) => handleCommentaireChange(obj.id, e.target.value)}
+                          placeholder="Commentaires, justifications opérationnelles..."
+                          style={{
+                            width: "100%",
+                            height: 32,
+                            padding: "0 10px",
+                            fontSize: 12,
+                            border: "1px solid #CBD5E1",
+                            background: "#FFFFFF",
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
+
                 </div>
               );
             })}
@@ -1414,116 +1415,10 @@ export function FicheEvaluationModal({
             </div>
           )}
 
-          {/* SECTION 6 : VISA SALARIÉ (VOLET SALARIÉ) */}
-          {(activeTab === "SALARIE" || effectiveRole === "SALARIE") && noteGlobaleN1 > 0 && (
-            <div style={{ background: "#FFFFFF", padding: 18, border: "1px solid #E2E8F0" }}>
-              <h3 style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: "0 0 10px 0" }}>
-                ✍️ Visa du Salarié sur la Notation N+1 ({noteGlobaleN1.toFixed(2)}/20)
-              </h3>
-              <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 12px 0" }}>
-                Veuillez exprimer votre accord ou désaccord sur l'évaluation rendue par votre responsable :
-              </p>
 
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                <button
-                  type="button"
-                  disabled={visaSalarieSubmitted}
-                  onClick={() => setVisaSalarieAccord(true)}
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    border: visaSalarieAccord === true ? "2px solid #059669" : "1px solid #CBD5E1",
-                    background: visaSalarieAccord === true ? "#ECFDF5" : "#FFFFFF",
-                    color: "#065F46",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  👍 D'accord / OK (Notes et Formations Validées)
-                </button>
-                <button
-                  type="button"
-                  disabled={visaSalarieSubmitted}
-                  onClick={() => setVisaSalarieAccord(false)}
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    border: visaSalarieAccord === false ? "2px solid #DC2626" : "1px solid #CBD5E1",
-                    background: visaSalarieAccord === false ? "#FEF2F2" : "#FFFFFF",
-                    color: "#991B1B",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  👎 Désaccord / Réserves (Motif requis)
-                </button>
-              </div>
-
-              <textarea
-                disabled={visaSalarieSubmitted}
-                value={visaSalarieObservation}
-                onChange={(e) => setVisaSalarieObservation(e.target.value)}
-                placeholder="Vos commentaires, réserves ou observations..."
-                style={{ width: "100%", height: 50, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: "#FFFFFF", marginBottom: 10 }}
-              />
-
-              {!visaSalarieSubmitted && (
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button
-                    onClick={handleSubmitVisa}
-                    style={{ padding: "6px 14px", background: "#0284C7", color: "#FFFFFF", border: "none", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
-                  >
-                    ✍️ Signer & Soumettre mon Visa
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* SECTION 7 : GRILLE DES SIGNATURES DES 4 ACTEURS */}
-          <div style={{ background: "#FFFFFF", padding: 18, border: "1px solid #E2E8F0" }}>
-            <h3 style={{ fontSize: 12, fontWeight: 800, color: "#64748B", textTransform: "uppercase", margin: "0 0 12px 0" }}>
-              Signatures & Validations Officielles
-            </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
-              <SignatureBox
-                step={1}
-                role="Supérieur N+1"
-                nom={(effectiveDossier as any)?.n1 || "Marc AUBERT"}
-                signe={noteGlobaleN1 > 0 && !["FIXATION_OBJECTIFS", "AUTO_EVALUATION"].includes(fetchedEval?.statut || "")}
-                date={noteGlobaleN1 > 0 && !["FIXATION_OBJECTIFS", "AUTO_EVALUATION"].includes(fetchedEval?.statut || "") ? "Évalué" : "En attente"}
-                observation={noteGlobaleN1 > 0 && !["FIXATION_OBJECTIFS", "AUTO_EVALUATION"].includes(fetchedEval?.statut || "") ? `Notation effectuée (${noteGlobaleN1.toFixed(2)}/20)` : "En attente d'évaluation N+1"}
-              />
-              <SignatureBox
-                step={2}
-                role="Évalué (Salarié)"
-                nom={collabNom}
-                signe={visaSalarieSubmitted || ["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "")}
-                date={visaSalarieSubmitted || ["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? "Visa signé" : "En attente"}
-                observation={visaSalarieSubmitted ? (visaSalarieAccord ? "✓ Accord Salarié" : "⚠️ Réserves exprimées") : (["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? "✓ Visa apposé" : "En attente du visa salarié")}
-              />
-              <SignatureBox
-                step={3}
-                role="Supérieur N+2"
-                nom="Direction N+2"
-                signe={["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "")}
-                date={["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? "Contre-évalué" : "En attente"}
-                observation={["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? `Avis N+2 validé (${(noteGlobaleN2 > 0 ? noteGlobaleN2 : noteGlobaleN1).toFixed(2)}/20)` : "En attente de revue N+2"}
-              />
-              <SignatureBox
-                step={4}
-                role="Direction RH"
-                nom="Pôle RH AGILLY"
-                signe={fetchedEval?.statut === "VALIDE" || fetchedEval?.statut === "CLOTURE"}
-                date={fetchedEval?.statut === "VALIDE" || fetchedEval?.statut === "CLOTURE" ? "Validé" : "En attente"}
-                observation={fetchedEval?.statut === "VALIDE" || fetchedEval?.statut === "CLOTURE" ? "Dossier validé et clôturé" : "En attente de clôture RH"}
-              />
-            </div>
-          </div>
 
         </div>
+
 
         {/* ── FOOTER ACTIONS MODAL ── */}
         <div style={{
@@ -1610,41 +1505,41 @@ export function FicheEvaluationModal({
               )
             ) : null}
 
-            {/* EXPORT EXCEL OFFICIEL */}
+            {/* EXPORT EXCEL — disponible pour tous les acteurs */}
             <button
               onClick={() => {
-                exportEvaluationToExcel({
-                  salarie: {
-                    nom: effectiveDossier?.nom || auth.user?.nom || "KOUAME",
-                    prenom: effectiveDossier?.prenom || auth.user?.prenom || "Ebenezer Samuel",
-                    poste: effectiveDossier?.poste || auth.user?.poste || "Développeur Full-Stack",
-                    direction: effectiveDossier?.direction || auth.user?.departement || "Direction Technique",
-                    site: "Abidjan - AGILLY 1",
-                  },
-                  n1: {
-                    nom: auth.user?.n1?.nom || (effectiveDossier as any)?.n1 || "Marc AUBERT",
-                    poste: auth.user?.n1?.poste || "Responsable Technique",
-                  },
-                  objectifs: objectifs.map((o) => ({
-                    intitule: o.intitule,
-                    ponderation: o.ponderation,
-                    criteres: {
-                      t18_20: o.criteres?.find((c) => c.min === 18)?.texte || "",
-                      t15_17: o.criteres?.find((c) => c.min === 15)?.texte || "",
-                      t12_14: o.criteres?.find((c) => c.min === 12)?.texte || "",
-                      t0_11: o.criteres?.find((c) => c.min === 0)?.texte || "",
+                import("@/lib/utils/exportExcelEvaluation").then(({ exportEvaluationToExcel }) => {
+                  exportEvaluationToExcel({
+                    salarie: {
+                      nom: effectiveDossier?.nom || auth.user?.nom || "KOUAME",
+                      prenom: effectiveDossier?.prenom || auth.user?.prenom || "Ebenezer Samuel",
+                      poste: effectiveDossier?.poste || auth.user?.poste || "Collaborateur",
+                      direction: effectiveDossier?.direction || auth.user?.departement || "Direction",
+                      site: "Abidjan - AGILLY 1",
                     },
-                    noteGlobale: o.noteObtenue || undefined,
-                    observation: o.commentaire || "",
-                  })),
-                  formations: formations.map((f) => ({
-                    formation: f.intitule,
-                    delai: f.delai,
-                  })),
-                  observationN1: noteGlobaleN1 > 0 ? `Notation N+1 effectuée. Moyenne obtenue : ${noteGlobaleN1.toFixed(2)}/20` : "",
-                  observationSalarie: visaSalarieSubmitted
-                    ? (visaSalarieAccord ? `Visa Salarié Accordé : ${visaSalarieObservation || "Vu et approuvé."}` : `Visa Salarié avec Réserves : ${visaSalarieObservation}`)
-                    : (noteGlobaleSalarie > 0 ? `Auto-évaluation complétée. Moyenne auto-évaluée : ${noteGlobaleSalarie.toFixed(2)}/20` : ""),
+                    n1: {
+                      nom: auth.user?.n1?.nom || (effectiveDossier as any)?.n1 || "Manager N+1",
+                      poste: auth.user?.n1?.poste || "Responsable",
+                    },
+                    objectifs: objectifs.map((o) => ({
+                      intitule: o.intitule,
+                      ponderation: o.ponderation,
+                      criteres: {
+                        t18_20: o.criteres?.find((c: any) => c.min === 18)?.texte || "",
+                        t15_17: o.criteres?.find((c: any) => c.min === 15)?.texte || "",
+                        t12_14: o.criteres?.find((c: any) => c.min === 12)?.texte || "",
+                        t0_11:  o.criteres?.find((c: any) => c.min === 0)?.texte || "",
+                      },
+                      noteGlobale: o.noteObtenue || undefined,
+                      observation: o.commentaire || "",
+                    })),
+                    formations: formations.map((f) => ({
+                      formation: f.intitule,
+                      delai: f.delai,
+                    })),
+                    observationN1: noteGlobaleN1 > 0 ? `Note N+1 : ${noteGlobaleN1.toFixed(2)}/20` : "",
+                    observationSalarie: noteGlobaleSalarie > 0 ? `Auto-évaluation : ${noteGlobaleSalarie.toFixed(2)}/20` : "",
+                  });
                 });
               }}
               style={{ padding: "8px 14px", border: "none", background: "#107C41", color: "#FFFFFF", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
@@ -1653,6 +1548,8 @@ export function FicheEvaluationModal({
             </button>
           </div>
         </div>
+
+
 
       </div>
     </div>

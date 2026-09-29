@@ -13,7 +13,8 @@ export type StatutEvaluation =
   | "AUTO_EVALUATION"    
   | "EVALUATION_N1"
   | "EN_ATTENTE_N1"      
-  | "VISA_SALARIE"       
+  | "VISA_SALARIE"       // legacy — ne plus utiliser dans le nouveau workflow
+  | "EVALUATION_N2"      // nouveau statut officiel N+2
   | "VALIDATION_N2"
   | "EN_ATTENTE_N2"      
   | "VALIDATION_DRH"
@@ -21,6 +22,7 @@ export type StatutEvaluation =
   | "ARBITRAGE"          
   | "VALIDE"             
   | "CLOTURE";
+
 
 // Qui a réalisé l'évaluation
 export type TypeEvaluateur = "SALARIE" | "N1" | "N2" | "RH";
