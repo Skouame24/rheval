@@ -45,8 +45,6 @@ export function DashboardManager() {
     }).catch(() => setIsLoading(false));
   }, []);
 
-  const activeCollab = equipeDirecte.find(e => e.id === selectedCollab) || equipeN2.find(e => e.id === selectedCollab);
-
   return (
     <div className="flex flex-col gap-8 pb-10 max-w-[1200px] mx-auto">
 
@@ -54,15 +52,6 @@ export function DashboardManager() {
       <FicheEvaluationModal
         isOpen={selectedCollab !== null}
         onClose={() => setSelectedCollab(null)}
-        evaluationId={selectedCollab || undefined}
-        dossier={activeCollab ? {
-          id: activeCollab.id,
-          salarieId: activeCollab.id,
-          nom: activeCollab.nom,
-          prenom: activeCollab.prenom,
-          poste: activeCollab.poste,
-          direction: "Direction Technique",
-        } : undefined}
       />
 
       {/* Modal pour Évaluation 360° Managers & Cadres */}

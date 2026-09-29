@@ -75,6 +75,31 @@ export function FicheEvaluationModal({
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [fetchedEval, setFetchedEval] = useState<any | null>(null);
 
+  // Formations préconisées par le N+1
+  const [formations, setFormations] = useState<Array<{
+    id?: string;
+    intitule: string;
+    delai?: string;
+    priorite?: string;
+    objectifVise?: string;
+    statut?: string;
+  }>>([]);
+  const [newFormationIntitule, setNewFormationIntitule] = useState("");
+  const [newFormationDelai, setNewFormationDelai] = useState("Court terme (1 à 3 mois)");
+  const [newFormationPriorite, setNewFormationPriorite] = useState<"HAUTE" | "MOYENNE" | "BASSE">("MOYENNE");
+  const [newFormationObjectif, setNewFormationObjectif] = useState("");
+  const [isAddingFormation, setIsAddingFormation] = useState(false);
+  const [showAddFormationForm, setShowAddFormationForm] = useState(false);
+
+  // Synchronisation des formations depuis fetchedEval ou dossier
+  useEffect(() => {
+    if (fetchedEval?.formations && Array.isArray(fetchedEval.formations)) {
+      setFormations(fetchedEval.formations);
+    } else if ((dossier as any)?.formations && Array.isArray((dossier as any).formations)) {
+      setFormations((dossier as any).formations);
+    }
+  }, [fetchedEval?.formations, (dossier as any)?.formations]);
+
   const isSalarie = role === "SALARIE";
 
   const effectiveObjectifs = (apiObjectifs && apiObjectifs.length > 0) ? apiObjectifs : (fetchedEval?.objectifs ?? []);
@@ -334,6 +359,72 @@ export function FicheEvaluationModal({
     );
   };
 
+  const handleAddFormation = async () => {
+    if (!newFormationIntitule.trim()) {
+      alert("Veuillez renseigner l'intitulé de la formation recommandée.");
+      return;
+    }
+
+    const item = {
+      id: `temp-${Date.now()}`,
+      intitule: newFormationIntitule.trim(),
+      delai: newFormationDelai || "Court terme (1 à 3 mois)",
+      priorite: newFormationPriorite,
+      objectifVise: newFormationObjectif.trim(),
+      statut: "DEMANDE",
+    };
+
+    setFormations((prev) => [...prev, item]);
+    setNewFormationIntitule("");
+    setNewFormationObjectif("");
+    setShowAddFormationForm(false);
+
+    const targetFicheId =
+      resolvedFicheId ||
+      fetchedEval?.id ||
+      (objectifs?.[0] as any)?.ficheId ||
+      (effectiveObjectifs?.[0] as any)?.ficheId;
+
+    if (targetFicheId) {
+      try {
+        setIsAddingFormation(true);
+        const res = await evaluationsApi.addFormation(targetFicheId, {
+          intitule: item.intitule,
+          delai: item.delai,
+          priorite: item.priorite,
+          objectifVise: item.objectifVise,
+        });
+        if (res?.id) {
+          setFormations((prev) =>
+            prev.map((f) => (f.id === item.id ? { ...f, id: res.id } : f))
+          );
+        }
+      } catch (err) {
+        console.error("[FicheEvaluationModal] Erreur ajout formation:", err);
+      } finally {
+        setIsAddingFormation(false);
+      }
+    }
+  };
+
+  const handleDeleteFormation = async (formationId?: string, index?: number) => {
+    if (!confirm("Voulez-vous retirer cette formation du plan d'action ?")) return;
+    setFormations((prev) => prev.filter((f, idx) => (formationId ? f.id !== formationId : idx !== index)));
+
+    const targetFicheId =
+      resolvedFicheId ||
+      fetchedEval?.id ||
+      (objectifs?.[0] as any)?.ficheId;
+
+    if (targetFicheId && formationId && !formationId.startsWith("temp-")) {
+      try {
+        await evaluationsApi.deleteFormation(targetFicheId, formationId);
+      } catch (err) {
+        console.error("[FicheEvaluationModal] Erreur suppression formation:", err);
+      }
+    }
+  };
+
   const handleSaveEvaluation = async () => {
     const targetFicheId =
       resolvedFicheId ||
@@ -366,9 +457,16 @@ export function FicheEvaluationModal({
             note: o.noteObtenue,
             commentaire: o.commentaire,
           })),
+          formations: formations.map((f) => ({
+            id: f.id,
+            intitule: f.intitule,
+            delai: f.delai,
+            priorite: f.priorite,
+            objectifVise: f.objectifVise,
+          })),
           observations: "",
         });
-        setSaveSuccessMsg("✓ L'évaluation N+1 a été enregistrée avec succès dans la base de données !");
+        setSaveSuccessMsg("✓ L'évaluation N+1 et le plan de formation ont été enregistrés avec succès dans la base de données !");
       }
       if (onSaved) onSaved();
     } catch (err: any) {
@@ -895,21 +993,341 @@ export function FicheEvaluationModal({
             }))}
           </div>
 
-          {/* SECTION 3 : FORMATION À ENVISAGER */}
+          {/* SECTION 3 : FORMATION À ENVISAGER & PLAN DE DÉVELOPPEMENT */}
           <div style={{ background: "#FFFFFF", padding: 24, borderRadius: 0, border: "1px solid #E2E8F0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#F0822A", margin: 0 }}>
-                3. Plan de Formation Recommandé
-              </h3>
-              <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", background: "#F8FAFC", padding: "4px 10px", borderRadius: 0, border: "1px solid #E2E8F0" }}>
-                À compléter par le N+1
-              </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <h3 style={{ fontSize: 14, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#F0822A", margin: 0 }}>
+                  3. Plan de Formation Recommandé & Développement des Compétences
+                </h3>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                  Préconisations émises par le manager lors de l'entretien annuel pour accompagner les compétences du collaborateur
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#0284C7", background: "#E0F2FE", padding: "4px 10px", borderRadius: 0, border: "1px solid #BAE6FD" }}>
+                  {formations.length} formation{formations.length > 1 ? "s" : ""} identifiée{formations.length > 1 ? "s" : ""}
+                </span>
+                {canEditN1 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddFormationForm(!showAddFormationForm)}
+                    style={{
+                      padding: "6px 14px",
+                      background: showAddFormationForm ? "#F1F5F9" : "#F0822A",
+                      color: showAddFormationForm ? "#475569" : "#FFFFFF",
+                      border: showAddFormationForm ? "1px solid #CBD5E1" : "none",
+                      borderRadius: 0,
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {showAddFormationForm ? "✕ Masquer le formulaire" : "+ Ajouter un besoin de formation"}
+                  </button>
+                )}
+              </div>
             </div>
-            <div style={{ padding: "20px", background: "#F8FAFC", border: "1px dashed #CBD5E1", textAlign: "center" }}>
-              <p style={{ fontSize: 13, color: "#94a3b8", margin: 0, fontWeight: 600 }}>
-                Aucune formation planifiée pour ce cycle. Le manager N+1 peut en ajouter lors de l'évaluation.
-              </p>
-            </div>
+
+            {/* FORMULAIRE D'AJOUT DE FORMATION (N+1) */}
+            {showAddFormationForm && canEditN1 && (
+              <div style={{
+                background: "#FFF7ED",
+                border: "2px solid #F0822A",
+                padding: 20,
+                marginBottom: 20,
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 900, color: "#C2410C", margin: 0, textTransform: "uppercase" }}>
+                    🎯 Nouvelle Préconisation de Formation (N+1)
+                  </h4>
+                  <span style={{ fontSize: 11, color: "#9A3412", fontWeight: 700 }}>Renseignez l'intitulé et les détails</span>
+                </div>
+
+                {/* Suggestions thématiques rapides */}
+                <div>
+                  <label style={{ fontSize: 10, fontWeight: 900, color: "#9A3412", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                    Suggestions thématiques rapides (cliquez pour insérer) :
+                  </label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {[
+                      "Cloud Azure & Microservices",
+                      "Cybersécurité & SSO Entra ID",
+                      "Management d'Équipe & Leadership",
+                      "Méthodologies Agiles / Scrum",
+                      "Architecture React, Next.js & TypeScript",
+                      "DevOps, Docker & CI/CD",
+                      "Communication & Négociation Pro",
+                    ].map((sugg) => (
+                      <button
+                        key={sugg}
+                        type="button"
+                        onClick={() => setNewFormationIntitule(sugg)}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "4px 9px",
+                          background: "#FFFFFF",
+                          border: "1px solid #FDBA74",
+                          color: "#C2410C",
+                          cursor: "pointer",
+                        }}
+                      >
+                        + {sugg}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 900, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                      Intitulé de la formation *
+                    </label>
+                    <input
+                      type="text"
+                      value={newFormationIntitule}
+                      onChange={(e) => setNewFormationIntitule(e.target.value)}
+                      placeholder="ex: Sécurité Cloud & Architecture Microservices"
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        border: "1px solid #CBD5E1",
+                        background: "#FFFFFF",
+                        borderRadius: 0,
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 900, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                      Échéance / Délai souhaité
+                    </label>
+                    <select
+                      value={newFormationDelai}
+                      onChange={(e) => setNewFormationDelai(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        border: "1px solid #CBD5E1",
+                        background: "#FFFFFF",
+                        borderRadius: 0,
+                        outline: "none",
+                        color: "#0F172A",
+                      }}
+                    >
+                      <option value="Court terme (1 à 3 mois)">Court terme (1 à 3 mois)</option>
+                      <option value="Moyen terme (3 à 6 mois)">Moyen terme (3 à 6 mois)</option>
+                      <option value="Long terme (6 à 12 mois)">Long terme (6 à 12 mois)</option>
+                      <option value="Exercice 2027">Exercice 2027</option>
+                      <option value="Immédiat / Prioritaire">Immédiat / Prioritaire</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 900, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                      Niveau de Priorité
+                    </label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {(["HAUTE", "MOYENNE", "BASSE"] as const).map((p) => {
+                        const isPActive = newFormationPriorite === p;
+                        const pColor = p === "HAUTE" ? "#DC2626" : p === "MOYENNE" ? "#D97706" : "#059669";
+                        const pBg = p === "HAUTE" ? "#FEF2F2" : p === "MOYENNE" ? "#FFFBEB" : "#ECFDF5";
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setNewFormationPriorite(p)}
+                            style={{
+                              flex: 1,
+                              padding: "6px",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              borderRadius: 0,
+                              cursor: "pointer",
+                              border: isPActive ? `2px solid ${pColor}` : "1px solid #CBD5E1",
+                              background: isPActive ? pBg : "#FFFFFF",
+                              color: isPActive ? pColor : "#64748B",
+                            }}
+                          >
+                            {p === "HAUTE" ? "🔥 Haute" : p === "MOYENNE" ? "⚡ Moyenne" : "🌱 Basse"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 10, fontWeight: 900, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                    Objectif opérationnel visé / Compétence recherchée
+                  </label>
+                  <input
+                    type="text"
+                    value={newFormationObjectif}
+                    onChange={(e) => setNewFormationObjectif(e.target.value)}
+                    placeholder="ex: Renforcer l'autonomie sur les déploiements de prod et la supervision"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      border: "1px solid #CBD5E1",
+                      background: "#FFFFFF",
+                      borderRadius: 0,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddFormationForm(false)}
+                    style={{
+                      padding: "8px 16px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
+                      color: "#475569",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddFormation}
+                    disabled={isAddingFormation}
+                    style={{
+                      padding: "8px 20px",
+                      background: "#F0822A",
+                      border: "none",
+                      color: "#FFFFFF",
+                      fontWeight: 900,
+                      fontSize: 12,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {isAddingFormation ? "Ajout en cours..." : "✓ Ajouter au Plan de Formation"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* LISTE DES FORMATIONS EXISTANTES */}
+            {formations.length === 0 ? (
+              <div style={{ padding: "28px", background: "#F8FAFC", border: "1px dashed #CBD5E1", textAlign: "center" }}>
+                <span style={{ fontSize: 24, display: "block", marginBottom: 6 }}>🎓</span>
+                <p style={{ fontSize: 14, color: "#334155", margin: 0, fontWeight: 700 }}>
+                  Aucun besoin de formation n'a été préconisé pour le moment.
+                </p>
+                <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 14px 0" }}>
+                  Le manager N+1 peut identifier et ajouter les formations requises pour accompagner la progression du collaborateur.
+                </p>
+                {canEditN1 && !showAddFormationForm && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddFormationForm(true)}
+                    style={{
+                      padding: "8px 18px",
+                      background: "#F0822A",
+                      color: "#FFFFFF",
+                      border: "none",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    + Ajouter une première formation
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #E2E8F0" }}>
+                  <thead>
+                    <tr style={{ background: "#F8FAFC", borderBottom: "2px solid #E2E8F0" }}>
+                      <th style={{ padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 900, color: "#475569", textTransform: "uppercase", width: 45 }}>#</th>
+                      <th style={{ padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 900, color: "#475569", textTransform: "uppercase" }}>Formation & Compétence Visée</th>
+                      <th style={{ padding: "10px 14px", textAlign: "center", fontSize: 11, fontWeight: 900, color: "#475569", textTransform: "uppercase", width: 180 }}>Échéance / Délai</th>
+                      <th style={{ padding: "10px 14px", textAlign: "center", fontSize: 11, fontWeight: 900, color: "#475569", textTransform: "uppercase", width: 120 }}>Priorité</th>
+                      {canEditN1 && (
+                        <th style={{ padding: "10px 14px", textAlign: "center", fontSize: 11, fontWeight: 900, color: "#475569", textTransform: "uppercase", width: 80 }}>Action</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formations.map((f, idx) => {
+                      const pColor = f.priorite === "HAUTE" ? "#DC2626" : f.priorite === "BASSE" ? "#059669" : "#D97706";
+                      const pBg = f.priorite === "HAUTE" ? "#FEF2F2" : f.priorite === "BASSE" ? "#ECFDF5" : "#FFFBEB";
+                      return (
+                        <tr key={f.id || idx} style={{ borderBottom: "1px solid #E2E8F0", background: idx % 2 === 0 ? "#FFFFFF" : "#FAFAFA" }}>
+                          <td style={{ padding: "12px 14px", fontSize: 12, fontWeight: 800, color: "#94A3B8" }}>
+                            0{idx + 1}
+                          </td>
+                          <td style={{ padding: "12px 14px" }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A" }}>
+                              {f.intitule}
+                            </div>
+                            {f.objectifVise && (
+                              <div style={{ fontSize: 11, color: "#64748B", marginTop: 2, fontWeight: 500 }}>
+                                🎯 {f.objectifVise}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#334155", background: "#F1F5F9", padding: "4px 10px", borderRadius: 0, border: "1px solid #CBD5E1" }}>
+                              📅 {f.delai || "À planifier"}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: pColor, background: pBg, padding: "4px 10px", borderRadius: 0, border: `1px solid ${pColor}40` }}>
+                              {f.priorite || "MOYENNE"}
+                            </span>
+                          </td>
+                          {canEditN1 && (
+                            <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteFormation(f.id, idx)}
+                                title="Supprimer cette formation"
+                                style={{
+                                  background: "#FEF2F2",
+                                  border: "1px solid #FECACA",
+                                  color: "#DC2626",
+                                  padding: "4px 8px",
+                                  cursor: "pointer",
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                🗑️
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* SECTION 4 : WORKFLOW & VISA SALARIÉ (OK / NON OK) / SIGNATURES DES 4 ACTEURS */}
@@ -1256,8 +1674,14 @@ export function FicheEvaluationModal({
                     noteGlobale: o.noteObtenue || undefined,
                     observation: o.commentaire || "",
                   })),
-                  observationN1: "",
-                  observationSalarie: "",
+                  formations: formations.map((f) => ({
+                    formation: f.intitule,
+                    delai: f.delai,
+                  })),
+                  observationN1: noteGlobaleN1 > 0 ? `Notation N+1 effectuée. Moyenne obtenue : ${noteGlobaleN1.toFixed(2)}/20` : "",
+                  observationSalarie: visaSalarieSubmitted
+                    ? (visaSalarieAccord ? `Visa Salarié Accordé : ${visaSalarieObservation || "Vu et approuvé."}` : `Visa Salarié avec Réserves : ${visaSalarieObservation}`)
+                    : (noteGlobaleSalarie > 0 ? `Auto-évaluation complétée. Moyenne auto-évaluée : ${noteGlobaleSalarie.toFixed(2)}/20` : ""),
                 });
               }}
               style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: "#107C41", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}

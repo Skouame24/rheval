@@ -83,11 +83,7 @@ export default function SalariesRhPage() {
         <FicheEvaluationModal 
           isOpen={selectedFicheModal !== null} 
           onClose={() => setSelectedFicheModal(null)} 
-          evaluationId={selectedFicheModal?.id}
           dossier={selectedFicheModal ? {
-            id: selectedFicheModal.id,
-            ficheId: selectedFicheModal.id,
-            salarieId: selectedFicheModal.salarie?.id,
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",

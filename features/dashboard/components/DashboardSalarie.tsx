@@ -101,7 +101,7 @@ export function DashboardSalarie() {
   const [autoEvalMode, setAutoEvalMode] = useState(false);
   const [visaMode, setVisaMode] = useState(false);
 
-  const { evaluation, isLoading, error, refetch } = useCurrentEvaluation();
+  const { evaluation, isLoading, error } = useCurrentEvaluation();
 
   // ── Résolution des champs affichés depuis les données API ──
   const statut = (evaluation?.statut ?? "EN_ATTENTE_N1") as StatutEvaluation;
@@ -205,18 +205,13 @@ export function DashboardSalarie() {
         isAutoEvaluationMode={autoEvalMode}
         isVisaMode={visaMode}
         currentStep={autoEvalMode ? 3 : visaMode ? 5 : 4}
-        evaluationId={evaluation?.id}
         dossier={user ? {
-          id: evaluation?.id,
-          ficheId: evaluation?.id,
-          salarieId: user.id,
           nom: user.nom,
           prenom: user.prenom,
           poste: user.poste || "Collaborateur Agilly",
           direction: user.departement || "Direction Générale",
         } : undefined}
         objectifs={objectifs}
-        onSaved={refetch}
       />
 
       <ModalDefinirObjectifs

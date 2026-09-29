@@ -32,20 +32,37 @@ export default function FormationsN1Page() {
     fetchFormations();
   }, []);
 
-  // Extraire les besoins de formation réels
-  const formationsList = evaluations
-    .filter((e) => (e as any).besoinFormation || (e as any).evaluationN1?.besoinFormation)
-    .map((e) => {
-      const formationText = (e as any).besoinFormation || (e as any).evaluationN1?.besoinFormation || "";
-      return {
+  // Extraire les besoins de formation réels (supporte à la fois le tableau formations et besoinFormation)
+  const formationsList = evaluations.flatMap((e) => {
+    const collabName = `${e.salarie?.prenom || ""} ${e.salarie?.nom || ""}`.trim() || "Collaborateur";
+    const collabPoste = e.salarie?.poste || "Collaborateur";
+
+    if (Array.isArray(e.formations) && e.formations.length > 0) {
+      return e.formations.map((f: any) => ({
+        id: f.id || `${e.id}-${f.intitule}`,
+        collab: collabName,
+        poste: collabPoste,
+        formation: f.intitule || f.formation || "",
+        delai: f.delai || "À planifier",
+        priorite: f.priorite || "MOYENNE",
+        objectifVise: f.objectifVise || "",
+      }));
+    }
+
+    const singleText = (e as any).besoinFormation || (e as any).evaluationN1?.besoinFormation;
+    if (singleText) {
+      return [{
         id: e.id,
-        collab: `${e.salarie?.prenom || ""} ${e.salarie?.nom || ""}`.trim() || "Collaborateur",
-        poste: e.salarie?.poste || "Collaborateur",
-        formation: formationText,
+        collab: collabName,
+        poste: collabPoste,
+        formation: singleText,
         delai: "À planifier",
-        priorite: "Moyenne",
-      };
-    });
+        priorite: "MOYENNE",
+        objectifVise: "",
+      }];
+    }
+    return [];
+  });
 
   return (
     <AppShell role="N1" userName="Marc AUBERT" userEmail="manager@agilly.com" notifCount={0}>

@@ -177,4 +177,33 @@ export const evaluationsApi = {
       throw err;
     }
   },
+
+  /**
+   * POST /api/evaluations/:id/formations
+   * Ajoute une préconisation de formation pour le collaborateur.
+   */
+  addFormation: async (
+    ficheId: string,
+    data: { intitule: string; delai?: string; priorite?: string; objectifVise?: string }
+  ): Promise<any> => {
+    try {
+      return await client.post(`/evaluations/${ficheId}/formations`, data);
+    } catch (err) {
+      console.error("[evaluationsApi.addFormation] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
+   * DELETE /api/evaluations/:id/formations/:formationId
+   * Supprime une préconisation de formation.
+   */
+  deleteFormation: async (ficheId: string, formationId: string): Promise<any> => {
+    try {
+      return await client.delete(`/evaluations/${ficheId}/formations/${formationId}`);
+    } catch (err) {
+      console.error("[evaluationsApi.deleteFormation] Backend error:", err);
+      throw err;
+    }
+  },
 };
