@@ -62,12 +62,13 @@ export interface VisaSalarie {
 
 export interface FormationBesoin {
   id?: string;
-  ficheId?: string;
   intitule: string;
   delai?: string;
-  priorite?: string;
+  priorite?: "HAUTE" | "MOYENNE" | "BASSE" | string;
   objectifVise?: string;
   statut?: string;
+  ficheId?: string;
+  createdAt?: string;
 }
 
 // Vue complète d'un cycle d'évaluation pour un salarié (FicheEvaluation)
@@ -81,14 +82,15 @@ export interface EvaluationCycle {
   hasAutoEvaluation?: boolean;
   observation?: string;
   objectifs: any[]; // TODO: type précis
-  formations?: FormationBesoin[];
   competences?: any[];
+  formations?: FormationBesoin[];
   bonus?: any;
   feedbacks360?: any[];
   historique?: any[];
   dateCreation: string;
   dateCloture?: string;
 }
+
 // Dossier d'arbitrage
 export interface Arbitrage {
   id: string;

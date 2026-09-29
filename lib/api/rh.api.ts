@@ -87,4 +87,57 @@ export const rhApi = {
   getBaremeActif: async (): Promise<Bareme> => {
     return client.get<Bareme>("/rh/bareme/actif");
   },
+
+  /**
+   * GET /api/rh/cycles
+   * Récupère tous les cycles d'évaluation avec leurs statistiques réelles.
+   */
+  getCycles: async (): Promise<any[]> => {
+    try {
+      const res = await client.get<any[]>("/rh/cycles");
+      return Array.isArray(res) ? res : [];
+    } catch (err) {
+      console.error("[rhApi.getCycles] Backend error:", err);
+      return [];
+    }
+  },
+
+  /**
+   * GET /api/rh/cycles/actif
+   * Récupère le cycle actif en cours.
+   */
+  getCycleActif: async (): Promise<any> => {
+    try {
+      return await client.get<any>("/rh/cycles/actif");
+    } catch (err) {
+      console.error("[rhApi.getCycleActif] Backend error:", err);
+      return null;
+    }
+  },
+
+  /**
+   * POST /api/rh/cycles
+   * Crée une nouvelle campagne d'évaluation.
+   */
+  creerCycle: async (data: { annee: number; libelle: string; dateDebut: string; dateFin: string }): Promise<any> => {
+    try {
+      return await client.post("/rh/cycles", data);
+    } catch (err) {
+      console.error("[rhApi.creerCycle] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
+   * PUT /api/rh/cycles/:id/cloturer
+   * Clôture un cycle d'évaluation.
+   */
+  cloturerCycle: async (id: string): Promise<any> => {
+    try {
+      return await client.put(`/rh/cycles/${id}/cloturer`, {});
+    } catch (err) {
+      console.error("[rhApi.cloturerCycle] Backend error:", err);
+      throw err;
+    }
+  },
 };

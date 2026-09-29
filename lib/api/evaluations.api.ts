@@ -179,6 +179,53 @@ export const evaluationsApi = {
   },
 
   /**
+   * POST /api/evaluations/:id/visa-salarie
+   * Soumission formelle du visa salarié (accord ou désaccord/réserves).
+   */
+  submitVisaSalarie: async (
+    id: string,
+    dto: { accord: boolean; observation?: string }
+  ): Promise<EvaluationCycle> => {
+    try {
+      return await client.post<EvaluationCycle>(`/evaluations/${id}/visa-salarie`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.submitVisaSalarie] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
+   * PUT /api/rh/evaluations/:id/valider
+   * Validation finale de la fiche d'évaluation ou arbitrage par la DRH.
+   */
+  validerParRh: async (
+    id: string,
+    dto: { statut?: "VALIDE" | "CLOTURE" | "ARBITRAGE"; commentaire?: string; noteFinale?: number }
+  ): Promise<EvaluationCycle> => {
+    try {
+      return await client.put<EvaluationCycle>(`/rh/evaluations/${id}/valider`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.validerParRh] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
+   * GET /api/n2/evaluations
+   * Récupère toutes les évaluations du périmètre supervisé N+2.
+   */
+  getN2TeamEvaluations: async (): Promise<EvaluationCycle[]> => {
+    try {
+      const res = await client.get<EvaluationCycle[]>("/n2/evaluations");
+      if (res && res.length > 0) return res;
+      return [];
+    } catch (err) {
+      console.error("[evaluationsApi.getN2TeamEvaluations] Backend error:", err);
+      return [];
+    }
+  },
+
+  /**
    * POST /api/evaluations/:id/formations
    * Ajoute une préconisation de formation pour le collaborateur.
    */
