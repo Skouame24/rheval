@@ -31,14 +31,18 @@ export default function EvaluationsN1Page() {
     poste?: string;
   } | null>(null);
 
+  const isN2 = user?.role === "N2" || user?.role === "DRH";
+
   const loadEvaluations = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await evaluationsApi.getN1TeamEvaluations();
+      const data = isN2
+        ? await evaluationsApi.getN2TeamEvaluations()
+        : await evaluationsApi.getN1TeamEvaluations();
       setEvaluations(data || []);
     } catch (err: any) {
-      console.error("[EvaluationsN1Page] Erreur chargement évaluations N1:", err);
+      console.error("[EvaluationsN1Page] Erreur chargement évaluations:", err);
       setError(err.message || "Erreur de communication avec le serveur.");
     } finally {
       setIsLoading(false);
@@ -47,7 +51,7 @@ export default function EvaluationsN1Page() {
 
   useEffect(() => {
     loadEvaluations();
-  }, []);
+  }, [user?.role, user?.id]);
 
   const handleExportExcel = (item: EvaluationCycle) => {
     exportEvaluationToExcel({
@@ -97,13 +101,21 @@ export default function EvaluationsN1Page() {
           bg: "bg-[#FFF7ED]",
           border: "border-[#FFEDD5]",
         };
+      case "VALIDATION_N2":
       case "EVALUATION_N2":
       case "TRANSMIS_N2":
         return {
-          label: "Transmis à N+2",
+          label: "Revue & Validation N+2",
           color: "text-purple-800",
           bg: "bg-purple-50",
           border: "border-purple-200",
+        };
+      case "VISA_SALARIE":
+        return {
+          label: "Visa Salarié / Revue N+2",
+          color: "text-amber-800",
+          bg: "bg-amber-50",
+          border: "border-amber-200",
         };
       case "VALIDATION_DRH":
       case "EN_ATTENTE_RH":
@@ -120,6 +132,7 @@ export default function EvaluationsN1Page() {
           bg: "bg-rose-50",
           border: "border-rose-200",
         };
+      case "VALIDE":
       case "VALIDEE":
       case "CLOTURE":
         return {
@@ -143,7 +156,7 @@ export default function EvaluationsN1Page() {
     : "Manager";
 
   return (
-    <AppShell>
+    <AppShell role={user?.role || "N1"} userName={managerDisplayName} userEmail={user?.email || "manager@agilly.com"}>
       <div className="flex flex-col gap-8 pb-10">
         {/* Modale Fiche d'Évaluation */}
         {selectedFicheModal && (
@@ -154,6 +167,7 @@ export default function EvaluationsN1Page() {
               loadEvaluations();
             }}
             readOnly={selectedFicheModal.statut === "FIXATION_OBJECTIFS"}
+            role={isN2 ? "N2" : "N1"}
             evaluationId={selectedFicheModal.id}
             dossier={{
               id: selectedFicheModal.id,
@@ -184,9 +198,9 @@ export default function EvaluationsN1Page() {
         )}
 
         <PageHeader
-          title="Évaluation de Performance de l'Équipe"
-          subtitle="Suivi des fiches d'évaluation, notation N+1 et gestion des objectifs"
-          breadcrumbs={[{ label: "Espace N+1" }, { label: "Évaluations à valider" }]}
+          title={isN2 ? "Supervision des Évaluations (N+2)" : "Évaluation de Performance de l'Équipe"}
+          subtitle={isN2 ? "Contre-évaluation, validation hiérarchique et suivi des formations du périmètre" : "Suivi des fiches d'évaluation, notation N+1 et gestion des objectifs"}
+          breadcrumbs={[{ label: isN2 ? "Espace N+2" : "Espace N+1" }, { label: "Évaluations à valider" }]}
         />
 
         {error && (

@@ -1,6 +1,6 @@
 // ============================================================
-// app/dashboard/n1/collaborateurs/page.tsx
-// Page "Mes Collaborateurs" N+1 (Soft UI Inline CSS avec Modal de Fixation des Objectifs)
+// app/dashboard/mon-equipe/page.tsx
+// Page "Mon Équipe" — Multi-rôles : Affiche DashboardN2 pour N+2 ou CollaborateursN1 pour N+1
 // ============================================================
 
 "use client";
@@ -9,20 +9,34 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
+import { DashboardN2 } from "@/features/dashboard/components/DashboardN2";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMyTeam } from "@/lib/hooks/useTeam";
 import type { User } from "@/types";
 
-// TEAM data supprimée — remplacée par useMyTeam()
-
-export default function CollaborateursN1Page() {
+export default function MonEquipePage() {
+  const { user } = useAuth();
   const [selectedCollab, setSelectedCollab] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { isLoading, error, search } = useMyTeam();
 
   const filteredTeam = search(searchQuery);
 
+  const displayName = user
+    ? `${user.prenom ? user.prenom + " " : ""}${user.nom}`.trim()
+    : "Manager";
+
+  // Si l'utilisateur connecté est N+2, on affiche la vue complète de supervision N+2
+  if (user?.role === "N2") {
+    return (
+      <AppShell role="N2" userName={displayName} userEmail={user?.email || "drh@agilly.com"}>
+        <DashboardN2 />
+      </AppShell>
+    );
+  }
+
   return (
-    <AppShell role="N1" userName="Sevan AKOUMIA" userEmail="sevan.akoumia@agilly.com" notifCount={2}>
+    <AppShell role={user?.role || "N1"} userName={displayName} userEmail={user?.email || "manager@agilly.com"} notifCount={2}>
       <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
         
         {selectedCollab && (
@@ -49,70 +63,70 @@ export default function CollaborateursN1Page() {
             )}
 
             <PageHeader
-              title="Mes Collaborateurs Directs"
-              subtitle="Définissez et gérez les objectifs de performance de votre équipe"
-              breadcrumbs={[{ label: "Espace N+1" }, { label: "Collaborateurs" }]}
+              title="Mes Collaborateurs"
+              subtitle="Gérez les objectifs et suivez la performance de votre périmètre d'équipe"
+              breadcrumbs={[{ label: "Espace Manager" }, { label: "Collaborateurs" }]}
             />
 
-        <Card padding="lg">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
-            <CardHeader title="Liste des Collaborateurs" subtitle={`${filteredTeam.length} salarié(s) rattaché(s) directement`} icon="👥" />
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Rechercher (Nom, prénom, poste)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 text-sm border border-gray-300 rounded-sm focus:border-agilly-primary focus:outline-none focus:ring-1 focus:ring-agilly-primary transition-colors"
-              />
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 20 }}>
-            {filteredTeam.map((member: User) => (
-              <div
-                key={member.id}
-                style={{
-                  background: "#F8FAFC",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: 4,
-                  padding: 20,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 16
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {member.prenom.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: 16, fontWeight: 900, color: "#000000", margin: 0 }}>{member.prenom} {member.nom}</h4>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: "#F0822A", margin: "2px 0 0 0" }}>{member.poste}</p>
-                  </div>
-                </div>
-
-                <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>✉️ {member.email}</p>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>📅 Dept : {member.departement}</p>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8, background: "#FFF7ED", color: "#EA580C", border: "1px solid #FFEDD5" }}>
-                    {member.role}
-                  </span>
-                  <button
-                    onClick={() => setSelectedCollab(member)}
-                    style={{ padding: "8px 14px", background: "#F0822A", color: "#FFFFFF", border: "none", borderRadius: 4, fontSize: 12, fontWeight: 900, cursor: "pointer", boxShadow: "0 4px 12px rgba(240,130,42,0.2)" }}
-                  >
-                    🎯 Fixer les Objectifs
-                  </button>
+            <Card padding="lg">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
+                <CardHeader title="Liste des Collaborateurs" subtitle={`${filteredTeam.length} salarié(s) rattaché(s) à votre périmètre`} icon="👥" />
+                <div className="w-full sm:w-64">
+                  <input
+                    type="text"
+                    placeholder="Rechercher (Nom, prénom, poste)..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-sm focus:border-agilly-primary focus:outline-none focus:ring-1 focus:ring-agilly-primary transition-colors"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </Card>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 20 }}>
+                {filteredTeam.map((member: User) => (
+                  <div
+                    key={member.id}
+                    style={{
+                      background: "#F8FAFC",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 4,
+                      padding: 20,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 16
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {member.prenom.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: 16, fontWeight: 900, color: "#000000", margin: 0 }}>{member.prenom} {member.nom}</h4>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: "#F0822A", margin: "2px 0 0 0" }}>{member.poste}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>✉️ {member.email}</p>
+                      <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>📅 Dept : {member.departement}</p>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8, background: "#FFF7ED", color: "#EA580C", border: "1px solid #FFEDD5" }}>
+                        {member.role}
+                      </span>
+                      <button
+                        onClick={() => setSelectedCollab(member)}
+                        style={{ padding: "8px 14px", background: "#F0822A", color: "#FFFFFF", border: "none", borderRadius: 4, fontSize: 12, fontWeight: 900, cursor: "pointer", boxShadow: "0 4px 12px rgba(240,130,42,0.2)" }}
+                      >
+                        🎯 Fixer les Objectifs
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </>
         )}
       </div>

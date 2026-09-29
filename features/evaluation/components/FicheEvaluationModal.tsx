@@ -129,8 +129,11 @@ export function FicheEvaluationModal({
           if (data.formations && Array.isArray(data.formations)) {
             setFormations(data.formations);
           }
-          if (data.statut === "VALIDATION_N2" || data.statut === "VALIDATION_DRH" || data.statut === "VALIDE") {
+          const hasVisaAction = (data.historique || []).some((h: any) => h.action === "VISA_SALARIE_SOUMIS" || h.action === "VISA_SALARIE");
+          if (hasVisaAction || data.statut === "VALIDATION_DRH" || data.statut === "VALIDE" || data.statut === "CLOTURE") {
             setVisaSalarieSubmitted(true);
+          } else {
+            setVisaSalarieSubmitted(false);
           }
         }
       }).catch((err) => {
@@ -441,7 +444,11 @@ export function FicheEvaluationModal({
           })),
           observations: visaSalarieObservation,
         });
-        setSaveSuccessMsg("✓ Votre auto-évaluation a été enregistrée avec succès dans la base de données !");
+        setSaveSuccessMsg("✓ Votre auto-évaluation a été enregistrée avec succès !");
+        if (onSaved) onSaved();
+        setTimeout(() => {
+          onClose();
+        }, 1200);
       } else {
         await evaluationsApi.submitNotesN1(resolvedFicheId, {
           evaluationCycleId: resolvedFicheId,
@@ -459,9 +466,12 @@ export function FicheEvaluationModal({
           })),
           observations: "",
         });
-        setSaveSuccessMsg("✓ L'évaluation N+1 et le plan de formation ont été transmis au salarié et au N+2 !");
+        setSaveSuccessMsg("✓ L'évaluation N+1 et le plan de formation ont été validés et transmis au N+2 !");
+        if (onSaved) onSaved();
+        setTimeout(() => {
+          onClose();
+        }, 1200);
       }
-      if (onSaved) onSaved();
     } catch (err: any) {
       console.error("[FicheEvaluationModal] Save error:", err);
       alert("Erreur lors de l'enregistrement : " + (err.message || "Erreur serveur"));
@@ -497,6 +507,9 @@ export function FicheEvaluationModal({
           : "✓ La contre-évaluation et le visa N+2 ont été validés avec succès !"
       );
       if (onSaved) onSaved();
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } catch (err: any) {
       console.error("[FicheEvaluationModal] N2 Save error:", err);
       alert("Erreur validation N+2 : " + (err.message || "Erreur serveur"));
@@ -526,6 +539,9 @@ export function FicheEvaluationModal({
           : "✓ La fiche d'évaluation a été validée et clôturée définitivement par la Direction RH !"
       );
       if (onSaved) onSaved();
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } catch (err: any) {
       console.error("[FicheEvaluationModal] RH Save error:", err);
       alert("Erreur validation RH : " + (err.message || "Erreur serveur"));
@@ -552,6 +568,9 @@ export function FicheEvaluationModal({
       setVisaSalarieSubmitted(true);
       setSaveSuccessMsg("✓ Votre Visa a été transmis au supérieur N+2 et à la DRH !");
       if (onSaved) onSaved();
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } catch (err: any) {
       console.error("[FicheEvaluationModal] Sign error:", err);
       alert("Erreur lors de la signature : " + (err.message || "Erreur serveur"));
@@ -1384,33 +1403,33 @@ export function FicheEvaluationModal({
                 step={1}
                 role="Supérieur N+1"
                 nom={(effectiveDossier as any)?.n1 || "Marc AUBERT"}
-                signe={noteGlobaleN1 > 0}
-                date={noteGlobaleN1 > 0 ? "Évalué" : "En attente"}
-                observation={noteGlobaleN1 > 0 ? `Notation effectuée (${noteGlobaleN1.toFixed(2)}/20)` : "En attente"}
+                signe={noteGlobaleN1 > 0 && !["FIXATION_OBJECTIFS", "AUTO_EVALUATION"].includes(fetchedEval?.statut || "")}
+                date={noteGlobaleN1 > 0 && !["FIXATION_OBJECTIFS", "AUTO_EVALUATION"].includes(fetchedEval?.statut || "") ? "Évalué" : "En attente"}
+                observation={noteGlobaleN1 > 0 && !["FIXATION_OBJECTIFS", "AUTO_EVALUATION"].includes(fetchedEval?.statut || "") ? `Notation effectuée (${noteGlobaleN1.toFixed(2)}/20)` : "En attente d'évaluation N+1"}
               />
               <SignatureBox
                 step={2}
                 role="Évalué (Salarié)"
                 nom={collabNom}
-                signe={visaSalarieSubmitted || noteGlobaleSalarie > 0}
-                date={visaSalarieSubmitted ? "Visa signé" : "En attente"}
-                observation={visaSalarieSubmitted ? (visaSalarieAccord ? "✓ Accord Salarié" : "⚠️ Réserves exprimées") : "Auto-évaluation en cours"}
+                signe={visaSalarieSubmitted || ["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "")}
+                date={visaSalarieSubmitted || ["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? "Visa signé" : "En attente"}
+                observation={visaSalarieSubmitted ? (visaSalarieAccord ? "✓ Accord Salarié" : "⚠️ Réserves exprimées") : (["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? "✓ Visa apposé" : "En attente du visa salarié")}
               />
               <SignatureBox
                 step={3}
                 role="Supérieur N+2"
                 nom="Direction N+2"
-                signe={noteGlobaleN2 > 0 || fetchedEval?.statut === "VALIDATION_DRH" || fetchedEval?.statut === "VALIDE"}
-                date={noteGlobaleN2 > 0 ? "Contre-évalué" : "En attente"}
-                observation={noteGlobaleN2 > 0 ? `Avis N+2 (${noteGlobaleN2.toFixed(2)}/20)` : "En attente de revue"}
+                signe={["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "")}
+                date={["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? "Contre-évalué" : "En attente"}
+                observation={["VALIDATION_DRH", "VALIDE", "CLOTURE"].includes(fetchedEval?.statut || "") ? `Avis N+2 validé (${(noteGlobaleN2 > 0 ? noteGlobaleN2 : noteGlobaleN1).toFixed(2)}/20)` : "En attente de revue N+2"}
               />
               <SignatureBox
                 step={4}
                 role="Direction RH"
                 nom="Pôle RH AGILLY"
                 signe={fetchedEval?.statut === "VALIDE" || fetchedEval?.statut === "CLOTURE"}
-                date={fetchedEval?.statut === "VALIDE" ? "Validé" : "En attente"}
-                observation={fetchedEval?.statut === "VALIDE" ? "Dossier validé et clôturé" : "Revue finale"}
+                date={fetchedEval?.statut === "VALIDE" || fetchedEval?.statut === "CLOTURE" ? "Validé" : "En attente"}
+                observation={fetchedEval?.statut === "VALIDE" || fetchedEval?.statut === "CLOTURE" ? "Dossier validé et clôturé" : "En attente de clôture RH"}
               />
             </div>
           </div>

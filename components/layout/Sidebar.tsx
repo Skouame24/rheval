@@ -75,11 +75,20 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
   const [arbitrageCount, setArbitrageCount] = useState<number | undefined>(undefined);
 
   useEffect(() => {
-    if (normalizedRole === "N1" || normalizedRole === "N2") {
+    if (normalizedRole === "N2") {
+      evaluationsApi
+        .getN2TeamEvaluations()
+        .then((fiches) => {
+          const pending = (fiches || []).filter(
+            (f) => f.statut === "VALIDATION_N2" || f.statut === "EN_ATTENTE_N2" || f.statut === "VISA_SALARIE"
+          );
+          setN1PendingCount(pending.length > 0 ? pending.length : undefined);
+        })
+        .catch(() => setN1PendingCount(undefined));
+    } else if (normalizedRole === "N1") {
       evaluationsApi
         .getN1TeamEvaluations()
         .then((fiches) => {
-          // Seules les fiches en attente réelle de notation N+1 génèrent un badge
           const pending = (fiches || []).filter(
             (f) => f.statut === "EVALUATION_N1" || f.statut === "EN_ATTENTE_N1"
           );
