@@ -29,30 +29,48 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
 interface WorkflowStepperProps {
   currentStep: StepId;
   hasArbitrage?: boolean;
+  isCompleted?: boolean;
 }
 
-export function WorkflowStepper({ currentStep, hasArbitrage = false }: WorkflowStepperProps) {
+export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted = false }: WorkflowStepperProps) {
+  const displayStep = isCompleted ? 8 : currentStep;
+  const isAllDone = isCompleted || currentStep >= 8;
+
   return (
     <div className="bg-white border border-slate-200 rounded-none p-4 md:p-6 shadow-sm mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-7 h-7 rounded-none bg-[#F0822A]/10 text-[#F0822A] font-bold text-xs border border-[#F0822A]/30">
-            {currentStep}
+          <span className={`flex items-center justify-center w-7 h-7 rounded-none font-bold text-xs border ${
+            isCompleted 
+              ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+              : "bg-[#F0822A]/10 text-[#F0822A] border-[#F0822A]/30"
+          }`}>
+            {isCompleted ? "✓" : displayStep}
           </span>
           <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-            Workflow Officiel AGILLY — Étape {currentStep} sur 8 : {WORKFLOW_STEPS[currentStep - 1]?.label}
+            {isCompleted
+              ? "Workflow Officiel AGILLY — Dossier Validé & Clôturé Définitivement (Étape 8 sur 8)"
+              : `Workflow Officiel AGILLY — Étape ${displayStep} sur 8 : ${WORKFLOW_STEPS[displayStep - 1]?.label}`}
           </h3>
         </div>
-        <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-none border border-slate-200">
-          Acteur requis : <strong className="text-[#F0822A] font-bold">{WORKFLOW_STEPS[currentStep - 1]?.actor}</strong>
+        <span className={`text-xs font-semibold px-3 py-1 rounded-none border ${
+          isCompleted
+            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+            : "bg-slate-100 text-slate-700 border-slate-200"
+        }`}>
+          {isCompleted ? (
+            <>Statut : <strong className="text-emerald-700 font-bold">Validé & Clôturé (RH)</strong></>
+          ) : (
+            <>Acteur requis : <strong className="text-[#F0822A] font-bold">{WORKFLOW_STEPS[displayStep - 1]?.actor}</strong></>
+          )}
         </span>
       </div>
 
       {/* Barre de progression des 8 étapes */}
       <div className="relative flex items-center justify-between gap-1 overflow-x-auto pb-2 scrollbar-none">
         {WORKFLOW_STEPS.map((step) => {
-          const isDone = step.id < currentStep;
-          const isCurrent = step.id === currentStep;
+          const isDone = isCompleted ? true : step.id < currentStep;
+          const isCurrent = !isCompleted && step.id === currentStep;
           const isArbitrageStep = step.id === 6;
 
           return (

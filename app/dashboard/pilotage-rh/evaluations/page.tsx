@@ -86,6 +86,7 @@ export default function RhEvaluationsPage() {
             poste: selectedModal.salarie?.poste || "",
             direction: (selectedModal.salarie as any)?.departement || "Direction Technique",
             formations: selectedModal.formations || [],
+            statut: selectedModal.statut,
           } : null}
           objectifs={selectedModal?.objectifs || []}
           onSaved={fetchEvaluations}

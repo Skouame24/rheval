@@ -120,14 +120,22 @@ export default function RhDashboardPage() {
         <FicheEvaluationModal 
           isOpen={selectedFicheModal !== null} 
           onClose={() => setSelectedFicheModal(null)} 
+          evaluationId={selectedFicheModal?.id}
+          role="RH"
+          readOnly={false}
           dossier={selectedFicheModal ? {
+            id: selectedFicheModal.id,
+            ficheId: selectedFicheModal.id,
+            salarieId: selectedFicheModal.salarie?.id,
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",
             direction: (selectedFicheModal.salarie as any)?.departement || "Direction",
+            statut: selectedFicheModal.statut,
+            formations: (selectedFicheModal as any)?.formations || [],
           } : null}
           objectifs={selectedFicheModal?.objectifs || []}
-          readOnly={true}
+          onSaved={loadData}
         />
 
         <ModalArbitrageRH

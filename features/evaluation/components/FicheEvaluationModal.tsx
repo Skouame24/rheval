@@ -343,6 +343,31 @@ export function FicheEvaluationModal({
 
   const tauxGlobal = ((noteAffichee / 20) * 100).toFixed(1);
 
+  // Détection dynamique du statut et de l'étape du workflow officiel AGILLY
+  const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
+  const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE";
+
+  let dynamicStep: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 = 4;
+  if (isFicheCloturee) {
+    dynamicStep = 8;
+  } else if (currentStatut === "VALIDATION_DRH" || currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") {
+    dynamicStep = 7;
+  } else if (currentStatut === "VALIDATION_N2" || currentStatut === "CONTRE_EVALUATION_N2") {
+    dynamicStep = 6;
+  } else if (currentStatut === "VISA_SALARIE" || currentStatut === "EN_ATTENTE_VISA") {
+    dynamicStep = 5;
+  } else if (currentStatut === "EN_ATTENTE_N1" || currentStatut === "EVALUATION_N1") {
+    dynamicStep = 4;
+  } else if (currentStatut === "AUTO_EVALUATION") {
+    dynamicStep = 3;
+  } else if (currentStatut === "FIXATION_OBJECTIFS") {
+    dynamicStep = 2;
+  } else if (currentStatut === "CREE" || currentStatut === "BROUILLON") {
+    dynamicStep = 1;
+  } else if (currentStep) {
+    dynamicStep = currentStep;
+  }
+
   // Gestion des notes
   const handleSelectTranche = (objId: string, critere: { tranche: string; min: number; max: number; defaultNote: number }) => {
     if (!canEditSalarie && !canEditN1) return;
@@ -561,6 +586,8 @@ export function FicheEvaluationModal({
         noteFinale: Number(noteAffichee.toFixed(2)),
       });
 
+      setFetchedEval((prev: any) => prev ? { ...prev, statut: targetStatut } : { statut: targetStatut });
+
       setSaveSuccessMsg(
         targetStatut === "ARBITRAGE"
           ? "⚠️ Le dossier a été placé en arbitrage par la Direction RH."
@@ -569,7 +596,7 @@ export function FicheEvaluationModal({
       if (onSaved) onSaved();
       setTimeout(() => {
         onClose();
-      }, 1200);
+      }, 1500);
     } catch (err: any) {
       console.error("[FicheEvaluationModal] RH Save error:", err);
       alert("Erreur validation RH : " + (err.message || "Erreur serveur"));
@@ -817,7 +844,7 @@ export function FicheEvaluationModal({
         {/* ── BODY SCROLLABLE ── */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20, background: "#F7F8FA" }}>
           
-          <WorkflowStepper currentStep={currentStep} />
+          <WorkflowStepper currentStep={dynamicStep} isCompleted={isFicheCloturee} />
 
           {/* SECTION 1 : COLLABORATEUR HERO */}
           <div style={{ background: "#FFFFFF", padding: 18, border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -849,7 +876,7 @@ export function FicheEvaluationModal({
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <TagChip icon="📍" label="Direction" value={effectiveDossier?.direction || "Technique"} />
                 <TagChip icon="👨‍💼" label="Manager N+1" value={(effectiveDossier as any)?.n1 || "Marc AUBERT"} />
-                <TagChip icon="📅" label="Statut Fiche" value={fetchedEval?.statut || "EN_COURS"} />
+                <TagChip icon="📅" label="Statut Fiche" value={currentStatut || "EN_COURS"} />
               </div>
             </div>
 
@@ -1275,81 +1302,115 @@ export function FicheEvaluationModal({
                 La Direction RH entérine l'évaluation définitive, valide les bonus associés et inscrit les formations au catalogue officiel.
               </p>
 
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                <button
-                  type="button"
-                  onClick={() => setDecisionRH("VALIDE")}
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    border: decisionRH === "VALIDE" ? "2px solid #059669" : "1px solid #CBD5E1",
-                    background: decisionRH === "VALIDE" ? "#D1FAE5" : "#FFFFFF",
-                    color: "#065F46",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  ✅ Valider Définitivement (Dossier Conforme)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDecisionRH("CLOTURE")}
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    border: decisionRH === "CLOTURE" ? "2px solid #0284C7" : "1px solid #CBD5E1",
-                    background: decisionRH === "CLOTURE" ? "#E0F2FE" : "#FFFFFF",
-                    color: "#0369A1",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  🔒 Clôturer la Fiche (Campagne Terminée)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDecisionRH("ARBITRAGE")}
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    border: decisionRH === "ARBITRAGE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
-                    background: decisionRH === "ARBITRAGE" ? "#FEE2E2" : "#FFFFFF",
-                    color: "#991B1B",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  ⚖️ Ouvrir un Arbitrage RH
-                </button>
-              </div>
+              {isFicheCloturee ? (
+                <div style={{ background: "#ECFDF5", border: "1px solid #10B981", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 36, height: 36, background: "#059669", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18 }}>
+                      ✓
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#065F46" }}>
+                        Fiche d'Évaluation Validée et Clôturée Définitivement
+                      </h4>
+                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "#047857" }}>
+                        La Direction RH a validé l'évaluation. La note officielle retenue est de <strong>{noteAffichee.toFixed(2)} / 20 ({tauxGlobal}%)</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 16, background: "#FFFFFF", padding: 12, border: "1px solid #D1FAE5", flexWrap: "wrap" }}>
+                    <div>
+                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Statut Actuel</span>
+                      <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 800, color: "#059669" }}>{currentStatut}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Étape Workflow</span>
+                      <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 800, color: "#0F172A" }}>8 / 8 — Clôturé Définitivement</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 800, textTransform: "uppercase" }}>Export Officiel</span>
+                      <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 800, color: "#0284C7" }}>Excel Conforme Disponible</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setDecisionRH("VALIDE")}
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        border: decisionRH === "VALIDE" ? "2px solid #059669" : "1px solid #CBD5E1",
+                        background: decisionRH === "VALIDE" ? "#D1FAE5" : "#FFFFFF",
+                        color: "#065F46",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ✅ Valider Définitivement (Dossier Conforme)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDecisionRH("CLOTURE")}
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        border: decisionRH === "CLOTURE" ? "2px solid #0284C7" : "1px solid #CBD5E1",
+                        background: decisionRH === "CLOTURE" ? "#E0F2FE" : "#FFFFFF",
+                        color: "#0369A1",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      🔒 Clôturer la Fiche (Campagne Terminée)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDecisionRH("ARBITRAGE")}
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        border: decisionRH === "ARBITRAGE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
+                        background: decisionRH === "ARBITRAGE" ? "#FEE2E2" : "#FFFFFF",
+                        color: "#991B1B",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ⚖️ Ouvrir un Arbitrage RH
+                    </button>
+                  </div>
 
-              <textarea
-                value={commentaireRH}
-                onChange={(e) => setCommentaireRH(e.target.value)}
-                placeholder="Décisions RH, validation de la prime ou motifs d'arbitrage..."
-                style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: "#FFFFFF", marginBottom: 12 }}
-              />
+                  <textarea
+                    value={commentaireRH}
+                    onChange={(e) => setCommentaireRH(e.target.value)}
+                    placeholder="Décisions RH, validation de la prime ou motifs d'arbitrage..."
+                    style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: "#FFFFFF", marginBottom: 12 }}
+                  />
 
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  onClick={() => handleValiderRH(decisionRH)}
-                  disabled={isSaving}
-                  style={{
-                    padding: "8px 18px",
-                    background: decisionRH === "ARBITRAGE" ? "#DC2626" : "#059669",
-                    color: "#FFFFFF",
-                    border: "none",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                  }}
-                >
-                  {isSaving ? "Traitement..." : decisionRH === "ARBITRAGE" ? "⚖️ Placer en Arbitrage RH" : "✅ Enregistrer la Décision RH"}
-                </button>
-              </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => handleValiderRH(decisionRH)}
+                      disabled={isSaving}
+                      style={{
+                        padding: "8px 18px",
+                        background: decisionRH === "ARBITRAGE" ? "#DC2626" : "#059669",
+                        color: "#FFFFFF",
+                        border: "none",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {isSaving ? "Traitement..." : decisionRH === "ARBITRAGE" ? "⚖️ Placer en Arbitrage RH" : "✅ Enregistrer la Décision RH"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1534,13 +1595,19 @@ export function FicheEvaluationModal({
                 {isSaving ? "Enregistrement..." : "✅ Valider Contre-Évaluation N+2"}
               </button>
             ) : canEditRH ? (
-              <button
-                onClick={() => handleValiderRH(decisionRH)}
-                disabled={isSaving}
-                style={{ padding: "8px 16px", background: "#059669", color: "#FFFFFF", border: "none", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
-              >
-                {isSaving ? "Enregistrement..." : "✅ Valider & Clôturer la Fiche (RH)"}
-              </button>
+              isFicheCloturee ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#ECFDF5", border: "1px solid #10B981", color: "#065F46", fontWeight: 800, fontSize: 12 }}>
+                  <span>✓</span> Dossier Déjà Validé & Clôturé (RH)
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleValiderRH(decisionRH)}
+                  disabled={isSaving}
+                  style={{ padding: "8px 16px", background: "#059669", color: "#FFFFFF", border: "none", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
+                >
+                  {isSaving ? "Enregistrement..." : "✅ Valider & Clôturer la Fiche (RH)"}
+                </button>
+              )
             ) : null}
 
             {/* EXPORT EXCEL OFFICIEL */}
