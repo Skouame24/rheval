@@ -92,13 +92,18 @@ export function DashboardRH() {
       <FicheEvaluationModal
         isOpen={selectedFicheId !== null}
         onClose={() => setSelectedFicheId(null)}
+        role="RH"
+        readOnly={false}
+        evaluationId={selectedFicheId ?? undefined}
         dossier={selectedDossier ? {
+          id: selectedFicheId ?? undefined,
+          ficheId: selectedFicheId ?? undefined,
           nom: selectedDossier.nom,
           prenom: selectedDossier.prenom,
           poste: selectedDossier.poste,
-          direction: "Technique"
+          direction: "Direction Technique",
+          formations: (selectedDossier as any).formations || [],
         } : null}
-        readOnly={true}
       />
 
       {/* En-tête */}

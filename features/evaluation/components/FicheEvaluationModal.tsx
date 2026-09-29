@@ -81,7 +81,7 @@ export function FicheEvaluationModal({
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [fetchedEval, setFetchedEval] = useState<any | null>(null);
 
-  // Formations préconisées par le N+1
+  // Formations préconisées par le N+1 (initialisées immédiatement depuis dossier si disponibles)
   const [formations, setFormations] = useState<Array<{
     id?: string;
     intitule: string;
@@ -89,7 +89,7 @@ export function FicheEvaluationModal({
     priorite?: string;
     objectifVise?: string;
     statut?: string;
-  }>>([]);
+  }>>(((dossier as any)?.formations as any) || []);
   const [newFormationIntitule, setNewFormationIntitule] = useState("");
   const [newFormationDelai, setNewFormationDelai] = useState("Court terme (1 à 3 mois)");
   const [newFormationPriorite, setNewFormationPriorite] = useState<"HAUTE" | "MOYENNE" | "BASSE">("MOYENNE");
@@ -113,6 +113,7 @@ export function FicheEvaluationModal({
   // Identifiant de la fiche d'évaluation résolu
   const resolvedFicheId =
     evaluationId ||
+    (dossier as any)?.id ||
     (dossier as any)?.ficheId ||
     (dossier as any)?.evaluationId ||
     (apiObjectifs?.[0] as any)?.ficheId ||
@@ -122,30 +123,57 @@ export function FicheEvaluationModal({
 
   // Récupération automatique de la fiche complète avec formations et évaluations réelles
   useEffect(() => {
-    if (isOpen && resolvedFicheId) {
-      evaluationsApi.getById(resolvedFicheId).then((data) => {
-        if (data) {
-          setFetchedEval(data);
-          if (data.formations && Array.isArray(data.formations)) {
-            setFormations(data.formations);
+    if (isOpen) {
+      if (resolvedFicheId) {
+        evaluationsApi.getById(resolvedFicheId).then((data) => {
+          if (data) {
+            setFetchedEval(data);
+            if (data.formations && Array.isArray(data.formations)) {
+              setFormations(data.formations);
+            }
+            const hasVisaAction = (data.historique || []).some((h: any) => h.action === "VISA_SALARIE_SOUMIS" || h.action === "VISA_SALARIE");
+            if (hasVisaAction || data.statut === "VALIDATION_DRH" || data.statut === "VALIDE" || data.statut === "CLOTURE") {
+              setVisaSalarieSubmitted(true);
+            } else {
+              setVisaSalarieSubmitted(false);
+            }
           }
-          const hasVisaAction = (data.historique || []).some((h: any) => h.action === "VISA_SALARIE_SOUMIS" || h.action === "VISA_SALARIE");
-          if (hasVisaAction || data.statut === "VALIDATION_DRH" || data.statut === "VALIDE" || data.statut === "CLOTURE") {
-            setVisaSalarieSubmitted(true);
-          } else {
-            setVisaSalarieSubmitted(false);
+        }).catch((err) => {
+          console.error("[FicheEvaluationModal] Erreur chargement fiche:", err);
+        });
+      } else {
+        // Fallback intelligent si l'identifiant n'a pas été transmis directement par le composant parent
+        evaluationsApi.getAllForRh().then((allFiches) => {
+          if (allFiches && allFiches.length > 0) {
+            const targetNom = (dossier?.nom || "").toLowerCase().trim();
+            const targetPrenom = (dossier?.prenom || "").toLowerCase().trim();
+            const targetSalId = (dossier as any)?.salarieId || (dossier as any)?.userId;
+            const match = allFiches.find((f) => {
+              if (targetSalId && ((f as any).salarieId === targetSalId || f.salarie?.id === targetSalId)) return true;
+              const fNom = (f.salarie?.nom || "").toLowerCase().trim();
+              const fPrenom = (f.salarie?.prenom || "").toLowerCase().trim();
+              if (targetNom && fNom && (fNom.includes(targetNom) || targetNom.includes(fNom))) return true;
+              if (targetPrenom && fPrenom && (fPrenom.includes(targetPrenom) || targetPrenom.includes(fPrenom))) return true;
+              return false;
+            });
+            if (match) {
+              setFetchedEval(match);
+              if (match.formations && Array.isArray(match.formations)) {
+                setFormations(match.formations);
+              }
+            }
           }
-        }
-      }).catch((err) => {
-        console.error("[FicheEvaluationModal] Erreur chargement fiche:", err);
-      });
+        }).catch((err) => {
+          console.error("[FicheEvaluationModal] Erreur fallback fiches RH:", err);
+        });
+      }
     } else if (!isOpen) {
       setFetchedEval(null);
       setSaveSuccessMsg(null);
     }
-  }, [isOpen, resolvedFicheId]);
+  }, [isOpen, resolvedFicheId, dossier?.nom, dossier?.prenom]);
 
-  // Synchronisation des formations depuis dossier si déjà fournies
+  // Synchronisation des formations depuis dossier si fournies ou mises à jour
   useEffect(() => {
     if ((dossier as any)?.formations && Array.isArray((dossier as any).formations)) {
       setFormations((dossier as any).formations);

@@ -105,15 +105,21 @@ export function DashboardN2() {
             setSelectedFicheModal(null);
             loadData();
           }}
+          evaluationId={selectedFicheModal.id}
           dossier={{
+            id: selectedFicheModal.id,
+            ficheId: selectedFicheModal.id,
+            salarieId: selectedFicheModal.salarie?.id,
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",
             direction: (selectedFicheModal.salarie as any)?.departement || "Direction Technique",
+            formations: selectedFicheModal.formations || [],
           }}
           objectifs={selectedFicheModal.objectifs}
           role="N2"
           readOnly={false}
+          onSaved={loadData}
         />
       )}
 

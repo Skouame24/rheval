@@ -70,15 +70,25 @@ export default function RhEvaluationsPage() {
         
         <FicheEvaluationModal 
           isOpen={selectedModal !== null} 
-          onClose={() => setSelectedModal(null)} 
+          onClose={() => {
+            setSelectedModal(null);
+            fetchEvaluations();
+          }} 
+          role="RH"
+          readOnly={false}
+          evaluationId={selectedModal?.id}
           dossier={selectedModal ? {
+            id: selectedModal.id,
+            ficheId: selectedModal.id,
+            salarieId: selectedModal.salarie?.id,
             nom: selectedModal.salarie?.nom || "",
             prenom: selectedModal.salarie?.prenom || "",
             poste: selectedModal.salarie?.poste || "",
-            direction: (selectedModal.salarie as any)?.departement || "Direction",
+            direction: (selectedModal.salarie as any)?.departement || "Direction Technique",
+            formations: selectedModal.formations || [],
           } : null}
           objectifs={selectedModal?.objectifs || []}
-          readOnly={true}
+          onSaved={fetchEvaluations}
         />
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
