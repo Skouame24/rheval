@@ -72,6 +72,8 @@ export function DashboardN1() {
       <FicheEvaluationModal
         isOpen={selectedCollab !== null}
         onClose={() => setSelectedCollab(null)}
+        role="N1"
+        readOnly={false}
         dossier={activeCollab ? {
           id: activeCollab.id,
           salarieId: activeCollab.id,
@@ -79,6 +81,7 @@ export function DashboardN1() {
           prenom: activeCollab.prenom,
           poste: activeCollab.poste,
           direction: "Direction Technique",
+          formations: (activeCollab as any).formations || [],
         } : undefined}
       />
 
