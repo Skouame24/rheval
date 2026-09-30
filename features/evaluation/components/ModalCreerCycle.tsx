@@ -1,6 +1,11 @@
-\"use client\";
-import { useState } from \"react\";
-import { rhApi } from \"@/lib/api/rh.api\";
+// ============================================================
+// features/evaluation/components/ModalCreerCycle.tsx
+// Modal de Création & Lancement d'un Nouveau Cycle par la RH
+// ============================================================
+
+"use client";
+import { useState } from "react";
+import { rhApi } from "@/lib/api/rh.api";
 
 interface ModalCreerCycleProps {
   isOpen: boolean;
@@ -33,7 +38,10 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
       onSuccess(result);
       onClose();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Erreur lors de la création du cycle.";
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Erreur lors de la création du cycle.";
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -61,7 +69,7 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        fontFamily: "'Plus Jakarta Sans', 'IBM Plex Sans', sans-serif"
+        fontFamily: "'Plus Jakarta Sans', 'IBM Plex Sans', sans-serif",
       }}>
         {/* Top Accent */}
         <div style={{ height: 6, background: "#F0822A" }} />
@@ -81,15 +89,18 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
               </p>
             </div>
           </div>
-
-          <button onClick={onClose} style={{ border: "1px solid #E2E8F0", background: "#F1F5F9", width: 34, height: 34, borderRadius: 0, cursor: "pointer", fontWeight: 900 }}>✕</button>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            style={{ border: "1px solid #E2E8F0", background: "#F1F5F9", width: 34, height: 34, borderRadius: 0, cursor: "pointer", fontWeight: 900 }}
+          >✕</button>
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18, background: "#F7F8FA" }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 900, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-              Année d'Exercice
+              Année d&apos;Exercice
             </label>
             <input
               type="number"
@@ -126,7 +137,6 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
                 style={{ width: "100%", height: 42, padding: "0 12px", borderRadius: 0, border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 700, outline: "none", background: "#FFFFFF" }}
               />
             </div>
-
             <div>
               <label style={{ fontSize: 11, fontWeight: 900, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
                 Date de Clôture Prévisionnelle
@@ -153,14 +163,24 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
 
           {/* Footer */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
-            <button type="button" onClick={onClose} disabled={isSubmitting} style={{ padding: "10px 18px", borderRadius: 0, border: "1px solid #CBD5E1", background: "#FFFFFF", fontWeight: 800, cursor: "pointer", opacity: isSubmitting ? 0.5 : 1 }}>Annuler</button>
-            <button type="submit" disabled={isSubmitting} style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: isSubmitting ? "#ccc" : "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: isSubmitting ? "not-allowed" : "pointer" }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              style={{ padding: "10px 18px", borderRadius: 0, border: "1px solid #CBD5E1", background: "#FFFFFF", fontWeight: 800, cursor: "pointer", opacity: isSubmitting ? 0.5 : 1 }}
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: isSubmitting ? "#ccc" : "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: isSubmitting ? "not-allowed" : "pointer" }}
+            >
               {isSubmitting ? "⏳ Création en cours..." : "🚀 Lancer la Campagne"}
             </button>
           </div>
         </form>
       </div>
-
     </div>
   );
 }
