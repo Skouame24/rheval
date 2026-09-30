@@ -1,10 +1,6 @@
-// ============================================================
-// features/evaluation/components/ModalCreerCycle.tsx
-// Modal de Création & Lancement d'un Nouveau Cycle par la RH (Soft UI 100% Inline CSS)
-// ============================================================
-
-"use client";
-import { useState } from "react";
+\"use client\";
+import { useState } from \"react\";
+import { rhApi } from \"@/lib/api/rh.api\";
 
 interface ModalCreerCycleProps {
   isOpen: boolean;
@@ -13,24 +9,35 @@ interface ModalCreerCycleProps {
 }
 
 export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleProps) {
-  const [annee, setAnnee] = useState("2027");
-  const [libelle, setLibelle] = useState("Campagne d'Évaluation Annuelle 2027");
-  const [dateDebut, setDateDebut] = useState("2027-06-01");
-  const [dateFin, setDateFin] = useState("2027-12-31");
+  const currentYear = new Date().getFullYear();
+  const [annee, setAnnee] = useState(String(currentYear));
+  const [libelle, setLibelle] = useState(`Campagne d'Évaluation Annuelle ${currentYear}`);
+  const [dateDebut, setDateDebut] = useState(`${currentYear}-01-01`);
+  const [dateFin, setDateFin] = useState(`${currentYear}-12-31`);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess({
-      annee,
-      libelle,
-      dateDebut,
-      dateFin,
-      statut: "FIXATION_OBJECTIFS"
-    });
-    alert(`Le cycle "${libelle}" a été ouvert avec succès ! Les managers N+1 ont reçu la notification pour fixer les objectifs.`);
-    onClose();
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const result = await rhApi.creerCycle({
+        annee: Number(annee),
+        libelle,
+        dateDebut,
+        dateFin,
+      });
+      onSuccess(result);
+      onClose();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Erreur lors de la création du cycle.";
+      setErrorMsg(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -135,14 +142,20 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
           </div>
 
           <div style={{ background: "#FFF7ED", padding: 14, borderRadius: 0, border: "1px solid #FFEDD5", fontSize: 12, color: "#EA580C", fontWeight: 700 }}>
-            💡 <strong>Rappel du Processus Agilly :</strong> Le lancement envoie une alerte automatique à tous les managers N+1 pour la fixation des objectifs de leurs collaborateurs.
+            💡 <strong>Rappel du Processus :</strong> Le lancement crée le cycle en base et notifie les managers N+1 pour fixer les objectifs.
           </div>
+
+          {errorMsg && (
+            <div style={{ background: "#FEF2F2", padding: 12, border: "1px solid #FECACA", color: "#DC2626", fontSize: 12, fontWeight: 700, borderRadius: 0 }}>
+              ❌ {errorMsg}
+            </div>
+          )}
 
           {/* Footer */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
-            <button type="button" onClick={onClose} style={{ padding: "10px 18px", borderRadius: 0, border: "1px solid #CBD5E1", background: "#FFFFFF", fontWeight: 800, cursor: "pointer" }}>Annuler</button>
-            <button type="submit" style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: "pointer" }}>
-              🚀 Lancer la Campagne
+            <button type="button" onClick={onClose} disabled={isSubmitting} style={{ padding: "10px 18px", borderRadius: 0, border: "1px solid #CBD5E1", background: "#FFFFFF", fontWeight: 800, cursor: "pointer", opacity: isSubmitting ? 0.5 : 1 }}>Annuler</button>
+            <button type="submit" disabled={isSubmitting} style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: isSubmitting ? "#ccc" : "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: isSubmitting ? "not-allowed" : "pointer" }}>
+              {isSubmitting ? "⏳ Création en cours..." : "🚀 Lancer la Campagne"}
             </button>
           </div>
         </form>
