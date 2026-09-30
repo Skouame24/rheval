@@ -646,6 +646,13 @@ export function FicheEvaluationModal({
   const collabInitials = effectiveDossier ? `${(effectiveDossier.prenom || "A").charAt(0)}${(effectiveDossier.nom || "G").charAt(0)}` : "AG";
   const collabPoste = effectiveDossier ? `${effectiveDossier.poste}${effectiveDossier.direction ? ` · ${effectiveDossier.direction}` : ""}` : (auth.user ? `${auth.user.poste || "Collaborateur"} · ${auth.user.departement || "Direction Technique"}` : "Collaborateur Agilly");
 
+  const isCollabManager = Boolean(
+    (effectiveDossier as any)?.role === "N1" ||
+    fetchedEval?.salarie?.role === "N1" ||
+    effectiveDossier?.poste?.toLowerCase().includes("responsable") ||
+    effectiveDossier?.poste?.toLowerCase().includes("manager")
+  );
+
   return (
     <div style={{
       position: "fixed",
@@ -760,7 +767,7 @@ export function FicheEvaluationModal({
           </div>
         )}
 
-        {/* ── NAVIGATION DES 4 RÔLES / ONGLETS DU CYCLE ── */}
+        {/* ── NAVIGATION DES RÔLES / ONGLETS DU CYCLE ── */}
         <div style={{
           padding: "8px 24px",
           background: "#F8FAFC",
@@ -791,23 +798,26 @@ export function FicheEvaluationModal({
               ✍️ Auto-Évaluation ({noteGlobaleSalarie.toFixed(2)}/20)
             </button>
 
-            <button
-              onClick={() => setActiveTab("N1")}
-              style={{
-                padding: "6px 14px",
-                fontSize: 12,
-                fontWeight: 700,
-                border: activeTab === "N1" ? "2px solid #F0822A" : "1px solid #CBD5E1",
-                background: activeTab === "N1" ? "#FFF7ED" : "#FFFFFF",
-                color: activeTab === "N1" ? "#F0822A" : "#475569",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6
-              }}
-            >
-              📋 Évaluation N+1 & Formations ({noteGlobaleN1.toFixed(2)}/20)
-            </button>
+            {/* Pour un manager N+1, il n'y a pas d'évaluateur N+1 intermédiaire : c'est directement le N+2 qui l'évalue */}
+            {!isCollabManager && (
+              <button
+                onClick={() => setActiveTab("N1")}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  border: activeTab === "N1" ? "2px solid #F0822A" : "1px solid #CBD5E1",
+                  background: activeTab === "N1" ? "#FFF7ED" : "#FFFFFF",
+                  color: activeTab === "N1" ? "#F0822A" : "#475569",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6
+                }}
+              >
+                📋 Évaluation N+1 & Formations ({noteGlobaleN1.toFixed(2)}/20)
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab("N2")}
@@ -885,7 +895,7 @@ export function FicheEvaluationModal({
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <TagChip icon="📍" label="Direction" value={effectiveDossier?.direction || "Technique"} />
-                <TagChip icon="👨‍💼" label="Manager N+1" value={(effectiveDossier as any)?.n1 || "Marc AUBERT"} />
+                <TagChip icon="👨‍💼" label="Supérieur Direct" value={(effectiveDossier as any)?.n1 || (isCollabManager ? "Claire DELMAS (DRH)" : "Marc AUBERT")} />
                 <TagChip icon="📅" label="Statut Fiche" value={currentStatut || "EN_COURS"} />
               </div>
             </div>
@@ -896,16 +906,22 @@ export function FicheEvaluationModal({
                 <span style={{ fontSize: 10, fontWeight: 800, color: "#0284C7", textTransform: "uppercase", display: "block" }}>1. Auto-Note Salarié</span>
                 <span style={{ fontSize: 15, fontWeight: 900, color: "#0369A1" }}>{noteGlobaleSalarie.toFixed(2)} / 20</span>
               </div>
+              {!isCollabManager && (
+                <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>2. Note Manager N+1</span>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: "#F0822A" }}>{noteGlobaleN1.toFixed(2)} / 20</span>
+                </div>
+              )}
               <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>2. Note Manager N+1</span>
-                <span style={{ fontSize: 15, fontWeight: 900, color: "#F0822A" }}>{noteGlobaleN1.toFixed(2)} / 20</span>
-              </div>
-              <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>3. Contre-Note N+2</span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>
+                  {isCollabManager ? "2. Note Direction N+2" : "3. Note Direction N+2"}
+                </span>
                 <span style={{ fontSize: 15, fontWeight: 900, color: "#9333EA" }}>{noteGlobaleN2.toFixed(2)} / 20</span>
               </div>
               <div style={{ textAlign: "center" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>4. Formations à Prévoir</span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>
+                  {isCollabManager ? "3. Formations à Prévoir" : "4. Formations à Prévoir"}
+                </span>
                 <span style={{ fontSize: 15, fontWeight: 900, color: "#059669" }}>{formations.length} module(s)</span>
               </div>
             </div>

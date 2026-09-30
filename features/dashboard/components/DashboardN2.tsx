@@ -113,6 +113,7 @@ export function DashboardN2() {
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",
+            role: selectedFicheModal.salarie?.role || "SALARIE",
             direction: (selectedFicheModal.salarie as any)?.departement || "Direction Technique",
             formations: selectedFicheModal.formations || [],
           }}
