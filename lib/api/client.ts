@@ -65,11 +65,34 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorPayload: ApiError;
     try {
-      errorPayload = await response.json();
-    } catch {
+      const body = await response.json();
+      // NestJS retourne { statusCode, message, error } pour les exceptions HTTP
+      const message =
+        (typeof body?.message === "string" ? body.message : null) ||
+        (Array.isArray(body?.message) ? body.message.join(", ") : null) ||
+        body?.error ||
+        `Erreur ${response.status}`;
       errorPayload = {
-        message: "Une erreur inattendue s'est produite",
-        code: "UNKNOWN_ERROR",
+        message,
+        code: body?.error || "API_ERROR",
+        statusCode: body?.statusCode || response.status,
+        details: body?.details,
+      };
+    } catch {
+      const statusMessages: Record<number, string> = {
+        400: "Données invalides.",
+        401: "Non autorisé — reconnectez-vous.",
+        403: "Accès refusé.",
+        404: "Ressource introuvable.",
+        409: "Conflit — cet élément existe déjà.",
+        422: "Données non traitables.",
+        500: "Erreur serveur interne — veuillez réessayer.",
+        502: "Serveur inaccessible.",
+        503: "Service temporairement indisponible.",
+      };
+      errorPayload = {
+        message: statusMessages[response.status] || `Erreur ${response.status}`,
+        code: "NETWORK_ERROR",
         statusCode: response.status,
       };
     }
