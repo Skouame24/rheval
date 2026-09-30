@@ -311,11 +311,26 @@ export function FicheEvaluationModal({
 
   if (!isOpen) return null;
 
-  // Droits de modification précis par rôle
-  const canEditSalarie = activeTab === "SALARIE" && (effectiveRole === "SALARIE" || isAutoEvaluationMode || (!readOnly && effectiveRole !== "N1" && effectiveRole !== "N2" && effectiveRole !== "RH" && effectiveRole !== "DRH"));
-  const canEditN1 = activeTab === "N1" && (effectiveRole === "N1" || effectiveRole === "ADMIN");
-  const canEditN2 = (activeTab === "N2" || effectiveRole === "N2") && (effectiveRole === "N2" || effectiveRole === "ADMIN");
-  const canEditRH = (activeTab === "RH" || effectiveRole === "RH" || effectiveRole === "DRH") && (effectiveRole === "RH" || effectiveRole === "DRH" || effectiveRole === "ADMIN");
+  // Détection dynamique du statut et de l'étape du workflow officiel AGILLY
+  const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
+  const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE";
+
+  // Droits de modification stricts selon l'étape du cycle (impossibilité de modifier après transmission ou clôture)
+  // 1. Salarié : ne peut s'auto-évaluer QUE si la campagne est en phase AUTO_EVALUATION (ou FIXATION_OBJECTIFS) et NON clôturée
+  const isAutoEvalOpen = !isFicheCloturee && (currentStatut === "AUTO_EVALUATION" || currentStatut === "FIXATION_OBJECTIFS" || currentStatut === "BROUILLON" || currentStatut === "CREE" || (!currentStatut && isAutoEvaluationMode));
+  const canEditSalarie = !readOnly && !isFicheCloturee && activeTab === "SALARIE" && isAutoEvalOpen && (effectiveRole === "SALARIE" || isAutoEvaluationMode || (!effectiveRole.includes("N1") && !effectiveRole.includes("N2") && !effectiveRole.includes("RH") && !effectiveRole.includes("DRH")));
+
+  // 2. N+1 : ne peut évaluer QUE si le statut est EVALUATION_N1 (ou EN_ATTENTE_N1) et NON clôturé
+  const isN1EvalOpen = !isFicheCloturee && (currentStatut === "EVALUATION_N1" || currentStatut === "EN_ATTENTE_N1");
+  const canEditN1 = !readOnly && !isFicheCloturee && activeTab === "N1" && isN1EvalOpen && (effectiveRole === "N1" || effectiveRole === "ADMIN");
+
+  // 3. N+2 : ne peut évaluer QUE si le statut est EVALUATION_N2 (ou EN_ATTENTE_N2 / VALIDATION_N2 / VISA_SALARIE) et NON clôturé
+  const isN2EvalOpen = !isFicheCloturee && (currentStatut === "EVALUATION_N2" || currentStatut === "VALIDATION_N2" || currentStatut === "EN_ATTENTE_N2" || currentStatut === "VISA_SALARIE");
+  const canEditN2 = !readOnly && !isFicheCloturee && (activeTab === "N2" || effectiveRole === "N2") && isN2EvalOpen && (effectiveRole === "N2" || effectiveRole === "ADMIN");
+
+  // 4. RH : ne peut valider ou arbitrer QUE si le statut est VALIDATION_DRH ou ARBITRAGE (ou EN_ATTENTE_RH) et NON clôturé
+  const isRHEvalOpen = !isFicheCloturee && (currentStatut === "VALIDATION_DRH" || currentStatut === "ARBITRAGE" || currentStatut === "EN_ATTENTE_RH");
+  const canEditRH = !readOnly && !isFicheCloturee && (activeTab === "RH" || effectiveRole === "RH" || effectiveRole === "DRH") && isRHEvalOpen && (effectiveRole === "RH" || effectiveRole === "DRH" || effectiveRole === "ADMIN");
 
   // Calculs pondérés des moyennes
   const totalPond = objectifs.reduce((acc, o) => acc + (Number(o.ponderation) || 0), 0);
@@ -342,10 +357,6 @@ export function FicheEvaluationModal({
       : noteGlobaleN1;
 
   const tauxGlobal = ((noteAffichee / 20) * 100).toFixed(1);
-
-  // Détection dynamique du statut et de l'étape du workflow officiel AGILLY
-  const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
-  const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE";
 
   let dynamicStep: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 = 4;
   if (isFicheCloturee) {
@@ -1517,8 +1528,12 @@ export function FicheEvaluationModal({
               Fermer
             </button>
 
-            {/* BOUTON SELON LE RÔLE ACTUEL */}
-            {canEditSalarie ? (
+            {/* BOUTON SELON LE STATUT DU CYCLE ET LE RÔLE */}
+            {isFicheCloturee ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#ECFDF5", border: "1px solid #10B981", color: "#065F46", fontWeight: 800, fontSize: 12 }}>
+                <span>✓</span> Fiche Validée & Clôturée (Lecture seule)
+              </div>
+            ) : canEditSalarie ? (
               <button
                 onClick={handleSaveEvaluation}
                 disabled={isSaving}
@@ -1526,6 +1541,10 @@ export function FicheEvaluationModal({
               >
                 {isSaving ? "Enregistrement..." : "💾 Enregistrer mon Auto-Évaluation"}
               </button>
+            ) : activeTab === "SALARIE" && !isAutoEvalOpen ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0284C7", fontWeight: 800, fontSize: 12 }}>
+                <span>✓</span> Auto-Évaluation Déjà Transmise
+              </div>
             ) : canEditN1 ? (
               <button
                 onClick={handleSaveEvaluation}
@@ -1534,28 +1553,30 @@ export function FicheEvaluationModal({
               >
                 {isSaving ? "Enregistrement..." : "💾 Enregistrer l'Évaluation N+1"}
               </button>
+            ) : activeTab === "N1" && !isN1EvalOpen ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#FFF7ED", border: "1px solid #FFEDD5", color: "#C2410C", fontWeight: 800, fontSize: 12 }}>
+                <span>✓</span> Évaluation N+1 Déjà Validée
+              </div>
             ) : canEditN2 ? (
               <button
                 onClick={() => handleSaveN2()}
                 disabled={isSaving}
                 style={{ padding: "8px 16px", background: "#9333EA", color: "#FFFFFF", border: "none", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
               >
-                {isSaving ? "Enregistrement..." : "✅ Valider Contre-Évaluation N+2"}
+                {isSaving ? "Enregistrement..." : "✅ Valider Évaluation N+2"}
               </button>
+            ) : activeTab === "N2" && !isN2EvalOpen ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#FAF5FF", border: "1px solid #E9D5FF", color: "#7E22CE", fontWeight: 800, fontSize: 12 }}>
+                <span>✓</span> Évaluation N+2 Déjà Validée
+              </div>
             ) : canEditRH ? (
-              isFicheCloturee ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#ECFDF5", border: "1px solid #10B981", color: "#065F46", fontWeight: 800, fontSize: 12 }}>
-                  <span>✓</span> Dossier Déjà Validé & Clôturé (RH)
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleValiderRH(decisionRH)}
-                  disabled={isSaving}
-                  style={{ padding: "8px 16px", background: "#059669", color: "#FFFFFF", border: "none", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
-                >
-                  {isSaving ? "Enregistrement..." : "✅ Valider & Clôturer la Fiche (RH)"}
-                </button>
-              )
+              <button
+                onClick={() => handleValiderRH(decisionRH)}
+                disabled={isSaving}
+                style={{ padding: "8px 16px", background: "#059669", color: "#FFFFFF", border: "none", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
+              >
+                {isSaving ? "Enregistrement..." : "✅ Valider & Clôturer la Fiche (RH)"}
+              </button>
             ) : null}
 
             {/* EXPORT EXCEL — disponible pour tous les acteurs */}
