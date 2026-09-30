@@ -17,7 +17,8 @@ import { useCurrentEvaluation } from "@/lib/hooks/useEvaluation";
 import { useAuth } from "@/contexts/AuthContext";
 
 function CycleTimeline({ statut }: { statut: StatutEvaluation }) {
-  const currentStep = STATUT_METADATA[statut]?.step ?? 4;
+  const isFinal = statut === "VALIDE" || statut === "CLOTURE";
+  const currentStep = STATUT_METADATA[statut]?.step ?? (isFinal ? 6 : 4);
   const steps = STATUT_FLOW;
 
   return (
@@ -27,9 +28,11 @@ function CycleTimeline({ statut }: { statut: StatutEvaluation }) {
 
       {/* Ligne de progression fine */}
       <div
-        className="absolute top-4 left-8 h-[3px] bg-[#F0822A] transition-all duration-700 rounded-full"
+        className={`absolute top-4 left-8 h-[3px] transition-all duration-700 rounded-full ${
+          isFinal ? "bg-emerald-500" : "bg-[#F0822A]"
+        }`}
         style={{
-          width: `${Math.max(0, ((currentStep - 1) / (steps.length - 1))) * 100}%`,
+          width: isFinal ? "calc(100% - 64px)" : `${Math.max(0, ((currentStep - 1) / (steps.length - 1))) * 100}%`,
           maxWidth: "calc(100% - 64px)",
         }}
       />
@@ -37,8 +40,8 @@ function CycleTimeline({ statut }: { statut: StatutEvaluation }) {
       <div className="relative flex justify-between">
         {steps.map((s) => {
           const meta = STATUT_METADATA[s];
-          const done = meta.step < currentStep;
-          const active = meta.step === currentStep;
+          const done = isFinal || meta.step < currentStep;
+          const active = !isFinal && meta.step === currentStep;
 
           return (
             <div key={s} className="flex flex-col items-center gap-2.5 w-24">
@@ -71,7 +74,9 @@ function CycleTimeline({ statut }: { statut: StatutEvaluation }) {
               </div>
               <span
                 className={`text-[11px] text-center font-bold tracking-tight uppercase ${
-                  active
+                  isFinal
+                    ? "text-emerald-700 font-extrabold"
+                    : active
                     ? "text-[#F0822A]"
                     : done
                     ? "text-slate-800"
@@ -258,14 +263,28 @@ export function DashboardSalarie() {
 
         <button
           onClick={() => openFicheModal({ autoEval: true })}
-          className="p-4 bg-white border border-sky-200 hover:border-sky-400 text-sky-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
+          className={`p-4 bg-white border ${
+            statut === "VALIDE" || statut === "CLOTURE"
+              ? "border-emerald-200 hover:border-emerald-400 text-emerald-900"
+              : "border-sky-200 hover:border-sky-400 text-sky-900"
+          } rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left`}
         >
-          <div className="w-10 h-10 bg-sky-50 text-sky-600 font-extrabold text-lg flex items-center justify-center border border-sky-200 shrink-0">
-            ✍️
+          <div className={`w-10 h-10 ${
+            statut === "VALIDE" || statut === "CLOTURE" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-sky-50 text-sky-600 border-sky-200"
+          } font-extrabold text-lg flex items-center justify-center border shrink-0`}>
+            {statut === "VALIDE" || statut === "CLOTURE" ? "✓" : "✍️"}
           </div>
           <div>
-            <span className="text-[10px] font-black text-sky-600 uppercase tracking-wider block">Étape 03</span>
-            <span className="text-sm font-extrabold block">Faire mon Auto-évaluation</span>
+            <span className={`text-[10px] font-black ${
+              statut === "VALIDE" || statut === "CLOTURE" ? "text-emerald-600" : "text-sky-600"
+            } uppercase tracking-wider block`}>
+              {statut === "VALIDE" || statut === "CLOTURE" ? "Dossier Validé" : "Étape 03"}
+            </span>
+            <span className="text-sm font-extrabold block">
+              {statut === "VALIDE" || statut === "CLOTURE"
+                ? "Consulter ma Fiche Validée & Notes"
+                : "Faire mon Auto-évaluation"}
+            </span>
           </div>
         </button>
       </div>
@@ -328,16 +347,34 @@ export function DashboardSalarie() {
 
         {/* CTA Consulter Fiche Officielle */}
         <div className="border-t border-slate-200 pt-6 mt-6 flex justify-between items-center flex-wrap gap-4">
-          <div className="flex items-center gap-3 bg-emerald-50 text-emerald-800 px-4 py-2 rounded-none border border-emerald-200">
-            <span className="w-2 h-2 rounded-none bg-emerald-500 shrink-0 animate-pulse" />
+          <div className={`flex items-center gap-3 px-4 py-2.5 rounded-none border ${
+            statut === "VALIDE" || statut === "CLOTURE"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : statut === "ARBITRAGE"
+              ? "bg-amber-50 text-amber-800 border-amber-200"
+              : statut === "VALIDATION_DRH"
+              ? "bg-blue-50 text-blue-800 border-blue-200"
+              : "bg-slate-50 text-slate-800 border-slate-200"
+          }`}>
+            <span className={`w-2 h-2 rounded-none shrink-0 ${
+              statut === "VALIDE" || statut === "CLOTURE"
+                ? "bg-emerald-500"
+                : "bg-[#F0822A] animate-pulse"
+            }`} />
             <span className="text-xs font-bold">
-              Votre dossier est en cours de traitement. Evalué par{" "}
-              {evaluateurN1
-                ? `${evaluateurN1.prenom} ${evaluateurN1.nom}`.trim()
-                : "votre Responsable N+1"}
-              {evaluateurN2
-                ? ` et ${evaluateurN2.prenom} ${evaluateurN2.nom}`.trim()
-                : ""}.
+              {statut === "VALIDE" || statut === "CLOTURE"
+                ? "✓ Votre évaluation est validée et clôturée définitivement par la Direction RH."
+                : statut === "ARBITRAGE"
+                ? "⚖️ Dossier en cours d'arbitrage RH suite à un écart de notation."
+                : statut === "VALIDATION_DRH"
+                ? "⏳ Évaluation transmise à la Direction RH pour validation finale."
+                : statut === "EVALUATION_N2" || statut === "EN_ATTENTE_N2" || statut === "VALIDATION_N2"
+                ? "🔍 Évaluation en cours d'examen par votre Supérieur N+2."
+                : statut === "EVALUATION_N1" || statut === "EN_ATTENTE_N1"
+                ? "⏳ Évaluation en cours d'attribution des notes par votre Responsable N+1."
+                : statut === "AUTO_EVALUATION"
+                ? "✍️ Auto-évaluation en cours — saisissez vos notes sur vos objectifs."
+                : "🎯 Fixation des objectifs en cours par votre responsable."}
             </span>
           </div>
 
@@ -346,7 +383,7 @@ export function DashboardSalarie() {
             onClick={() => openFicheModal()}
             leftIcon={<EyeIcon size={16} />}
           >
-            Consulter ma Fiche Officielle Excel
+            Consulter ma Fiche d'Évaluation
           </Button>
         </div>
       </Card>

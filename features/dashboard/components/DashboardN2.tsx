@@ -42,9 +42,9 @@ export function DashboardN2() {
     loadData();
   }, []);
 
-  // Dossiers nécessitant une action ou revue N+2 (y compris quand le N1 a noté et que c'est en visa ou validation N2)
+  // Dossiers nécessitant une action ou revue N+2 (y compris quand le N1 a noté et transmis au N2)
   const evaluationsAValider = fiches.filter(
-    (f) => ["EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
+    (f) => ["EVALUATION_N2", "EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
   );
 
   const arbitrages = fiches.filter((f) => f.statut === "ARBITRAGE");
@@ -63,9 +63,9 @@ export function DashboardN2() {
 
   const stats = [
     {
-      label: "Dossiers à contre-évaluer",
+      label: "Dossiers à évaluer (N+2)",
       value: String(evaluationsAValider.length),
-      subValue: evaluationsAValider.length > 0 ? "Action ou revue N+2 requise" : "À jour",
+      subValue: evaluationsAValider.length > 0 ? "Évaluation N+2 requise" : "À jour",
       icon: <PencilIcon size={18} className="text-purple-600" />,
       color: "text-purple-600",
       bg: "bg-purple-50",
@@ -130,7 +130,7 @@ export function DashboardN2() {
             Tableau de Bord Supervision (N+2)
           </h1>
           <p className="text-xs text-slate-500 m-0 mt-1 font-medium">
-            Supervision de la chaîne managériale, contre-évaluation hiérarchique et suivi des formations
+            Supervision de la chaîne managériale, évaluation N+2 et suivi des formations
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -208,10 +208,10 @@ export function DashboardN2() {
           <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center">
             <div>
               <h2 className="text-sm font-bold text-slate-900 m-0">
-                Évaluations en attente de visa ou contre-évaluation N+2
+                Évaluations en attente d'évaluation N+2
               </h2>
               <p className="text-xs text-slate-500 m-0 mt-0.5">
-                Dossiers notés par le Manager N+1 nécessitant votre validation ou contre-expertise
+                Dossiers notés par le Manager N+1 nécessitant votre évaluation N+2
               </p>
             </div>
             <span className="text-xs font-bold px-2 py-0.5 bg-purple-100 text-purple-800">

@@ -75,8 +75,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
   },
   // Alias legacy — mappés sur EVALUATION_N2
   EN_ATTENTE_N2: {
-    label: "🔍 Contre-évaluation N+2",
-    description: "Re-notation par la direction hiérarchique N+2",
+    label: "🔍 Évaluation N+2",
+    description: "Évaluation et notation par la direction hiérarchique N+2",
     color: "#7C3AED",
     bg: "#F5F3FF",
     border: "#DDD6FE",
@@ -84,8 +84,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   VALIDATION_N2: {
-    label: "🔍 Contre-évaluation N+2",
-    description: "Re-notation par la direction hiérarchique N+2",
+    label: "🔍 Évaluation N+2",
+    description: "Évaluation et notation par la direction hiérarchique N+2",
     color: "#7C3AED",
     bg: "#F5F3FF",
     border: "#DDD6FE",
@@ -93,8 +93,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   EVALUATION_N2: {
-    label: "🔍 Contre-évaluation N+2",
-    description: "Re-notation et validation par la direction hiérarchique N+2",
+    label: "🔍 Évaluation N+2",
+    description: "Évaluation et notation par la direction hiérarchique N+2",
     color: "#7C3AED",
     bg: "#F5F3FF",
     border: "#DDD6FE",
