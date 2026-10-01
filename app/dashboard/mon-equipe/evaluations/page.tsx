@@ -191,6 +191,7 @@ export default function EvaluationsN1Page() {
               setSelectedCollabForObjectifs(null);
               loadEvaluations();
             }}
+            onSaved={loadEvaluations}
             salariedId={selectedCollabForObjectifs.id}
             salariedName={selectedCollabForObjectifs.name}
             salariedPoste={selectedCollabForObjectifs.poste || ""}
@@ -261,12 +262,18 @@ export default function EvaluationsN1Page() {
               </div>
             ) : (
               evaluations.map((item, idx) => {
-                const badge = getStatutBadge(item.statut);
                 const collabName = item.salarie
                   ? `${item.salarie.prenom ? item.salarie.prenom + " " : ""}${item.salarie.nom}`.trim()
                   : "Collaborateur";
-                const isFixation = item.statut === "FIXATION_OBJECTIFS";
-                const hasGrade = item.noteGlobale !== undefined && item.noteGlobale !== null && !isFixation;
+                const hasObjectifs = (item.objectifs && item.objectifs.length > 0);
+                const resolvedStatut = (item.statut === "FIXATION_OBJECTIFS" && hasObjectifs) ? "AUTO_EVALUATION" : item.statut;
+                const badge = getStatutBadge(resolvedStatut);
+                const isDirectReport = (item.salarie as any)?.role === "N1" || (user?.id && (item.salarie as any)?.managerId === user.id);
+                const isFixation = resolvedStatut === "FIXATION_OBJECTIFS";
+                const isAutoEval = resolvedStatut === "AUTO_EVALUATION";
+                const isEvaluationN1 = ["EVALUATION_N1", "EN_ATTENTE_N1"].includes(resolvedStatut);
+                const isEvaluationN2 = ["EVALUATION_N2", "VALIDATION_N2", "TRANSMIS_N2"].includes(resolvedStatut);
+                const hasGrade = item.noteGlobale !== undefined && item.noteGlobale !== null && !isFixation && !isAutoEval;
 
                 return (
                   <div
@@ -293,9 +300,9 @@ export default function EvaluationsN1Page() {
                           {item.salarie?.poste || "Ingénieur & Collaborateur"}
                         </p>
                         <p className="text-[11px] text-slate-500 m-0 mt-1">
-                          {item.objectifs && item.objectifs.length > 0
-                            ? `🎯 ${item.objectifs.length} objectif(s) de performance associé(s)`
-                            : `ℹ️ Aucun objectif validé`}
+                          {hasObjectifs
+                            ? `🎯 ${item.objectifs!.length} objectif(s) de performance validé(s)`
+                            : `ℹ️ Aucun objectif fixé pour le moment`}
                         </p>
                       </div>
                     </div>
@@ -304,7 +311,7 @@ export default function EvaluationsN1Page() {
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="bg-[#F8FAFC] px-4 py-2.5 border border-slate-200 text-right min-w-[130px] rounded-none">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                          {isFixation ? "Statut Saisie" : "Note Provisoire"}
+                          {isFixation ? "Statut Saisie" : isAutoEval ? "Phase" : "Note Provisoire"}
                         </span>
                         {hasGrade ? (
                           <p className="text-xl font-black text-[#F0822A] m-0">
@@ -313,13 +320,13 @@ export default function EvaluationsN1Page() {
                           </p>
                         ) : (
                           <p className="text-xs font-extrabold text-slate-500 m-0 mt-1">
-                            {isFixation ? "En Fixation" : "Non noté"}
+                            {isFixation ? "En Fixation" : isAutoEval ? "Auto-évaluation" : "Non noté"}
                           </p>
                         )}
                       </div>
 
-                      {/* Action Principale : Adapter selon le statut */}
-                      {isFixation ? (
+                      {/* Action Principale : Adapter selon le statut et le rôle */}
+                      {isFixation && isDirectReport && (
                         <button
                           onClick={() =>
                             setSelectedCollabForObjectifs({
@@ -332,12 +339,37 @@ export default function EvaluationsN1Page() {
                         >
                           🎯 Définir les Objectifs
                         </button>
-                      ) : (
+                      )}
+
+                      {isFixation && !isDirectReport && (
+                        <div className="text-center px-3 py-1.5 bg-slate-100 border border-slate-200">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">En attente N+1</span>
+                          <span className="text-xs font-bold text-slate-700">Fixation par le manager</span>
+                        </div>
+                      )}
+
+                      {isAutoEval && (
+                        <div className="text-center px-3 py-1.5 bg-blue-50 border border-blue-200">
+                          <span className="text-[10px] font-bold text-blue-600 uppercase block">Phase Actuelle</span>
+                          <span className="text-xs font-bold text-blue-800">⏳ Auto-évaluation en cours</span>
+                        </div>
+                      )}
+
+                      {isEvaluationN1 && (
                         <button
                           onClick={() => setSelectedFicheModal(item)}
                           className="px-4 py-2 bg-[#F0822A] text-white font-extrabold text-xs rounded-none border border-transparent hover:bg-[#d97220] transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
                         >
-                          📝 Noter & Apprécier
+                          📝 Noter & Apprécier (N+1)
+                        </button>
+                      )}
+
+                      {isEvaluationN2 && (
+                        <button
+                          onClick={() => setSelectedFicheModal(item)}
+                          className="px-4 py-2 bg-purple-600 text-white font-extrabold text-xs rounded-none border border-transparent hover:bg-purple-700 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+                        >
+                          🏛️ Évaluer N+2
                         </button>
                       )}
 

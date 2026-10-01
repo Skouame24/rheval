@@ -54,6 +54,7 @@ export function DashboardN2() {
   // Les collaborateurs (comme Samuel KOUAME) ont leur N+1 direct (Marc AUBERT) qui leur fixe leurs objectifs !
   const dossiersAFixer = fiches.filter((f) => {
     if (f.statut !== "FIXATION_OBJECTIFS") return false;
+    if ((f.objectifs || []).length > 0) return false;
     const role = (f.salarie as any)?.role;
     const managerId = (f.salarie as any)?.managerId;
     return role === "N1" || (user?.id && managerId === user.id);
@@ -369,7 +370,11 @@ export function DashboardN2() {
                   const prenom = ev.salarie?.prenom || "";
                   const fullName = `${prenom} ${nom}`.trim();
                   const poste = ev.salarie?.poste || "Collaborateur";
-                  const isFixation = ev.statut === "FIXATION_OBJECTIFS";
+                  const hasObjectifs = (ev.objectifs && ev.objectifs.length > 0);
+                  const resolvedStatut = (ev.statut === "FIXATION_OBJECTIFS" && hasObjectifs) ? "AUTO_EVALUATION" : ev.statut;
+                  const isFixation = resolvedStatut === "FIXATION_OBJECTIFS";
+                  const isAutoEval = resolvedStatut === "AUTO_EVALUATION";
+                  const isEvaluationN2 = ["EVALUATION_N2", "VALIDATION_N2", "EN_ATTENTE_N2"].includes(resolvedStatut);
                   const isDirectReport = (ev.salarie as any)?.role === "N1" || (user?.id && (ev.salarie as any)?.managerId === user.id);
                   const autoNote = ev.noteAutoEvaluation !== undefined ? Number(ev.noteAutoEvaluation).toFixed(2) : "—";
                   const noteN1 = ev.noteGlobale !== undefined ? Number(ev.noteGlobale).toFixed(2) : "—";
@@ -397,7 +402,7 @@ export function DashboardN2() {
                         )}
                       </td>
                       <td className="p-3">
-                        <EvaluationStatusBadge statut={ev.statut} size="sm" />
+                        <EvaluationStatusBadge statut={resolvedStatut} size="sm" />
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -420,6 +425,21 @@ export function DashboardN2() {
                             <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5">
                               ⏳ En attente N+1
                             </span>
+                          )}
+
+                          {isAutoEval && (
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5">
+                              ⏳ Auto-évaluation
+                            </span>
+                          )}
+
+                          {isEvaluationN2 && (
+                            <button
+                              onClick={() => setSelectedFicheModal(ev)}
+                              className="px-2.5 py-1 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors inline-flex items-center gap-1 cursor-pointer shadow-xs"
+                            >
+                              🏛️ Évaluer N+2
+                            </button>
                           )}
 
                           <button
