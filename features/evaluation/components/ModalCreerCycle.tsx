@@ -38,11 +38,10 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
       onSuccess(result);
       onClose();
     } catch (err: any) {
-      // ApiRequestError.message contient le message NestJS (BadRequestException, etc.)
       const msg =
-        err?.message ||
         err?.response?.data?.message ||
-        "Erreur interne — veuillez réessayer.";
+        err?.message ||
+        "Erreur lors de la création du cycle.";
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -185,3 +184,4 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
     </div>
   );
 }
+
