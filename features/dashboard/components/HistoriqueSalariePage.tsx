@@ -18,24 +18,25 @@ export function HistoriqueSalariePage() {
 
   const { history, isLoading, error } = useEvaluationHistory();
 
-  // Protection et calculs mémorisés TOUJOURS exécutés au niveau racine (Rules of Hooks)
-  const safeHistory = useMemo(() => (Array.isArray(history) ? history : []), [history]);
+  if (isLoading) {
+    return <HistoriqueSkeleton count={3} />;
+  }
 
   // Années disponibles issues des données réelles
   const anneesDisponibles = useMemo(() => {
-    const years = [...new Set(safeHistory.map((h) => String(h.annee)))].sort((a, b) => Number(b) - Number(a));
+    const years = [...new Set(history.map((h) => String(h.annee)))].sort((a, b) => Number(b) - Number(a));
     return ["Toutes", ...years];
-  }, [safeHistory]);
+  }, [history]);
 
   const filteredHistory = useMemo(
-    () => safeHistory.filter((h) => filtreAnnee === "Toutes" || String(h.annee) === filtreAnnee),
-    [safeHistory, filtreAnnee]
+    () => history.filter((h) => filtreAnnee === "Toutes" || String(h.annee) === filtreAnnee),
+    [history, filtreAnnee]
   );
 
   // Stats d'évolution calculées dynamiquement
   const sortedByYear = useMemo(
-    () => [...safeHistory].sort((a, b) => Number(b.annee) - Number(a.annee)),
-    [safeHistory]
+    () => [...history].sort((a, b) => Number(b.annee) - Number(a.annee)),
+    [history]
   );
   const derniereEval = sortedByYear[0] ?? null;
   const avantDerniereEval = sortedByYear[1] ?? null;
@@ -48,8 +49,6 @@ export function HistoriqueSalariePage() {
       <FicheEvaluationModal
         isOpen={isFicheModalOpen}
         onClose={() => { setIsFicheModalOpen(false); setSelectedEvalId(null); }}
-        evaluationId={selectedEvalId ?? undefined}
-        readOnly={true}
       />
 
       <PageHeader
@@ -82,9 +81,6 @@ export function HistoriqueSalariePage() {
         {/* Liste */}
         <div className="md:col-span-2 flex flex-col gap-4">
 
-          {/* État chargement */}
-          {isLoading && <HistoriqueSkeleton count={3} />}
-
           {/* État erreur */}
           {!isLoading && error && (
             <div className="p-6 bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
@@ -94,7 +90,7 @@ export function HistoriqueSalariePage() {
 
           {/* Résultats */}
           {!isLoading && !error && filteredHistory.map((item) => (
-            <Card key={`${item.id ?? item.annee}-${item.libelle}`} padding="none" hoverable className="overflow-hidden">
+            <Card key={`${item.annee}-${item.libelle}`} padding="none" hoverable className="overflow-hidden">
               <div className="p-5 md:p-6 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -107,7 +103,7 @@ export function HistoriqueSalariePage() {
                   <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
                     {item.dateValidation && (
                       <span className="flex items-center gap-1.5">
-                        <CalendarIcon size={14} /> Clôturé le {new Date(item.dateValidation).toLocaleDateString("fr-FR")}
+                        <CalendarIcon size={14} /> Clôturé le {item.dateValidation}
                       </span>
                     )}
                   </div>
@@ -124,7 +120,7 @@ export function HistoriqueSalariePage() {
                     variant="secondary"
                     size="sm"
                     leftIcon={<EyeIcon size={14} />}
-                    onClick={() => { setSelectedEvalId(item.id || String(item.annee)); setIsFicheModalOpen(true); }}
+                    onClick={() => { setSelectedEvalId(String(item.annee)); setIsFicheModalOpen(true); }}
                   >
                     Consulter la fiche
                   </Button>
@@ -134,12 +130,8 @@ export function HistoriqueSalariePage() {
           ))}
 
           {!isLoading && !error && filteredHistory.length === 0 && (
-            <div className="p-12 text-center bg-white border border-gray-200 flex flex-col items-center justify-center">
-              <span className="text-4xl mb-3">📂</span>
-              <h4 className="text-base font-bold text-gray-800 mb-1">Aucune évaluation dans l'historique</h4>
-              <p className="text-sm text-gray-500 max-w-md">
-                Vos évaluations clôturées lors des campagnes précédentes apparaîtront automatiquement ici au fur et à mesure de votre parcours chez Agilly.
-              </p>
+            <div className="p-10 text-center bg-gray-50 border border-gray-200">
+              <p className="text-gray-500 font-medium">Aucune évaluation trouvée pour cette année.</p>
             </div>
           )}
         </div>
@@ -151,7 +143,7 @@ export function HistoriqueSalariePage() {
 
             <div className="flex flex-col gap-6 mt-4">
               {isLoading ? (
-                <div className="h-28 bg-gray-200 animate-pulse rounded" />
+                <div className="h-20 bg-gray-200 animate-pulse rounded" />
               ) : derniereEval ? (
                 <>
                   <div>
@@ -193,7 +185,7 @@ export function HistoriqueSalariePage() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-gray-500">Aucune donnée d'évaluation disponible.</p>
+                <p className="text-sm text-gray-500">Aucune donnée disponible.</p>
               )}
             </div>
           </Card>

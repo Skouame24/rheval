@@ -13,9 +13,11 @@ import { CheckCircleIcon, PencilIcon, EyeIcon, ScaleIcon, UsersIcon, ArrowPathIc
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
+import { useAuth } from "@/contexts/AuthContext";
 import type { EvaluationCycle } from "@/types";
 
 export function DashboardN2() {
+  const { user } = useAuth();
   const [fiches, setFiches] = useState<EvaluationCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
@@ -47,15 +49,22 @@ export function DashboardN2() {
     loadData();
   }, []);
 
-  // 1. Dossiers en attente de fixation d'objectifs (les N+1 rattachés au Directeur)
-  const dossiersAFixer = fiches.filter((f) => f.statut === "FIXATION_OBJECTIFS");
+  // 1. Dossiers où le Directeur N+2 doit fixer les objectifs :
+  // UNIQUEMENT ses N-1 directs (Managers / Responsables N+1 sous lui, ex: Marc AUBERT).
+  // Les collaborateurs (comme Samuel KOUAME) ont leur N+1 direct (Marc AUBERT) qui leur fixe leurs objectifs !
+  const dossiersAFixer = fiches.filter((f) => {
+    if (f.statut !== "FIXATION_OBJECTIFS") return false;
+    const role = (f.salarie as any)?.role;
+    const managerId = (f.salarie as any)?.managerId;
+    return role === "N1" || (user?.id && managerId === user.id);
+  });
 
-  // 2. Dossiers nécessitant l'évaluation finale N+2 (après notation N+1)
+  // 2. Dossiers nécessitant l'évaluation finale N+2 (après notation N+1, pour tout le département)
   const evaluationsAValider = fiches.filter((f) =>
     ["EVALUATION_N2", "EN_ATTENTE_N2", "VALIDATION_N2"].includes(f.statut)
   );
 
-  // Tous les dossiers nécessitant une action N+2
+  // Actions Prioritaires N+2 (Marc pour les objectifs + fiches arrivées au stade N+2)
   const dossiersActionN2 = [...dossiersAFixer, ...evaluationsAValider];
 
   const arbitrages = fiches.filter((f) => f.statut === "ARBITRAGE");
@@ -361,6 +370,7 @@ export function DashboardN2() {
                   const fullName = `${prenom} ${nom}`.trim();
                   const poste = ev.salarie?.poste || "Collaborateur";
                   const isFixation = ev.statut === "FIXATION_OBJECTIFS";
+                  const isDirectReport = (ev.salarie as any)?.role === "N1" || (user?.id && (ev.salarie as any)?.managerId === user.id);
                   const autoNote = ev.noteAutoEvaluation !== undefined ? Number(ev.noteAutoEvaluation).toFixed(2) : "—";
                   const noteN1 = ev.noteGlobale !== undefined ? Number(ev.noteGlobale).toFixed(2) : "—";
                   const formCount = ev.formations?.length || 0;
@@ -391,7 +401,7 @@ export function DashboardN2() {
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {isFixation && (
+                          {isFixation && isDirectReport && (
                             <button
                               onClick={() =>
                                 setSelectedCollabForObjectifs({
@@ -402,8 +412,14 @@ export function DashboardN2() {
                               }
                               className="px-2.5 py-1 text-xs font-bold text-white bg-[#F0822A] hover:bg-[#d97220] transition-colors inline-flex items-center gap-1 cursor-pointer shadow-xs"
                             >
-                              🎯 Fixer Objectifs
+                              🎯 Fixer Objectifs (N+1)
                             </button>
+                          )}
+
+                          {isFixation && !isDirectReport && (
+                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5">
+                              ⏳ En attente N+1
+                            </span>
                           )}
 
                           <button

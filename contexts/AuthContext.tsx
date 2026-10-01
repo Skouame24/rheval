@@ -8,7 +8,6 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
-import { client } from "@/lib/api/client";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -28,7 +27,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// ─── Users Démo & Test par Rôle (Synchronisés avec la Base PostgreSQL) ───
+// ─── Users Démo par Rôle (Synchronisés avec la Base de Données) ───
 
 export const DEMO_USERS_BY_ROLE: Record<Role, User> = {
   SALARIE: {
@@ -60,7 +59,7 @@ export const DEMO_USERS_BY_ROLE: Record<Role, User> = {
     email: "drh@agilly.com",
     role: "N2",
     poste: "Directrice des Ressources Humaines",
-    departement: "Direction des Ressources Humaines",
+    departement: "Direction Générale",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -160,23 +159,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const realUser: User = {
-        id: u.id || "ms-user",
+        id: u.id || "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb",
         nom: nom || "Connecté",
         prenom: prenom,
         email: u.email || "collaborateur@agilly.com",
         role: (u.role as Role) || "SALARIE",
-        poste: u.jobTitle || "",
-        departement: u.department || "Direction Générale",
+        poste: u.jobTitle || "Ingénieur Cloud & Mobilité",
+        departement: u.department || "Direction Technique",
         telephone: u.mobilePhone || "",
         n1: n1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      console.log("🔐 [AuthContext] Informations SSO reçues de NextAuth :", u);
-      if (u.manager) {
-        console.log("👔 [AuthContext] Manager N+1 détecté depuis Microsoft Graph :", u.manager);
-      }
-      console.log("👤 [AuthContext] Utilisateur initialisé (realUser) :", realUser);
+
       setUser(realUser);
       localStorage.setItem("agilly_user", JSON.stringify(realUser));
       if (u.accessToken) {
@@ -184,8 +179,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Synchronisation immédiate avec la base de données PostgreSQL
-      client
-        .post("/auth/sync-session", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+      fetch(`${apiUrl}/auth/sync-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           id_microsoft: realUser.id,
           nom: realUser.nom,
           prenom: realUser.prenom,
@@ -194,34 +192,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           departement: realUser.departement,
           telephone: realUser.telephone,
           role: realUser.role,
-          managerId: u.manager?.id || undefined,
-        })
-        .then((syncRes: any) => {
-          console.log("🔄 [AuthContext] Réponse sync-session backend :", syncRes);
-          if (syncRes?.user) {
-            const enrichedUser: User = {
-              ...realUser,
-              ...syncRes.user,
-              id: syncRes.user.id || realUser.id,
-              n1: syncRes.user.n1 || realUser.n1,
-              n2: syncRes.user.n2 || realUser.n2,
-              role: (syncRes.user.role as Role) || realUser.role,
-            };
-            setUser(enrichedUser);
-            localStorage.setItem("agilly_user", JSON.stringify(enrichedUser));
-            console.log("✨ [AuthContext] Session enrichie avec N1/N2 et rôle BD :", enrichedUser);
-          }
-        })
-        .catch((err) => console.warn("[AuthContext] Erreur synchronisation session en base:", err));
+          managerId: u.manager?.id || "manager-id-5678",
+        }),
+      }).catch((e) => console.warn("[AuthContext] sync-session non bloquant:", e));
 
       setIsLoading(false);
       return;
     }
 
-    // Si non authentifié via NextAuth, on ne met rien
-    setUser(null);
+    // Utilisateur par défaut local si hors ligne ou déconnecté
+    const stored = localStorage.getItem("agilly_user");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setUser(parsed);
+      } catch {
+        setUser(DEMO_USERS_BY_ROLE["SALARIE"]);
+      }
+    } else {
+      setUser(DEMO_USERS_BY_ROLE["SALARIE"]);
+    }
     setIsLoading(false);
-  }, [session, status]);
+  }, [status, session]);
 
   const login = async (email: string, password: string): Promise<void> => {
     await new Promise((r) => setTimeout(r, 600));
@@ -248,44 +240,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/portail";
   };
 
-
   const switchRole = (newRole: Role) => {
-    if (newRole === "SALARIE") {
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("agilly_simulated_role");
-      }
-      setIsSimulated(false);
-      const salarieUser = DEMO_USERS_BY_ROLE["SALARIE"];
-      setUser(salarieUser);
-      localStorage.setItem("agilly_user", JSON.stringify(salarieUser));
-      localStorage.setItem("agilly_token", "sso_token_salarie");
-      window.location.href = ROLE_DASHBOARD["SALARIE"] || "/dashboard/mon-espace";
-      return;
-    }
-
+    sessionStorage.setItem("agilly_simulated_role", newRole);
     const newUser = DEMO_USERS_BY_ROLE[newRole] || DEMO_USERS_BY_ROLE["SALARIE"];
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("agilly_simulated_role", newRole);
-    }
-    setIsSimulated(true);
     localStorage.setItem("agilly_user", JSON.stringify(newUser));
     localStorage.setItem("agilly_token", "simulated_token_" + newRole);
     setUser(newUser);
+    setIsSimulated(true);
     window.location.href = ROLE_DASHBOARD[newRole] || "/dashboard/mon-espace";
   };
 
   const resetToSsoUser = () => {
-    switchRole("SALARIE");
+    sessionStorage.removeItem("agilly_simulated_role");
+    setIsSimulated(false);
+    localStorage.removeItem("agilly_user");
+    window.location.href = "/portail";
   };
 
   const logout = async () => {
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("agilly_simulated_role");
-    }
+    sessionStorage.removeItem("agilly_simulated_role");
     localStorage.removeItem("agilly_user");
     localStorage.removeItem("agilly_token");
     setUser(null);
-    setIsSimulated(false);
     try {
       await nextAuthSignOut({ redirect: false });
     } catch {}
@@ -318,4 +294,3 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }
-
