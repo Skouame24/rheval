@@ -556,7 +556,7 @@ export function DashboardN2() {
                     <div>
                       <AvatarWithName nom={nom} prenom={prenom} poste={poste} role="SALARIE" size="sm" />
                       <p className="text-xs mt-2 p-2 bg-red-50 text-red-800 border border-red-200 font-medium">
-                        {arb.observation || "Désaccord exprimé lors du visa ou écart significatif de notation."}
+                        {arb.observation || "Désaccord exprimé ou écart significatif de notation."}
                       </p>
                     </div>
                     <button
