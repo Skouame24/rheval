@@ -83,13 +83,19 @@ export default function SalariesRhPage() {
         <FicheEvaluationModal 
           isOpen={selectedFicheModal !== null} 
           onClose={() => setSelectedFicheModal(null)} 
+          evaluationId={selectedFicheModal?.id}
           dossier={selectedFicheModal ? {
+            id: selectedFicheModal.id,
+            ficheId: selectedFicheModal.id,
+            salarieId: selectedFicheModal.salarie?.id,
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",
-            direction: (selectedFicheModal.salarie as any)?.departement || "Direction",
+            direction: (selectedFicheModal.salarie as any)?.departement || "Direction Technique",
+            formations: selectedFicheModal.formations || [],
           } : null}
           objectifs={selectedFicheModal?.objectifs || []}
+          role="RH"
           readOnly={true}
         />
 

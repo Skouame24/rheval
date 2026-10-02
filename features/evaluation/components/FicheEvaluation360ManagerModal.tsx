@@ -7,6 +7,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { export360ToExcel } from "@/lib/utils/exportExcel360";
+import { FileSpreadsheetIcon, CheckCircleIcon } from "@/components/ui/Icons";
 
 interface FicheEvaluation360ManagerModalProps {
   isOpen: boolean;
@@ -409,7 +410,7 @@ export function FicheEvaluation360ManagerModal({
               {/* Rubriques >= 3 */}
               <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", padding: 16 }}>
                 <h4 style={{ fontSize: 12, fontWeight: 900, color: "#166534", margin: "0 0 10px 0" }}>
-                  ✅ Rubriques ayant Note &ge; 3 / 5 ({rubriquesSuperieuresOuEgal3.length})
+                  Rubriques avec Note &ge; 3 / 5 ({rubriquesSuperieuresOuEgal3.length})
                 </h4>
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#15803D", display: "flex", flexDirection: "column", gap: 6 }}>
                   {rubriquesSuperieuresOuEgal3.map((item, i) => (
@@ -421,7 +422,7 @@ export function FicheEvaluation360ManagerModal({
               {/* Rubriques <= 3 */}
               <div style={{ background: "#FFF7ED", border: "1px solid #FFEDD5", padding: 16 }}>
                 <h4 style={{ fontSize: 12, fontWeight: 900, color: "#C2410C", margin: "0 0 10px 0" }}>
-                  ⚠️ Rubriques ayant Note &le; 3 / 5 ({rubriquesInferieuresOuEgal3.length})
+                  Rubriques avec Note &le; 3 / 5 ({rubriquesInferieuresOuEgal3.length})
                 </h4>
                 {rubriquesInferieuresOuEgal3.length === 0 ? (
                   <p style={{ fontSize: 12, color: "#9A3412", margin: 0 }}>Aucune rubrique en dessous de 3/5.</p>
@@ -489,7 +490,7 @@ export function FicheEvaluation360ManagerModal({
           {isSalarie ? (
             <div style={{ background: "#F1F5F9", padding: 14, border: "1px dashed #CBD5E1", textAlign: "center" }}>
               <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700 }}>
-                🔒 La section réservée au Comité Restreint n'est pas accessible sur l'espace salarié.
+                La section réservée au Comité Restreint n'est pas accessible sur l'espace salarié.
               </span>
             </div>
           ) : (
@@ -501,14 +502,14 @@ export function FicheEvaluation360ManagerModal({
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h3 style={{ fontSize: 13, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C2410C", margin: 0 }}>
-                  🔒 Observation Comité Restreint (PDG, Directeur Exécutif et DRH)
+                  Observation Comité Restreint (PDG, Directeur Exécutif et DRH)
                 </h3>
                 <span style={{ fontSize: 10, fontWeight: 900, color: "#FFFFFF", background: "#EA580C", padding: "4px 10px", textTransform: "uppercase" }}>
                   Section Confidentielle Comité
                 </span>
               </div>
               <p style={{ fontSize: 11, color: "#9A3412", fontWeight: 700, margin: "0 0 10px 0" }}>
-                ⚠️ Remarque : Cette section en orange ne doit pas être affichée chez le salarié évalué.
+                Remarque : Cette section confidentielle n'est pas accessible chez le salarié évalué.
               </p>
               {readOnly ? (
                 <div style={{ padding: 14, background: "#FFFFFF", border: "1px solid #FFEDD5", fontSize: 13, fontWeight: 600, color: "#431407" }}>
@@ -556,25 +557,15 @@ export function FicheEvaluation360ManagerModal({
                   isSalarie,
                 })
               }
-              style={{
-                padding: "10px 20px",
-                border: "1px solid #16A34A",
-                background: "#F0FDF4",
-                color: "#15803D",
-                fontWeight: 900,
-                fontSize: 13,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
+              className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-none transition-all cursor-pointer inline-flex items-center gap-2"
             >
-              📊 Télécharger la Fiche Excel (.xlsx)
+              <FileSpreadsheetIcon size={14} className="text-emerald-700" />
+              <span>Télécharger la Fiche Excel (.xlsx)</span>
             </button>
 
             <button
               onClick={onClose}
-              style={{ padding: "10px 20px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#475569", fontWeight: 800, fontSize: 13, cursor: "pointer" }}
+              className="px-4 py-2 border border-slate-300 bg-white text-slate-700 font-bold text-xs rounded-none hover:bg-slate-100 transition-all cursor-pointer"
             >
               Fermer
             </button>
@@ -584,9 +575,10 @@ export function FicheEvaluation360ManagerModal({
                   alert("Évaluation 360° Manager enregistrée avec succès !");
                   onClose();
                 }}
-                style={{ padding: "10px 24px", border: "none", background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 13, cursor: "pointer" }}
+                className="px-5 py-2 border-none bg-[#F0822A] hover:bg-[#d97220] text-white font-black text-xs rounded-none transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
               >
-                💾 Enregistrer la Fiche 360°
+                <CheckCircleIcon size={14} />
+                <span>Enregistrer la Fiche 360°</span>
               </button>
             )}
           </div>

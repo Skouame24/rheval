@@ -128,7 +128,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
               <div className="px-3 py-2.5 border-b border-slate-200 bg-amber-50/70">
                 <div className="flex items-center justify-between mb-2 px-1">
                   <p className="text-[10px] font-extrabold text-amber-900 uppercase tracking-widest flex items-center gap-1.5 m-0">
-                    <span>🎭</span> Switcher de Compte (Tests)
+                    Environnement de Test · Profils
                   </p>
                   {isSimulated && (
                     <button
@@ -150,7 +150,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                     }`}
                   >
                     <div>
-                      <p className="font-bold m-0 leading-tight">👤 Ebenezer KOUAME</p>
+                      <p className="font-bold m-0 leading-tight">Ebenezer KOUAME</p>
                       <p className="text-[10px] text-slate-500 m-0">Mon compte Salarié</p>
                     </div>
                     {currentRole === "SALARIE" && !isSimulated && (
@@ -167,7 +167,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                     }`}
                   >
                     <div>
-                      <p className="font-bold text-[#F0822A] m-0 leading-tight">👔 Marc AUBERT (Manager N+1)</p>
+                      <p className="font-bold text-[#F0822A] m-0 leading-tight">Marc AUBERT (Manager N+1)</p>
                       <p className="text-[10px] text-slate-500 m-0">Attribuer objectifs & évaluer</p>
                     </div>
                     {currentRole === "N1" && (
@@ -184,7 +184,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                     }`}
                   >
                     <div>
-                      <p className="font-bold text-blue-800 m-0 leading-tight">🏛️ Claire DELMAS (Directrice N+2)</p>
+                      <p className="font-bold text-blue-800 m-0 leading-tight">Claire DELMAS (Directrice N+2)</p>
                       <p className="text-[10px] text-slate-500 m-0">Valider N+2 & arbitrages</p>
                     </div>
                     {currentRole === "N2" && (
@@ -201,7 +201,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                     }`}
                   >
                     <div>
-                      <p className="font-bold text-purple-800 m-0 leading-tight">⚖️ Pôle Pilotage RH</p>
+                      <p className="font-bold text-purple-800 m-0 leading-tight">Pôle Pilotage RH</p>
                       <p className="text-[10px] text-slate-500 m-0">Campagnes, stats & exports</p>
                     </div>
                     {currentRole === "RH" && (

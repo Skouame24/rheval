@@ -11,7 +11,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { formatDateCourte } from "@/lib/utils/formatDate";
 import { formatNote, formatTaux } from "@/lib/utils/formatNote";
 import type { StatutEvaluation } from "@/types";
-import { UsersIcon, CheckCircleIcon, ScaleIcon, ChartBarIcon, ArrowDownTrayIcon, ArrowPathIcon, EyeIcon, GridIcon } from "@/components/ui/Icons";
+import { UsersIcon, CheckCircleIcon, ScaleIcon, ChartBarIcon, ArrowDownTrayIcon, ArrowPathIcon, EyeIcon, GridIcon, FileTextIcon } from "@/components/ui/Icons";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { rhApi } from "@/lib/api/rh.api";
@@ -91,19 +92,24 @@ export function DashboardRH() {
     <div className="flex flex-col gap-8 pb-10 max-w-[1200px] mx-auto">
       <FicheEvaluationModal
         isOpen={selectedFicheId !== null}
-        onClose={() => setSelectedFicheId(null)}
-        role="RH"
-        readOnly={false}
-        evaluationId={selectedFicheId ?? undefined}
+        onClose={() => {
+          setSelectedFicheId(null);
+          Promise.all([evaluationsApi.getAllForRh(), rhApi.getDashboardStats()])
+            .then(([evals, dashboardStats]) => {
+              setEvaluations(evals);
+              setStats(dashboardStats);
+            });
+        }}
         dossier={selectedDossier ? {
-          id: selectedFicheId ?? undefined,
-          ficheId: selectedFicheId ?? undefined,
           nom: selectedDossier.nom,
           prenom: selectedDossier.prenom,
           poste: selectedDossier.poste,
-          direction: "Direction Technique",
-          formations: (selectedDossier as any).formations || [],
+          direction: "Technique",
+          ficheId: selectedFicheId,
         } : null}
+        evaluationId={selectedFicheId || undefined}
+        role="RH"
+        readOnly={false}
       />
 
       {/* En-tête */}
@@ -198,10 +204,11 @@ export function DashboardRH() {
                 ))}
               </div>
             ) : evaluations.length === 0 ? (
-              <div className="p-10 text-center">
-                <p className="text-sm text-slate-500 font-semibold mb-2">Aucune fiche d'évaluation initiée</p>
-                <Button variant="primary" size="sm">Créer un cycle</Button>
-              </div>
+              <EmptyState
+                icon={<FileTextIcon size={24} className="text-slate-400" />}
+                title="Aucune fiche d'évaluation initiée"
+                description="Aucun cycle d'évaluation n'a encore généré de fiches de performance."
+              />
             ) : (
               evaluations.map((ev, idx) => (
                 <div
@@ -234,8 +241,9 @@ export function DashboardRH() {
                           {ev.date ? formatDateCourte(ev.date) : "N/A"}
                         </p>
                       )}
-                      <span className="text-xs font-bold text-[#F0822A] bg-[#FFF7ED] px-2 py-1 border border-[#FFEDD5]">
-                        🔍 Fiche
+                      <span className="text-xs font-bold text-[#F0822A] bg-[#FFF7ED] px-2 py-1 border border-[#FFEDD5] inline-flex items-center gap-1">
+                        <EyeIcon size={12} />
+                        Fiche
                       </span>
                     </div>
                   </div>

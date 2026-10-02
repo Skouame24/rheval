@@ -9,7 +9,18 @@ import { useState, useEffect } from "react";
 import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { Card, CardHeader, AvatarWithName } from "@/components/ui";
-import { CheckCircleIcon, PencilIcon, EyeIcon, ScaleIcon, UsersIcon, ArrowPathIcon } from "@/components/ui/Icons";
+import {
+  CheckCircleIcon,
+  PencilIcon,
+  EyeIcon,
+  ScaleIcon,
+  UsersIcon,
+  ArrowPathIcon,
+  TargetIcon,
+  ClockIcon,
+  GraduationCapIcon,
+} from "@/components/ui/Icons";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
@@ -51,7 +62,6 @@ export function DashboardN2() {
 
   // 1. Dossiers où le Directeur N+2 doit fixer les objectifs :
   // UNIQUEMENT ses N-1 directs (Managers / Responsables N+1 sous lui, ex: Marc AUBERT).
-  // Les collaborateurs (comme Samuel KOUAME) ont leur N+1 direct (Marc AUBERT) qui leur fixe leurs objectifs !
   const dossiersAFixer = fiches.filter((f) => {
     if (f.statut !== "FIXATION_OBJECTIFS") return false;
     if ((f.objectifs || []).length > 0) return false;
@@ -83,34 +93,34 @@ export function DashboardN2() {
 
   const stats = [
     {
-      label: "Objectifs à fixer (N+1)",
+      label: "Objectifs à fixer",
       value: String(dossiersAFixer.length),
-      subValue: dossiersAFixer.length > 0 ? "Fixation requise par N+2" : "Tous fixés",
-      icon: <PencilIcon size={18} className="text-orange-600" />,
+      subValue: dossiersAFixer.length > 0 ? "Fixation requise (N+1)" : "Tous fixés",
+      icon: <TargetIcon size={18} className="text-orange-600" />,
       color: "text-orange-600",
       bg: "bg-orange-50",
     },
     {
-      label: "Évaluations N+2 à valider",
+      label: "Évaluations N+2",
       value: String(evaluationsAValider.length),
-      subValue: evaluationsAValider.length > 0 ? "Évaluation N+2 requise" : "À jour",
+      subValue: evaluationsAValider.length > 0 ? "Évaluation requise" : "À jour",
       icon: <CheckCircleIcon size={18} className="text-purple-600" />,
       color: "text-purple-600",
       bg: "bg-purple-50",
     },
     {
-      label: "Collaborateurs supervisés",
+      label: "Collaborateurs",
       value: String(fiches.length),
-      subValue: "Périmètre hiérarchique département",
+      subValue: "Périmètre supervisé",
       icon: <UsersIcon size={18} className="text-agilly-primary" />,
       color: "text-agilly-primary",
       bg: "bg-[#FFF0E0]",
     },
     {
-      label: "Besoins en formations",
+      label: "Besoins formations",
       value: String(allFormations.length),
-      subValue: "Proposés par les managers N+1",
-      icon: <CheckCircleIcon size={18} className="text-blue-600" />,
+      subValue: "Proposés par managers N+1",
+      icon: <GraduationCapIcon size={18} className="text-blue-600" />,
       color: "text-blue-600",
       bg: "bg-blue-50",
     },
@@ -193,43 +203,83 @@ export function DashboardN2() {
       <div className="flex items-center gap-2 border-b border-slate-200 pb-1 flex-wrap">
         <button
           onClick={() => setActiveTab("A_TRAITER")}
-          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
+          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
             activeTab === "A_TRAITER"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          ⚡ Actions Prioritaires N+2 ({dossiersActionN2.length})
+          <ClockIcon size={14} />
+          <span>Actions Prioritaires N+2</span>
+          <span
+            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
+              activeTab === "A_TRAITER"
+                ? "bg-[#F0822A] text-white"
+                : "bg-slate-200 text-slate-700"
+            }`}
+          >
+            {dossiersActionN2.length}
+          </span>
         </button>
         <button
           onClick={() => setActiveTab("TOUS")}
-          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
+          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
             activeTab === "TOUS"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          👥 Tous les Collaborateurs Supervisés ({fiches.length})
+          <UsersIcon size={14} />
+          <span>Tous les Collaborateurs</span>
+          <span
+            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
+              activeTab === "TOUS"
+                ? "bg-[#F0822A] text-white"
+                : "bg-slate-200 text-slate-700"
+            }`}
+          >
+            {fiches.length}
+          </span>
         </button>
         <button
           onClick={() => setActiveTab("FORMATIONS")}
-          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
+          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
             activeTab === "FORMATIONS"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          🎓 Formations Demandées ({allFormations.length})
+          <GraduationCapIcon size={14} />
+          <span>Formations Demandées</span>
+          <span
+            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
+              activeTab === "FORMATIONS"
+                ? "bg-[#F0822A] text-white"
+                : "bg-slate-200 text-slate-700"
+            }`}
+          >
+            {allFormations.length}
+          </span>
         </button>
         <button
           onClick={() => setActiveTab("ARBITRAGES")}
-          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
+          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
             activeTab === "ARBITRAGES"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          ⚖️ Arbitrages ({arbitrages.length})
+          <ScaleIcon size={14} />
+          <span>Arbitrages</span>
+          <span
+            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
+              activeTab === "ARBITRAGES"
+                ? "bg-[#F0822A] text-white"
+                : "bg-slate-200 text-slate-700"
+            }`}
+          >
+            {arbitrages.length}
+          </span>
         </button>
       </div>
 
@@ -282,7 +332,10 @@ export function DashboardN2() {
                       {isFixation ? (
                         <div className="text-center px-3 py-1 bg-amber-50 border border-amber-200">
                           <span className="text-[10px] font-bold text-amber-800 uppercase block">Étape</span>
-                          <span className="text-xs font-black text-amber-900">🎯 Fixation Objectifs</span>
+                          <span className="text-xs font-bold text-amber-900 inline-flex items-center gap-1.5">
+                            <TargetIcon size={12} className="text-amber-800" />
+                            Fixation Objectifs
+                          </span>
                         </div>
                       ) : (
                         <>
@@ -313,14 +366,15 @@ export function DashboardN2() {
                               poste: poste,
                             })
                           }
-                          className="px-3.5 py-1.5 text-xs font-black text-white bg-[#F0822A] hover:bg-[#d97220] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#F0822A] hover:bg-[#d97220] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
-                          🎯 Fixer les Objectifs (N+1)
+                          <TargetIcon size={13} />
+                          Fixer les Objectifs (N+1)
                         </button>
                       ) : (
                         <button
                           onClick={() => setSelectedFicheModal(ev)}
-                          className="px-3.5 py-1.5 text-xs font-black text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          className="px-3.5 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <PencilIcon size={13} />
                           Évaluer N+2
@@ -331,11 +385,11 @@ export function DashboardN2() {
                 );
               })
             ) : (
-              <div className="p-10 text-center">
-                <CheckCircleIcon size={28} className="text-emerald-500 mx-auto mb-2" />
-                <p className="text-xs font-bold text-slate-800 m-0">Toutes les actions de supervision N+2 sont à jour</p>
-                <p className="text-[11px] text-slate-500 mt-1 mb-0">Consultez l'onglet "Tous les Collaborateurs" pour revoir l'ensemble des fiches.</p>
-              </div>
+              <EmptyState
+                icon={<CheckCircleIcon size={24} className="text-emerald-600" />}
+                title="Toutes les actions de supervision N+2 sont à jour"
+                description="Aucun objectif à fixer ni évaluation N+2 en attente. Consultez l'onglet « Tous les Collaborateurs » pour revoir l'ensemble des fiches."
+              />
             )}
           </div>
         </Card>
@@ -415,30 +469,34 @@ export function DashboardN2() {
                                   poste: poste,
                                 })
                               }
-                              className="px-2.5 py-1 text-xs font-bold text-white bg-[#F0822A] hover:bg-[#d97220] transition-colors inline-flex items-center gap-1 cursor-pointer shadow-xs"
+                              className="px-2.5 py-1 text-xs font-bold text-white bg-[#F0822A] hover:bg-[#d97220] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                             >
-                              🎯 Fixer Objectifs (N+1)
+                              <TargetIcon size={12} />
+                              Fixer Objectifs
                             </button>
                           )}
 
                           {isFixation && !isDirectReport && (
-                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5">
-                              ⏳ En attente N+1
+                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 inline-flex items-center gap-1">
+                              <ClockIcon size={11} className="text-slate-400" />
+                              En attente N+1
                             </span>
                           )}
 
                           {isAutoEval && (
-                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5">
-                              ⏳ Auto-évaluation
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 inline-flex items-center gap-1">
+                              <ClockIcon size={11} className="text-blue-500" />
+                              Auto-évaluation
                             </span>
                           )}
 
                           {isEvaluationN2 && (
                             <button
                               onClick={() => setSelectedFicheModal(ev)}
-                              className="px-2.5 py-1 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors inline-flex items-center gap-1 cursor-pointer shadow-xs"
+                              className="px-2.5 py-1 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                             >
-                              🏛️ Évaluer N+2
+                              <PencilIcon size={12} />
+                              Évaluer N+2
                             </button>
                           )}
 
@@ -523,8 +581,12 @@ export function DashboardN2() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-xs text-slate-400">
-                      Aucune préconisation de formation n'a été saisie pour le moment par les managers N+1.
+                    <td colSpan={6} className="p-0">
+                      <EmptyState
+                        icon={<GraduationCapIcon size={24} className="text-slate-400" />}
+                        title="Aucun besoin en formation répertorié"
+                        description="Aucune préconisation de formation n'a été saisie pour le moment par les managers N+1 du département."
+                      />
                     </td>
                   </tr>
                 )}
@@ -570,11 +632,11 @@ export function DashboardN2() {
                 );
               })
             ) : (
-              <div className="p-10 text-center">
-                <CheckCircleIcon size={28} className="text-emerald-500 mx-auto mb-2" />
-                <p className="text-xs font-bold text-slate-800 m-0">Aucun arbitrage en cours</p>
-                <p className="text-[11px] text-slate-500 mt-1 mb-0">Tous les avis N+1 sont conformes et sans contentieux.</p>
-              </div>
+              <EmptyState
+                icon={<CheckCircleIcon size={24} className="text-emerald-600" />}
+                title="Aucun arbitrage en cours"
+                description="Tous les avis N+1 sont conformes et sans contentieux ni divergence nécessitant une médiation N+2."
+              />
             )}
           </div>
         </Card>

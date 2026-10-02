@@ -5,7 +5,8 @@
 "use client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, Button, ObjectifsPageSkeleton } from "@/components/ui";
-import { TargetIcon, ClockIcon, DownloadIcon } from "@/components/ui/Icons";
+import { TargetIcon, ClockIcon, DownloadIcon, FileSpreadsheetIcon } from "@/components/ui/Icons";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useCurrentEvaluation } from "@/lib/hooks/useEvaluation";
 import { useAuth } from "@/contexts/AuthContext";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
@@ -52,16 +53,17 @@ export function ObjectifsSalariePage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExportExcel}
-              className="px-4 py-2 bg-[#107C41] hover:bg-[#0E6C38] text-white font-extrabold text-xs rounded-none border border-transparent transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-none border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
             >
-              📊 Télécharger en Excel (.xlsx)
+              <FileSpreadsheetIcon size={14} className="text-emerald-700" />
+              <span>Exporter Excel (.xlsx)</span>
             </button>
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs rounded-none border border-slate-300 transition-all cursor-pointer flex items-center gap-2"
+              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-none border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
             >
-              <DownloadIcon size={14} />
-              Télécharger (PDF)
+              <DownloadIcon size={14} className="text-slate-600" />
+              <span>Télécharger (PDF)</span>
             </button>
           </div>
         }
@@ -69,9 +71,11 @@ export function ObjectifsSalariePage() {
 
       <div className="flex flex-col gap-6">
         {objectifs.length === 0 && (
-          <div className="bg-white p-8 border border-gray-200 text-center text-gray-500">
-            Aucun objectif fixé pour le moment.
-          </div>
+          <EmptyState
+            icon={<TargetIcon size={24} className="text-slate-400" />}
+            title="Aucun objectif fixé pour le moment"
+            description="Votre responsable hiérarchique N+1 n'a pas encore défini vos objectifs de performance pour le cycle 2026."
+          />
         )}
         {objectifs.map((obj: any, idx: number) => (
           <Card key={obj.id} padding="none" hoverable={false} className="overflow-hidden border-l-4 border-l-agilly-primary">

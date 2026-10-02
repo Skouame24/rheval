@@ -160,7 +160,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
           {/* Champ 1 : Saisie Note Conclue d'Arbitrage & Pourcentage Instantané */}
           <div style={{ background: "#FFFFFF", padding: 20, borderRadius: 0, border: "2px solid #F0822A", boxShadow: "0 4px 16px rgba(240, 130, 42, 0.08)" }}>
             <label style={{ fontSize: 11, fontWeight: 900, color: "#111827", textTransform: "uppercase", display: "block", marginBottom: 8, letterSpacing: "0.06em" }}>
-              🎯 Note Finale Conclue (/20) & Taux d'Atteinte (%)
+              Note Finale Conclue (/20) & Taux d'Atteinte (%)
             </label>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <input
@@ -207,7 +207,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
           {/* Champ 2 : PV / Décision RH */}
           <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 0, border: "1px solid #E8E4DE" }}>
             <label style={{ fontSize: 12, fontWeight: 800, color: "#535B6A", display: "block", marginBottom: 8 }}>
-              📝 Procès-Verbal d'Arbitrage & Conclusions DRH
+              Procès-Verbal d'Arbitrage & Conclusions DRH
             </label>
             <textarea
               rows={3}

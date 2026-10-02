@@ -68,8 +68,8 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
           
           {/* CARTE 1 : INFORMATIONS ADMINISTRATIVES */}
           <div className="bg-white p-5 border border-slate-200 rounded-none shadow-sm flex flex-col gap-4">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest m-0">
-              📌 Informations Personnelles & Contractuelles
+            <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest m-0">
+              Informations Personnelles & Contractuelles
             </h3>
 
             <div className="grid grid-cols-2 gap-4 text-xs">
@@ -97,8 +97,8 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
 
           {/* CARTE 2 : RATTACHEMENT HIÉRARCHIQUE */}
           <div className="bg-white p-5 border border-slate-200 rounded-none shadow-sm flex flex-col gap-4">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest m-0">
-              👥 Rattachement Hiérarchique & Validation
+            <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest m-0">
+              Rattachement Hiérarchique & Validation
             </h3>
 
             <div className="grid grid-cols-2 gap-4">
@@ -118,15 +118,15 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
 
           {/* CARTE 3 : STATUT DE L'ÉVALUATION 2026 */}
           <div className="bg-white p-5 border border-slate-200 rounded-none shadow-sm flex flex-col gap-4">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest m-0">
-              📊 Synthèse de la Campagne d'Évaluation 2026
+            <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest m-0">
+              Synthèse de la Campagne d'Évaluation 2026
             </h3>
 
             <div className="flex items-center justify-between bg-slate-50 p-4 border border-slate-200 flex-wrap gap-4">
               <div>
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Statut Officiel</span>
                 <span className="text-xs font-extrabold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block">
-                  🟢 {employe.statutCycle || "Dossier Validé & Signé RH"}
+                  {employe.statutCycle || "Dossier Validé & Signé RH"}
                 </span>
               </div>
 
@@ -158,7 +158,7 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
               }}
               className="px-6 py-2.5 bg-[#F0822A] text-white font-extrabold text-xs rounded-none hover:bg-[#d97220] transition-all cursor-pointer flex items-center gap-2"
             >
-              📋 Ouvrir la Fiche Officielle Excel du Salarié →
+              Consulter la Fiche d'Évaluation →
             </button>
           )}
         </div>

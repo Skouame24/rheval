@@ -36,18 +36,18 @@ export function StatCard({
     >
       {/* Côté Gauche — Textes */}
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold text-agilly-gray uppercase tracking-widest m-0 mb-1.5 whitespace-nowrap overflow-hidden text-ellipsis">
+        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider m-0 mb-1.5 leading-snug">
           {label}
         </p>
 
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-3xl font-bold text-agilly-black leading-none tracking-tight">
+          <span className="text-3xl font-bold text-slate-900 leading-none tracking-tight">
             {value}
           </span>
         </div>
 
         {subValue && (
-          <p className="text-xs font-semibold text-agilly-gray m-0 mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
+          <p className="text-xs font-medium text-slate-500 m-0 mt-1 leading-normal">
             {subValue}
           </p>
         )}

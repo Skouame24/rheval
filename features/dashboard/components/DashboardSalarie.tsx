@@ -12,7 +12,8 @@ import { STATUT_FLOW, STATUT_METADATA } from "@/lib/constants/statuts";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import type { StatutEvaluation } from "@/types";
-import { EyeIcon } from "@/components/ui/Icons";
+import { EyeIcon, TargetIcon, PencilIcon, FileTextIcon } from "@/components/ui/Icons";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useCurrentEvaluation } from "@/lib/hooks/useEvaluation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -168,8 +169,8 @@ export function DashboardSalarie() {
 
   if (error) {
     return (
-      <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 24, margin: 24 }}>
-        <p style={{ color: "#B91C1C", fontWeight: 700, margin: 0 }}>⚠️ Erreur : {error}</p>
+      <div className="bg-red-50 border border-red-200 p-6 m-6">
+        <p className="text-red-700 font-bold text-sm m-0">Erreur : {error}</p>
       </div>
     );
   }
@@ -182,16 +183,12 @@ export function DashboardSalarie() {
           subtitle="Suivi en direct de votre performance annuelle"
           breadcrumbs={[{ label: "Mon Espace" }, { label: "Tableau de Bord" }]}
         />
-        <Card padding="lg">
-          <div className="bg-slate-50 border border-slate-200 rounded-none p-8 text-center flex flex-col items-center justify-center">
-            <div className="w-16 h-16 bg-white border border-slate-200 text-slate-400 flex items-center justify-center text-3xl shadow-sm mb-4">
-              ℹ️
-            </div>
-            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Aucune évaluation en cours</h3>
-            <p className="text-sm font-semibold text-slate-500 max-w-md mx-auto">
-              Vous n'avez pas d'évaluation active pour la période en cours. Dès que la Direction RH ouvrira la campagne annuelle ou que votre supérieur N+1 fixera vos objectifs, votre fiche apparaîtra ici.
-            </p>
-          </div>
+        <Card padding="none">
+          <EmptyState
+            icon={<FileTextIcon size={24} className="text-slate-400" />}
+            title="Aucune évaluation en cours"
+            description="Vous n'avez pas d'évaluation active pour la période en cours. Dès que la Direction RH ouvrira la campagne annuelle ou que votre supérieur N+1 fixera vos objectifs, votre fiche apparaîtra ici."
+          />
         </Card>
       </div>
     );
@@ -243,7 +240,7 @@ export function DashboardSalarie() {
           className="p-4 bg-white border border-blue-200 hover:border-blue-400 text-blue-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
         >
           <div className="w-10 h-10 bg-blue-50 text-blue-600 font-extrabold text-lg flex items-center justify-center border border-blue-200 shrink-0">
-            🎯
+            <TargetIcon size={20} className="text-blue-600" />
           </div>
           <div>
             <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider block">Étape 02</span>
@@ -256,7 +253,7 @@ export function DashboardSalarie() {
           className="p-4 bg-white border border-sky-200 hover:border-sky-400 text-sky-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
         >
           <div className="w-10 h-10 bg-sky-50 text-sky-600 font-extrabold text-lg flex items-center justify-center border border-sky-200 shrink-0">
-            ✍️
+            <PencilIcon size={18} className="text-sky-600" />
           </div>
           <div>
             <span className="text-[10px] font-black text-sky-600 uppercase tracking-wider block">Étape 03</span>
@@ -359,11 +356,11 @@ export function DashboardSalarie() {
 
         <div className="flex flex-col gap-4 mt-6">
           {objectifs.length === 0 && (
-            <div className="bg-slate-50 p-8 rounded-none border border-slate-200 text-center">
-              <div className="text-3xl mb-2">🎯</div>
-              <p className="text-sm font-bold text-slate-700 m-0">Aucun objectif fixé pour ce cycle.</p>
-              <p className="text-xs text-slate-500 mt-1 m-0">Votre responsable N+1 n'a pas encore défini vos objectifs opérationnels pour l'année 2026.</p>
-            </div>
+            <EmptyState
+              icon={<TargetIcon size={24} className="text-slate-400" />}
+              title="Aucun objectif fixé pour ce cycle"
+              description="Votre responsable N+1 n'a pas encore défini vos objectifs opérationnels pour l'année 2026."
+            />
           )}
 
           {objectifs.map((obj: any, i: number) => (

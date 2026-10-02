@@ -8,6 +8,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { objectivesApi } from "@/lib/api/objectives.api";
+import { ScaleIcon, TrashIcon, TargetIcon, CheckCircleIcon, AlertTriangleIcon } from "@/components/ui/Icons";
 
 interface ModalDefinirObjectifsProps {
   isOpen: boolean;
@@ -256,7 +257,7 @@ export function ModalDefinirObjectifs({
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-none bg-orange-50 border border-orange-200 flex items-center justify-center text-lg text-[#F0822A] font-black">
-              🎯
+              <TargetIcon size={20} className="text-[#F0822A]" />
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 m-0 tracking-tight">
@@ -281,7 +282,7 @@ export function ModalDefinirObjectifs({
         {errorMessage && (
           <div className="px-6 py-3 bg-red-50 border-b border-red-200 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-red-600 font-bold text-base">⚠️</span>
+              <AlertTriangleIcon size={16} className="text-red-600" />
               <p className="text-xs font-bold text-red-800 m-0">{errorMessage}</p>
             </div>
             <button
@@ -363,7 +364,8 @@ export function ModalDefinirObjectifs({
                   title="Répartir automatiquement les 100% équitablement"
                   className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  ⚖️ Équilibrer (100%)
+                  <ScaleIcon size={14} className="text-slate-600" />
+                  <span>Équilibrer (100%)</span>
                 </button>
               )}
 
@@ -440,10 +442,11 @@ export function ModalDefinirObjectifs({
                       <button
                         type="button"
                         onClick={() => handleDeleteObjectif(obj.id)}
-                        className="px-2.5 py-1 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 text-xs font-bold transition-colors cursor-pointer"
+                        className="px-2.5 py-1 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1"
                         title="Supprimer cet objectif"
                       >
-                        🗑️ Supprimer
+                        <TrashIcon size={13} />
+                        <span>Supprimer</span>
                       </button>
                     )}
                   </div>
@@ -604,7 +607,8 @@ export function ModalDefinirObjectifs({
                   </>
                 ) : (
                   <>
-                    <span>💾 Transmettre & Valider les Objectifs</span>
+                    <CheckCircleIcon size={14} />
+                    <span>Transmettre & Valider les Objectifs</span>
                   </>
                 )}
               </button>

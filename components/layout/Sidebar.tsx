@@ -80,7 +80,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
         .getN2TeamEvaluations()
         .then((fiches) => {
           const pending = (fiches || []).filter(
-            (f) => f.statut === "EVALUATION_N2" || f.statut === "VALIDATION_N2" || f.statut === "EN_ATTENTE_N2"
+            (f) => f.statut === "VALIDATION_N2" || f.statut === "EVALUATION_N2" || f.statut === "EN_ATTENTE_N2" || f.statut === "VISA_SALARIE"
           );
           setN1PendingCount(pending.length > 0 ? pending.length : undefined);
         })

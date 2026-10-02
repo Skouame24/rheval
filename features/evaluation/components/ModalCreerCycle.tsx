@@ -6,6 +6,7 @@
 "use client";
 import { useState } from "react";
 import { rhApi } from "@/lib/api/rh.api";
+import { RocketIcon, AlertTriangleIcon } from "@/components/ui/Icons";
 
 interface ModalCreerCycleProps {
   isOpen: boolean;
@@ -77,8 +78,8 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
         {/* Header */}
         <div style={{ padding: "20px 28px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 0, background: "#FFF7ED", border: "1px solid #FFEDD5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
-              🚀
+            <div style={{ width: 40, height: 40, borderRadius: 0, background: "#FFF7ED", border: "1px solid #FFEDD5", display: "flex", alignItems: "center", justifyContent: "center", color: "#F0822A" }}>
+              <RocketIcon size={20} color="#F0822A" />
             </div>
             <div>
               <h2 style={{ fontSize: 18, fontWeight: 900, color: "#000000", margin: 0 }}>
@@ -152,12 +153,13 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
           </div>
 
           <div style={{ background: "#FFF7ED", padding: 14, borderRadius: 0, border: "1px solid #FFEDD5", fontSize: 12, color: "#EA580C", fontWeight: 700 }}>
-            💡 <strong>Rappel du Processus :</strong> Le lancement crée le cycle en base et notifie les managers N+1 pour fixer les objectifs.
+            <strong>Rappel du Processus :</strong> Le lancement crée le cycle en base et notifie les managers N+1 pour fixer les objectifs.
           </div>
 
           {errorMsg && (
-            <div style={{ background: "#FEF2F2", padding: 12, border: "1px solid #FECACA", color: "#DC2626", fontSize: 12, fontWeight: 700, borderRadius: 0 }}>
-              ❌ {errorMsg}
+            <div style={{ background: "#FEF2F2", padding: 12, border: "1px solid #FECACA", color: "#DC2626", fontSize: 12, fontWeight: 700, borderRadius: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangleIcon size={16} color="#DC2626" />
+              <span>{errorMsg}</span>
             </div>
           )}
 
@@ -176,7 +178,7 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
               disabled={isSubmitting}
               style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: isSubmitting ? "#ccc" : "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: isSubmitting ? "not-allowed" : "pointer" }}
             >
-              {isSubmitting ? "⏳ Création en cours..." : "🚀 Lancer la Campagne"}
+              {isSubmitting ? "Création en cours..." : "Lancer la Campagne"}
             </button>
           </div>
         </form>

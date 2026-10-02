@@ -5,6 +5,8 @@
 
 import { cn } from "@/lib/utils/cn";
 import { Spinner } from "./Spinner";
+import { EmptyState } from "./EmptyState";
+import { FileTextIcon } from "./Icons";
 
 export interface Column<T> {
   key: string;
@@ -19,7 +21,7 @@ interface TableProps<T> {
   data: T[];
   loading?: boolean;
   emptyMessage?: string;
-  emptyIcon?: string;
+  emptyIcon?: React.ReactNode;
   onRowClick?: (row: T) => void;
   keyExtractor: (row: T) => string;
 }
@@ -27,7 +29,7 @@ interface TableProps<T> {
 export function Table<T>({
   columns, data, loading = false,
   emptyMessage = "Aucune donnée disponible",
-  emptyIcon = "📋",
+  emptyIcon,
   onRowClick,
   keyExtractor,
 }: TableProps<T>) {
@@ -67,11 +69,11 @@ export function Table<T>({
             ))
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="py-16 text-center">
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-3xl">{emptyIcon}</span>
-                  <span className="text-sm" style={{ color: "var(--neutral-400)" }}>{emptyMessage}</span>
-                </div>
+              <td colSpan={columns.length} className="p-0">
+                <EmptyState
+                  icon={emptyIcon || <FileTextIcon size={24} className="text-slate-400" />}
+                  title={emptyMessage}
+                />
               </td>
             </tr>
           ) : (
