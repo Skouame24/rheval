@@ -24,7 +24,7 @@ export function EmptyState({
     <div
       className={`flex flex-col items-center justify-center text-center py-12 px-6 bg-white w-full ${className}`}
     >
-      <div className="w-12 h-12 bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 mb-3.5">
+      <div className="w-12 h-12 mx-auto shrink-0 bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 mb-3.5">
         {icon || <CheckCircleIcon size={22} className="text-slate-400" />}
       </div>
       <h4 className="text-sm font-bold text-slate-800 m-0 tracking-tight">

@@ -4,12 +4,15 @@
 // ============================================================
 
 "use client";
+
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardHeader, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
+import { Card, CardHeader, Button, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { DashboardN2 } from "@/features/dashboard/components/DashboardN2";
+import { UsersIcon, TargetIcon, AlertTriangleIcon } from "@/components/ui/Icons";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTeam } from "@/lib/hooks/useTeam";
 import type { User } from "@/types";
@@ -36,9 +39,12 @@ export default function MonEquipePage() {
   }
 
   return (
-    <AppShell role={user?.role || "N1"} userName={displayName} userEmail={user?.email || "manager@agilly.com"} notifCount={2}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
-        
+    <AppShell
+      role={user?.role || "N1"}
+      userName={displayName}
+      userEmail={user?.email || "manager@agilly.com"}
+    >
+      <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full">
         {selectedCollab && (
           <ModalDefinirObjectifs
             isOpen={true}
@@ -57,8 +63,9 @@ export default function MonEquipePage() {
         ) : (
           <>
             {error && (
-              <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 16 }}>
-                <p style={{ color: "#B91C1C", fontWeight: 700, margin: 0 }}>⚠️ {error}</p>
+              <div className="bg-red-50 border border-red-200 p-4 text-red-700 text-sm font-semibold flex items-center gap-3">
+                <AlertTriangleIcon size={18} className="text-red-600 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
@@ -68,64 +75,81 @@ export default function MonEquipePage() {
               breadcrumbs={[{ label: "Espace Manager" }, { label: "Collaborateurs" }]}
             />
 
-            <Card padding="lg">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
-                <CardHeader title="Liste des Collaborateurs" subtitle={`${filteredTeam.length} salarié(s) rattaché(s) à votre périmètre`} icon="👥" />
+            <Card padding="lg" className="bg-white border border-slate-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-slate-100 pb-4">
+                <CardHeader
+                  title="Liste des Collaborateurs"
+                  subtitle={`${filteredTeam.length} salarié(s) rattaché(s) à votre périmètre`}
+                  icon={<UsersIcon size={20} className="text-[#F0822A]" />}
+                />
                 <div className="w-full sm:w-64">
                   <input
                     type="text"
                     placeholder="Rechercher (Nom, prénom, poste)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-sm focus:border-agilly-primary focus:outline-none focus:ring-1 focus:ring-agilly-primary transition-colors"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-none focus:border-[#F0822A] focus:outline-none transition-colors"
                   />
                 </div>
               </div>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 20 }}>
-                {filteredTeam.map((member: User) => (
-                  <div
-                    key={member.id}
-                    style={{
-                      background: "#F8FAFC",
-                      border: "1px solid #E2E8F0",
-                      borderRadius: 4,
-                      padding: 20,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: 16
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {member.prenom.charAt(0)}
-                      </div>
-                      <div>
-                        <h4 style={{ fontSize: 16, fontWeight: 900, color: "#000000", margin: 0 }}>{member.prenom} {member.nom}</h4>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: "#F0822A", margin: "2px 0 0 0" }}>{member.poste}</p>
-                      </div>
-                    </div>
 
-                    <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
-                      <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>✉️ {member.email}</p>
-                      <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>📅 Dept : {member.departement}</p>
-                    </div>
+              {filteredTeam.length === 0 ? (
+                <EmptyState
+                  icon={<UsersIcon size={32} className="text-slate-400" />}
+                  title="Aucun collaborateur trouvé"
+                  description={
+                    searchQuery
+                      ? "Aucun membre de l'équipe ne correspond aux critères de recherche."
+                      : "Aucun collaborateur direct n'est actuellement rattaché sous votre responsabilité hiérarchique."
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredTeam.map((member: User) => (
+                    <div
+                      key={member.id}
+                      className="bg-white border border-slate-200 p-5 flex flex-col justify-between gap-4 hover:border-slate-300 transition-colors shadow-2xs"
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-11 h-11 rounded-full bg-[#F0822A] text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                          {member.prenom?.charAt(0) || member.nom?.charAt(0) || "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-slate-900 truncate m-0">
+                            {member.prenom} {member.nom}
+                          </h4>
+                          <p className="text-xs font-semibold text-[#F0822A] truncate mt-0.5 m-0">
+                            {member.poste || "Collaborateur"}
+                          </p>
+                        </div>
+                      </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8, background: "#FFF7ED", color: "#EA580C", border: "1px solid #FFEDD5" }}>
-                        {member.role}
-                      </span>
-                      <button
-                        onClick={() => setSelectedCollab(member)}
-                        style={{ padding: "8px 14px", background: "#F0822A", color: "#FFFFFF", border: "none", borderRadius: 4, fontSize: 12, fontWeight: 900, cursor: "pointer", boxShadow: "0 4px 12px rgba(240,130,42,0.2)" }}
-                      >
-                        🎯 Fixer les Objectifs
-                      </button>
+                      <div className="border-t border-slate-100 pt-3 text-xs text-slate-500 space-y-1">
+                        <p className="truncate m-0">{member.email}</p>
+                        {member.departement && (
+                          <p className="text-slate-400 truncate m-0">
+                            Département : {member.departement}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-100 text-slate-600 uppercase tracking-wider">
+                          {member.role}
+                        </span>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          leftIcon={<TargetIcon size={14} />}
+                          onClick={() => setSelectedCollab(member)}
+                        >
+                          Fixer les Objectifs
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </>
         )}

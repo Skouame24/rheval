@@ -4,22 +4,37 @@
 // ============================================================
 
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useMemo } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, Skeleton } from "@/components/ui";
+import { Card, Skeleton, Button } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
-import { ScaleIcon, CheckCircleIcon, EyeIcon, FileSpreadsheetIcon, ArrowPathIcon } from "@/components/ui/Icons";
+import {
+  CheckCircleIcon,
+  EyeIcon,
+  FileSpreadsheetIcon,
+  ArrowPathIcon,
+  AlertTriangleIcon,
+} from "@/components/ui/Icons";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
-import type { EvaluationCycle } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
+import type { EvaluationCycle, StatutEvaluation } from "@/types";
 
 export default function RhEvaluationsPage() {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<string>("TOUT");
   const [selectedModal, setSelectedModal] = useState<EvaluationCycle | null>(null);
   const [evaluations, setEvaluations] = useState<EvaluationCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const displayName = user
+    ? `${user.prenom ? user.prenom + " " : ""}${user.nom}`.trim()
+    : "Pôle Ressources Humaines";
 
   const fetchEvaluations = async () => {
     setIsLoading(true);
@@ -27,7 +42,7 @@ export default function RhEvaluationsPage() {
     try {
       const data = await evaluationsApi.getAllForRh();
       setEvaluations(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[RhEvaluationsPage] Error loading evaluations:", err);
       setError("Erreur lors de la récupération des évaluations.");
     } finally {
@@ -39,108 +54,101 @@ export default function RhEvaluationsPage() {
     fetchEvaluations();
   }, []);
 
-  const filteredItems = evaluations.filter((item) => {
-    if (filter === "EN_ATTENTE") {
-      return ["EN_ATTENTE_RH", "EN_ATTENTE_N1", "EN_ATTENTE_N2", "FIXATION_OBJECTIFS"].includes(item.statut);
-    }
-    if (filter === "ARBITRAGE") return item.statut === "ARBITRAGE";
-    if (filter === "VALIDE") return ["VALIDE", "CLOTURE"].includes(item.statut);
-    return true;
-  });
+  // Filtrage strict aligné avec les compteurs
+  const filteredItems = useMemo(() => {
+    return evaluations.filter((item) => {
+      if (filter === "EN_ATTENTE") {
+        return !["VALIDE", "CLOTURE", "ARBITRAGE"].includes(item.statut);
+      }
+      if (filter === "ARBITRAGE") return item.statut === "ARBITRAGE";
+      if (filter === "VALIDE") return ["VALIDE", "CLOTURE"].includes(item.statut);
+      return true;
+    });
+  }, [evaluations, filter]);
 
-  const getStatutBadge = (statut: string) => {
-    switch (statut) {
-      case "ARBITRAGE":
-        return { label: "Arbitrage RH Requis", bg: "#FEF2F2", color: "#DC2626", border: "#FEE2E2" };
-      case "VALIDE":
-      case "CLOTURE":
-        return { label: "Validé & Clôturé", bg: "#D1FAE5", color: "#059669", border: "#A7F3D0" };
-      case "EN_ATTENTE_RH":
-        return { label: "En attente RH", bg: "#FFF7ED", color: "#EA580C", border: "#FFEDD5" };
-      case "EN_ATTENTE_N1":
-        return { label: "En attente N+1", bg: "#EFF6FF", color: "#2563EB", border: "#DBEAFE" };
-      default:
-        return { label: statut, bg: "#F1F5F9", color: "#475569", border: "#E2E8F0" };
-    }
-  };
+  // Compteurs
+  const enAttenteCount = useMemo(() => {
+    return evaluations.filter((e) => !["VALIDE", "CLOTURE", "ARBITRAGE"].includes(e.statut)).length;
+  }, [evaluations]);
+
+  const arbitragesCount = useMemo(() => {
+    return evaluations.filter((e) => e.statut === "ARBITRAGE").length;
+  }, [evaluations]);
+
+  const valideesCount = useMemo(() => {
+    return evaluations.filter((e) => ["VALIDE", "CLOTURE"].includes(e.statut)).length;
+  }, [evaluations]);
 
   return (
-    <AppShell role="RH" userName="Pôle Ressources Humaines" userEmail="drh@agilly.com" notifCount={0}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 28, paddingBottom: 40 }}>
-        
-        <FicheEvaluationModal 
-          isOpen={selectedModal !== null} 
+    <AppShell
+      role="RH"
+      userName={displayName}
+      userEmail={user?.email || "drh@agilly.com"}
+      notifCount={0}
+    >
+      <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full">
+        <FicheEvaluationModal
+          isOpen={selectedModal !== null}
           onClose={() => {
             setSelectedModal(null);
             fetchEvaluations();
-          }} 
+          }}
           role="RH"
           readOnly={false}
           evaluationId={selectedModal?.id}
-          dossier={selectedModal ? {
-            id: selectedModal.id,
-            ficheId: selectedModal.id,
-            salarieId: selectedModal.salarie?.id,
-            nom: selectedModal.salarie?.nom || "",
-            prenom: selectedModal.salarie?.prenom || "",
-            poste: selectedModal.salarie?.poste || "",
-            direction: (selectedModal.salarie as any)?.departement || "Direction Technique",
-            formations: selectedModal.formations || [],
-            statut: selectedModal.statut,
-          } : null}
+          dossier={
+            selectedModal
+              ? {
+                  id: selectedModal.id,
+                  ficheId: selectedModal.id,
+                  salarieId: selectedModal.salarie?.id,
+                  nom: selectedModal.salarie?.nom || "",
+                  prenom: selectedModal.salarie?.prenom || "",
+                  poste: selectedModal.salarie?.poste || "",
+                  direction: (selectedModal.salarie as any)?.departement || "Direction Technique",
+                  formations: (selectedModal as any).formations || [],
+                  statut: selectedModal.statut,
+                }
+              : null
+          }
           objectifs={selectedModal?.objectifs || []}
           onSaved={fetchEvaluations}
         />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <PageHeader
             title="Toutes les Évaluations"
             subtitle={`${evaluations.length} fiche(s) d'évaluation enregistrée(s)`}
             breadcrumbs={[{ label: "Espace RH" }, { label: "Évaluations" }]}
           />
 
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<ArrowPathIcon size={14} />}
             onClick={fetchEvaluations}
-            title="Rafraîchir"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "8px 14px",
-              background: "#FFFFFF",
-              border: "1px solid #CBD5E1",
-              fontSize: 13,
-              fontWeight: 700,
-              color: "#334155",
-              cursor: "pointer",
-            }}
+            disabled={isLoading}
           >
-            <ArrowPathIcon size={14} />
             Actualiser
-          </button>
+          </Button>
         </div>
 
-        {/* Filtres */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {/* Filtres par onglets */}
+        <div className="flex items-center gap-2 flex-wrap">
           {[
             { id: "TOUT", label: `Toutes les fiches (${evaluations.length})` },
-            { id: "EN_ATTENTE", label: `En cours (${evaluations.filter(e => !["VALIDE", "CLOTURE", "ARBITRAGE"].includes(e.statut)).length})` },
-            { id: "ARBITRAGE", label: `Arbitrages (${evaluations.filter(e => e.statut === "ARBITRAGE").length})` },
-            { id: "VALIDE", label: `Validées (${evaluations.filter(e => ["VALIDE", "CLOTURE"].includes(e.statut)).length})` },
-          ].map(f => (
+            { id: "EN_ATTENTE", label: `En cours (${enAttenteCount})` },
+            { id: "ARBITRAGE", label: `Arbitrages (${arbitragesCount})` },
+            { id: "VALIDE", label: `Validées (${valideesCount})` },
+          ].map((f) => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 0,
-                border: filter === f.id ? "1px solid #F0822A" : "1px solid #E2E8F0",
-                background: filter === f.id ? "#F0822A" : "#FFFFFF",
-                color: filter === f.id ? "#FFFFFF" : "#475569",
-                fontWeight: 800,
-                fontSize: 13,
-                cursor: "pointer",
-              }}
+              className={`px-4 py-2 text-xs font-bold transition-colors border ${
+                filter === f.id
+                  ? "bg-[#F0822A] text-white border-[#F0822A]"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+              }`}
             >
               {f.label}
             </button>
@@ -149,7 +157,7 @@ export default function RhEvaluationsPage() {
 
         {/* Chargement */}
         {isLoading && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} padding="lg">
                 <Skeleton className="h-10 w-10 mb-4" />
@@ -163,128 +171,110 @@ export default function RhEvaluationsPage() {
 
         {/* Erreur */}
         {error && (
-          <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", padding: 16, color: "#991B1B", fontSize: 13, fontWeight: 700 }}>
-            ⚠️ {error}
+          <div className="bg-red-50 border border-red-200 p-4 text-red-700 text-sm font-semibold flex items-center gap-3">
+            <AlertTriangleIcon size={18} className="text-red-600 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Liste vide */}
+        {/* Liste vide parfaitement centrée */}
         {!isLoading && !error && filteredItems.length === 0 && (
-          <div style={{ textAlign: "center", padding: "60px 20px", background: "#FFFFFF", border: "1px solid #E2E8F0" }}>
-            <CheckCircleIcon size={40} color="#94A3B8" />
-            <h4 style={{ fontSize: 16, fontWeight: 800, color: "#1E293B", margin: "12px 0 4px 0" }}>
-              Aucune évaluation dans cette catégorie
-            </h4>
-            <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>
-              Toutes les évaluations sont à jour ou aucune fiche ne correspond au filtre sélectionné.
-            </p>
-          </div>
+          <EmptyState
+            icon={<CheckCircleIcon size={28} className="text-slate-400" />}
+            title="Aucune évaluation dans cette catégorie"
+            description="Toutes les évaluations sont à jour ou aucune fiche ne correspond au filtre sélectionné."
+            className="border border-slate-200"
+          />
         )}
 
         {/* Cartes Évaluations Réelles */}
         {!isLoading && !error && filteredItems.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
-            {filteredItems.map(item => {
-              const badge = getStatutBadge(item.statut);
-              const note = item.noteGlobale != null ? `${Number(item.noteGlobale).toFixed(1)} / 20` : "En attente";
-              const dateCreation = item.dateCreation ? new Date(item.dateCreation).toLocaleDateString("fr-FR") : "-";
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredItems.map((item) => {
+              const note =
+                item.noteGlobale != null
+                  ? `${Number(item.noteGlobale).toFixed(1)} / 20`
+                  : "Non noté";
+              const rawDate = item.dateCreation || (item as any)?.createdAt;
+              const dateCreation = rawDate
+                ? new Date(rawDate).toLocaleDateString("fr-FR")
+                : "-";
 
               return (
-                <Card key={item.id} hoverable padding="lg" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
+                <Card
+                  key={item.id}
+                  hoverable
+                  padding="lg"
+                  className="flex flex-col justify-between bg-white border border-slate-200"
+                >
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 0, background: "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {(item.salarie?.prenom || item.salarie?.nom || "?").charAt(0).toUpperCase()}
+                    {/* Header carte */}
+                    <div className="flex items-center justify-between mb-4 gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 bg-[#F0822A] text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                          {(item.salarie?.prenom || item.salarie?.nom || "?")
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
-                        <div>
-                          <h3 style={{ fontSize: 16, fontWeight: 900, color: "#000000", margin: 0 }}>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-slate-900 truncate m-0">
                             {item.salarie?.prenom} {item.salarie?.nom}
                           </h3>
-                          <p style={{ fontSize: 12, fontWeight: 600, color: "#64748b", margin: "2px 0 0 0" }}>
+                          <p className="text-xs font-semibold text-[#F0822A] truncate mt-0.5 m-0">
                             {item.salarie?.poste || "Collaborateur"}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ background: "#F8FAFC", padding: 14, borderRadius: 0, border: "1px solid #E2E8F0", marginBottom: 16, display: "flex", flexDirection: "column", gap: 6 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Direction :</span>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: "#0F172A" }}>{(item.salarie as any)?.departement || "Agilly"}</span>
+                    {/* Données récapitulatives */}
+                    <div className="bg-slate-50 p-3.5 border border-slate-200 mb-4 flex flex-col gap-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-slate-500">Direction :</span>
+                        <span className="font-bold text-slate-800">
+                          {(item.salarie as any)?.departement || "Agilly"}
+                        </span>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Note Finale :</span>
-                        <span style={{ fontSize: 12, fontWeight: 900, color: "#F0822A" }}>{note}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-slate-500">Note Globale :</span>
+                        <span className="font-black text-[#F0822A]">{note}</span>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Date ouverture :</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>{dateCreation}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-slate-500">Créée le :</span>
+                        <span className="font-medium text-slate-700">{dateCreation}</span>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>Objectifs fixés :</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>{item.objectifs?.length || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-slate-500">Objectifs :</span>
+                        <span className="font-bold text-slate-700">
+                          {item.objectifs?.length || 0}
+                        </span>
                       </div>
                     </div>
 
-                    <span style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 11,
-                      fontWeight: 900,
-                      padding: "6px 12px",
-                      borderRadius: 0,
-                      marginBottom: 16,
-                      background: badge.bg,
-                      color: badge.color,
-                      border: `1px solid ${badge.border}`
-                    }}>
-                      {item.statut === "ARBITRAGE" && <ScaleIcon size={14} color="#DC2626" />}
-                      {["VALIDE", "CLOTURE"].includes(item.statut) && <CheckCircleIcon size={14} color="#059669" />}
-                      {badge.label}
-                    </span>
+                    <div className="mb-4">
+                      <EvaluationStatusBadge
+                        statut={item.statut as StatutEvaluation}
+                        size="sm"
+                      />
+                    </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 8 }}>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                     <button
                       onClick={() => setSelectedModal(item)}
-                      style={{
-                        flex: 1,
-                        padding: "10px",
-                        borderRadius: 0,
-                        border: "none",
-                        background: "#0F172A",
-                        color: "#FFFFFF",
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                      }}
+                      className="flex-1 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
                     >
-                      <EyeIcon size={14} color="#FFFFFF" /> Consulter la Fiche
+                      <EyeIcon size={14} />
+                      <span>Consulter la Fiche</span>
                     </button>
                     <button
                       onClick={() => exportEvaluationToExcel(item)}
                       title="Télécharger la fiche Excel officielle"
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: 0,
-                        border: "1px solid #A7F3D0",
-                        background: "#ECFDF5",
-                        color: "#059669",
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
+                      className="py-2 px-3 bg-white hover:bg-slate-50 text-emerald-700 border border-slate-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <FileSpreadsheetIcon size={14} color="#059669" /> Excel
+                      <FileSpreadsheetIcon size={14} className="text-emerald-700" />
+                      <span>Excel</span>
                     </button>
                   </div>
                 </Card>
