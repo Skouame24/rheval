@@ -3,10 +3,12 @@ module.exports = {
     {
       name: "rheval-front",
       script: "node_modules/next/dist/bin/next",
-      args: "start -p 3000",
+      args: "start -p 3000 -H 0.0.0.0",
       env: {
         NODE_ENV: "production",
         PORT: 3000,
+        HOST: "0.0.0.0",
+        HOSTNAME: "0.0.0.0",
         NEXTAUTH_URL: "http://10.5.6.7:3000",
         NEXTAUTH_SECRET: "agilly_rheval_secret_key_entra_id_2026_sso",
         AZURE_AD_CLIENT_ID: "f351e4f4-6b70-462e-9c80-eea701265f0d",
