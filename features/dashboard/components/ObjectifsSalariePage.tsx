@@ -19,17 +19,17 @@ export function ObjectifsSalariePage() {
   const handleExportExcel = () => {
     exportEvaluationToExcel({
       salarie: {
-        nom: user?.nom || evaluation?.salarie?.nom || "KOUAME",
-        prenom: user?.prenom || evaluation?.salarie?.prenom || "Ebenezer Samuel",
-        matricule: (user as any)?.matricule || "EMP-2026-001",
-        poste: user?.poste || evaluation?.salarie?.poste || "Développeur Full-Stack",
-        departement: user?.departement || (evaluation?.salarie as any)?.departement || "Direction Technique",
-        direction: (user as any)?.direction || "Executive",
-        site: "Abidjan - AGILLY 1",
+        nom: user?.nom || evaluation?.salarie?.nom || "",
+        prenom: user?.prenom || evaluation?.salarie?.prenom || "",
+        matricule: (user as any)?.matricule || "",
+        poste: user?.poste || evaluation?.salarie?.poste || "",
+        departement: user?.departement || (evaluation?.salarie as any)?.departement || "",
+        direction: (user as any)?.direction || "",
+        site: (user as any)?.site || "",
       },
       n1: {
-        nom: user?.n1?.nom || "Marc AUBERT",
-        poste: user?.n1?.poste || "Responsable Technique",
+        nom: user?.n1?.nom || "",
+        poste: user?.n1?.poste || "",
       },
       cycle: evaluation?.cycle,
       statut: evaluation?.statut,

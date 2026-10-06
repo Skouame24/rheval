@@ -891,8 +891,8 @@ export function FicheEvaluationModal({
               </div>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <TagChip label="Direction" value={effectiveDossier?.direction || "Technique"} />
-                <TagChip label="Supérieur Direct" value={(effectiveDossier as any)?.n1 || (isCollabManager ? "Claire DELMAS (DRH)" : "Marc AUBERT")} />
+                <TagChip label="Direction" value={effectiveDossier?.direction || (effectiveDossier as any)?.departement || "Direction"} />
+                <TagChip label="Supérieur Direct" value={(effectiveDossier as any)?.n1?.nom ? `${(effectiveDossier as any)?.n1?.prenom || ""} ${(effectiveDossier as any)?.n1?.nom}` : ((effectiveDossier as any)?.n1 || "N/A")} />
                 <TagChip label="Statut Fiche" value={currentStatut || "EN_COURS"} />
               </div>
             </div>

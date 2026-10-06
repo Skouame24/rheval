@@ -5,6 +5,7 @@
 
 "use client";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, Skeleton } from "@/components/ui";
@@ -13,6 +14,7 @@ import { ArrowPathIcon, CheckCircleIcon } from "@/components/ui/Icons";
 import type { EvaluationCycle } from "@/types";
 
 export default function FormationsN1Page() {
+  const { user, role } = useAuth();
   const [evaluations, setEvaluations] = useState<EvaluationCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -65,7 +67,7 @@ export default function FormationsN1Page() {
   });
 
   return (
-    <AppShell role="N1" userName="Marc AUBERT" userEmail="manager@agilly.com" notifCount={0}>
+    <AppShell role={role || "N1"} userName={user ? `${user.prenom} ${user.nom}` : "Manager"} userEmail={user?.email || ""} notifCount={0}>
       <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>

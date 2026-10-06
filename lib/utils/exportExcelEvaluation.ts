@@ -167,13 +167,13 @@ export async function exportEvaluationToExcel(data: EvaluationExportData): Promi
   const matricule = data.salarie?.matricule || "EMP-2026-001";
   const poste = data.salarie?.poste || "Développeur Full-Stack";
   const direction = data.salarie?.direction || data.salarie?.departement || "Executive";
-  const site = data.salarie?.site || "Abidjan - AGILLY 1";
+  const site = data.salarie?.site || "-";
   const periode = data.cycle?.dateDebut && data.cycle?.dateFin
     ? `Du ${new Date(data.cycle.dateDebut).toLocaleDateString("fr-FR")} au ${new Date(data.cycle.dateFin).toLocaleDateString("fr-FR")}`
-    : "Du 1er juin au 31 décembre 2026";
+    : "-";
 
-  const n1Nom = data.n1?.nom || "Marc AUBERT";
-  const n1Poste = data.n1?.poste || "Responsable Technique";
+  const n1Nom = data.n1?.nom || "-";
+  const n1Poste = data.n1?.poste || "-";
 
   // ── LIGNE 1 : Titre Général Centré & Souligné ────────────────
   ws.mergeCells("A1:D1");
