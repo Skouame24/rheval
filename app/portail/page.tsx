@@ -89,7 +89,7 @@ export default function PortailPage() {
         {/* En-tête de bienvenue */}
         <div className="w-full max-w-[1000px] flex flex-col items-center text-center mb-12 mt-8">
           <span className="text-xs font-extrabold text-[#F0822A] uppercase tracking-widest bg-[#FFF7ED] px-3.5 py-1.5 border border-[#FFEDD5] inline-block mb-3 shadow-xs">
-            ⚡ HUB APPLICATIF ENTERPRISE
+            HUB APPLICATIF ENTERPRISE
           </span>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-3">
             Bonjour, <span className="text-[#F0822A]">{user.prenom} {user.nom}</span>
@@ -151,7 +151,7 @@ export default function PortailPage() {
             
             <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest bg-slate-200/80 px-2 py-1 rounded-none border border-slate-300">
-                ⚡ Bientôt disponible
+                Bientôt disponible
               </span>
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function PortailPage() {
             
             <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest bg-slate-200/80 px-2 py-1 rounded-none border border-slate-300">
-                ⚡ Bientôt disponible
+                Bientôt disponible
               </span>
             </div>
           </div>

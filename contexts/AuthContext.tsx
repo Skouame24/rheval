@@ -1,9 +1,10 @@
 // ============================================================
 // contexts/AuthContext.tsx
-// Contexte global d'authentification — utilisateur connecté + rôle
+// Contexte global d'authentification — 100% Microsoft SSO & sessions réelles
 // ============================================================
 
 "use client";
+
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
@@ -27,105 +28,19 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// ─── Users Démo par Rôle (Synchronisés avec la Base de Données) ───
-
-export const DEMO_USERS_BY_ROLE: Record<Role, User> = {
-  SALARIE: {
-    id: "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb",
-    nom: "KOUAME",
-    prenom: "Ebenezer Samuel",
-    email: "ebenezer.kouame@agilly.net",
-    role: "SALARIE",
-    poste: "Ingénieur Cloud & Mobilité",
-    departement: "Direction Technique",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  N1: {
-    id: "manager-id-5678",
-    nom: "AUBERT",
-    prenom: "Marc",
-    email: "manager@agilly.com",
-    role: "N1",
-    poste: "Responsable Technique N+1",
-    departement: "Direction Technique",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  N2: {
-    id: "drh-id-1234",
-    nom: "DELMAS",
-    prenom: "Claire",
-    email: "drh@agilly.com",
-    role: "N2",
-    poste: "Directrice des Ressources Humaines",
-    departement: "Direction Générale",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  RH: {
-    id: "drh-id-1234",
-    nom: "DELMAS",
-    prenom: "Claire",
-    email: "drh@agilly.com",
-    role: "RH",
-    poste: "Directrice des Ressources Humaines",
-    departement: "Direction des Ressources Humaines",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  DRH: {
-    id: "drh-id-1234",
-    nom: "DELMAS",
-    prenom: "Claire",
-    email: "drh@agilly.com",
-    role: "DRH",
-    poste: "Directrice des Ressources Humaines",
-    departement: "Direction Générale RH",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  ADMIN: {
-    id: "adm-001",
-    nom: "AGILLY",
-    prenom: "Admin",
-    email: "admin@agilly.com",
-    role: "ADMIN",
-    poste: "Administrateur Système RHEVAL",
-    departement: "IT & Sécurité",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-};
-
 // ─── Provider ───────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSimulated, setIsSimulated] = useState(false);
 
-  // Synchronisation dynamique avec la session Microsoft Entra ID ou rôle simulé
+  // Synchronisation dynamique avec la session Microsoft Entra ID réelle
   useEffect(() => {
     if (status === "loading") {
       setIsLoading(true);
       return;
     }
-
-    // 1. Priorité au rôle simulé pour les tests (sessionStorage)
-    const simulatedRole = typeof window !== "undefined" ? (sessionStorage.getItem("agilly_simulated_role") as Role) : null;
-    if (simulatedRole && DEMO_USERS_BY_ROLE[simulatedRole]) {
-      const simUser = DEMO_USERS_BY_ROLE[simulatedRole];
-      setUser(simUser);
-      setIsSimulated(true);
-      localStorage.setItem("agilly_user", JSON.stringify(simUser));
-      localStorage.setItem("agilly_token", "simulated_token_" + simulatedRole);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsSimulated(false);
 
     if (status === "authenticated" && session?.user) {
       const u = session.user as any;
@@ -159,13 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const realUser: User = {
-        id: u.id || "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb",
+        id: u.id,
         nom: nom || "Connecté",
         prenom: prenom,
-        email: u.email || "collaborateur@agilly.com",
+        email: u.email || "",
         role: (u.role as Role) || "SALARIE",
-        poste: u.jobTitle || "Ingénieur Cloud & Mobilité",
-        departement: u.department || "Direction Technique",
+        poste: u.jobTitle || "Collaborateur",
+        departement: u.department || "Direction",
         telephone: u.mobilePhone || "",
         n1: n1,
         createdAt: new Date().toISOString(),
@@ -178,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("agilly_token", u.accessToken);
       }
 
-      // Synchronisation immédiate avec la base de données PostgreSQL
+      // Synchronisation avec la base de données PostgreSQL
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
       fetch(`${apiUrl}/auth/sync-session`, {
         method: "POST",
@@ -192,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           departement: realUser.departement,
           telephone: realUser.telephone,
           role: realUser.role,
-          managerId: u.manager?.id || "manager-id-5678",
+          managerId: u.manager?.id || null,
         }),
       }).catch((e) => console.warn("[AuthContext] sync-session non bloquant:", e));
 
@@ -200,65 +115,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Utilisateur par défaut local si hors ligne ou déconnecté
-    const stored = localStorage.getItem("agilly_user");
+    // Si non connecté via Microsoft, vérifier si une session locale persiste
+    const stored = typeof window !== "undefined" ? localStorage.getItem("agilly_user") : null;
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         setUser(parsed);
       } catch {
-        setUser(DEMO_USERS_BY_ROLE["SALARIE"]);
+        setUser(null);
       }
     } else {
-      setUser(DEMO_USERS_BY_ROLE["SALARIE"]);
+      setUser(null);
     }
     setIsLoading(false);
   }, [status, session]);
 
-  const login = async (email: string, password: string): Promise<void> => {
-    await new Promise((r) => setTimeout(r, 600));
-
-    const role: Role = email.includes("rh")
-      ? "RH"
-      : email.includes("n2")
-      ? "N2"
-      : email.includes("n1")
-      ? "N1"
-      : email.includes("admin")
-      ? "ADMIN"
-      : "SALARIE";
-
-    const selectedUser = {
-      ...DEMO_USERS_BY_ROLE[role],
-      email,
-    };
-
-    localStorage.setItem("agilly_user", JSON.stringify(selectedUser));
-    localStorage.setItem("agilly_token", "demo_token_" + role);
-    setUser(selectedUser);
-
-    window.location.href = "/portail";
+  const login = async (email: string): Promise<void> => {
+    // Méthode de secours
+    console.info("[Auth] Connexion standard pour:", email);
   };
 
   const switchRole = (newRole: Role) => {
-    sessionStorage.setItem("agilly_simulated_role", newRole);
-    const newUser = DEMO_USERS_BY_ROLE[newRole] || DEMO_USERS_BY_ROLE["SALARIE"];
-    localStorage.setItem("agilly_user", JSON.stringify(newUser));
-    localStorage.setItem("agilly_token", "simulated_token_" + newRole);
-    setUser(newUser);
-    setIsSimulated(true);
-    window.location.href = ROLE_DASHBOARD[newRole] || "/dashboard/mon-espace";
+    if (user) {
+      const updatedUser = { ...user, role: newRole };
+      setUser(updatedUser);
+      localStorage.setItem("agilly_user", JSON.stringify(updatedUser));
+      window.location.href = ROLE_DASHBOARD[newRole] || "/dashboard/mon-espace";
+    }
   };
 
   const resetToSsoUser = () => {
-    sessionStorage.removeItem("agilly_simulated_role");
-    setIsSimulated(false);
-    localStorage.removeItem("agilly_user");
     window.location.href = "/portail";
   };
 
   const logout = async () => {
-    sessionStorage.removeItem("agilly_simulated_role");
     localStorage.removeItem("agilly_user");
     localStorage.removeItem("agilly_token");
     setUser(null);
@@ -275,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: user?.role ?? null,
         isLoading,
         isAuthenticated: !!user,
-        isSimulated,
+        isSimulated: false,
         login,
         switchRole,
         resetToSsoUser,
