@@ -8,7 +8,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { objectivesApi } from "@/lib/api/objectives.api";
+import { cyclesApi } from "@/lib/api/cycles.api";
 import { ScaleIcon, TrashIcon, TargetIcon, CheckCircleIcon, AlertTriangleIcon } from "@/components/ui/Icons";
+import type { Cycle } from "@/types";
 
 interface ModalDefinirObjectifsProps {
   isOpen: boolean;
@@ -64,6 +66,7 @@ export function ModalDefinirObjectifs({
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [activeCycle, setActiveCycle] = useState<Cycle | null | undefined>(undefined);
 
   // Eviter les doubles chargements
   const loadedForIdRef = useRef<string | null>(null);
@@ -113,6 +116,11 @@ export function ModalDefinirObjectifs({
 
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    // Vérifier l'existence d'une campagne RH active
+    cyclesApi.getActif()
+      .then((c) => setActiveCycle(c))
+      .catch(() => setActiveCycle(null));
 
     // Si des objectifs initiaux sont fournis
     if (initialObjectifs && initialObjectifs.length > 0) {
@@ -199,6 +207,11 @@ export function ModalDefinirObjectifs({
 
   const handleSave = async () => {
     if (!canEdit) return;
+
+    if (activeCycle === null) {
+      setErrorMessage("Action bloquée : Aucune campagne d'évaluation n'est actuellement ouverte par les RH. Veuillez attendre le lancement officiel de la campagne.");
+      return;
+    }
 
     // Validation des intitulés
     const invalidObj = objectifsState.find((o) => !o.intitule || o.intitule.trim() === "");
@@ -298,6 +311,19 @@ export function ModalDefinirObjectifs({
           <div className="px-6 py-3 bg-emerald-50 border-b border-emerald-200 flex items-center gap-2">
             <span className="text-emerald-600 font-bold text-base">✓</span>
             <p className="text-xs font-bold text-emerald-800 m-0">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Alerte si aucune campagne active n'est ouverte */}
+        {activeCycle === null && (
+          <div className="px-6 py-3.5 bg-amber-50 border-b border-amber-200 flex items-center gap-3">
+            <AlertTriangleIcon size={18} className="text-amber-600 shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-amber-900 m-0">Aucune campagne d'évaluation active</p>
+              <p className="text-[11px] text-amber-800 m-0 mt-0.5 font-medium">
+                La fixation des objectifs nécessite une campagne ouverte par les RH. La validation et la transmission des objectifs sont suspendues tant que la campagne n'est pas lancée.
+              </p>
+            </div>
           </div>
         )}
 
@@ -597,8 +623,9 @@ export function ModalDefinirObjectifs({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={isSaving}
-                className="px-6 py-2.5 bg-[#F0822A] hover:bg-[#d97220] text-white font-black text-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                disabled={isSaving || activeCycle === null}
+                title={activeCycle === null ? "Action suspendue : aucune campagne active n'est ouverte par les RH" : undefined}
+                className="px-6 py-2.5 bg-[#F0822A] hover:bg-[#d97220] text-white font-black text-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
               >
                 {isSaving ? (
                   <>

@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, Button, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
@@ -15,13 +15,21 @@ import { UsersIcon, TargetIcon, AlertTriangleIcon } from "@/components/ui/Icons"
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTeam } from "@/lib/hooks/useTeam";
-import type { User } from "@/types";
+import { cyclesApi } from "@/lib/api/cycles.api";
+import type { User, Cycle } from "@/types";
 
 export default function MonEquipePage() {
   const { user } = useAuth();
   const [selectedCollab, setSelectedCollab] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeCycle, setActiveCycle] = useState<Cycle | null | undefined>(undefined);
   const { isLoading, error, search } = useMyTeam();
+
+  useEffect(() => {
+    cyclesApi.getActif()
+      .then((c) => setActiveCycle(c))
+      .catch(() => setActiveCycle(null));
+  }, []);
 
   const filteredTeam = search(searchQuery);
 
@@ -74,6 +82,19 @@ export default function MonEquipePage() {
               subtitle="Gérez les objectifs et suivez la performance de votre périmètre d'équipe"
               breadcrumbs={[{ label: "Espace Manager" }, { label: "Collaborateurs" }]}
             />
+
+            {/* Alerte si aucune campagne RH n'est active */}
+            {activeCycle === null && (
+              <div className="bg-amber-50 border border-amber-300 p-4 text-amber-900 text-sm font-semibold flex items-center gap-3">
+                <AlertTriangleIcon size={20} className="text-amber-600 shrink-0" />
+                <div>
+                  <p className="font-bold text-amber-900 m-0">Campagne d'évaluation non ouverte</p>
+                  <p className="m-0 mt-0.5 text-xs text-amber-800 font-normal">
+                    Aucune campagne d'évaluation n'est actuellement ouverte par les RH. La fixation et la validation des objectifs de vos collaborateurs débuteront dès le lancement officiel de la campagne.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <Card padding="lg" className="bg-white border border-slate-200">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-slate-100 pb-4">
@@ -138,12 +159,12 @@ export default function MonEquipePage() {
                           {member.role}
                         </span>
                         <Button
-                          variant="primary"
+                          variant={activeCycle === null ? "secondary" : "primary"}
                           size="sm"
                           leftIcon={<TargetIcon size={14} />}
                           onClick={() => setSelectedCollab(member)}
                         >
-                          Fixer les Objectifs
+                          {activeCycle === null ? "Consulter les Objectifs" : "Fixer les Objectifs"}
                         </Button>
                       </div>
                     </div>
