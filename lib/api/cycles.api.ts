@@ -30,8 +30,8 @@ export const cyclesApi = {
    */
   getActif: async (): Promise<Cycle | null> => {
     try {
-      const res = await client.get<Cycle | null>("/rh/cycles/actif");
-      if (res) return res;
+      const res = await client.get<Cycle | any>("/rh/cycles/actif");
+      if (res && res.id) return res; // Si on a bien un objet avec un id
       return null;
     } catch (err) {
       console.error("[cyclesApi.getActif] Backend error:", err);

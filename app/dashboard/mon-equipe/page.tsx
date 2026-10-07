@@ -159,12 +159,13 @@ export default function MonEquipePage() {
                           {member.role}
                         </span>
                         <Button
-                          variant={activeCycle === null ? "secondary" : "primary"}
+                          variant={!activeCycle ? "secondary" : "primary"}
                           size="sm"
                           leftIcon={<TargetIcon size={14} />}
                           onClick={() => setSelectedCollab(member)}
+                          disabled={!activeCycle}
                         >
-                          {activeCycle === null ? "Consulter les Objectifs" : "Fixer les Objectifs"}
+                          {!activeCycle ? "Consulter les Objectifs" : "Fixer les Objectifs"}
                         </Button>
                       </div>
                     </div>
