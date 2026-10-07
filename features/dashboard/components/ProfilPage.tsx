@@ -104,7 +104,7 @@ export function ProfilPage({ role }: { role: string }) {
       <PageHeader
         title="Mon Profil"
         subtitle="Gerez vos informations personnelles et professionnelles."
-        breadcrumbs={[{ label: "Mon espace", href: `/dashboard/${role}` }, { label: "Profil" }]}
+        breadcrumbs={[{ label: "Mon espace", href: "/dashboard/mon-espace" }, { label: "Profil" }]}
       />
 
 

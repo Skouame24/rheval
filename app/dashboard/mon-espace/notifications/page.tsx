@@ -47,7 +47,7 @@ export default function NotificationsPage() {
       <PageHeader
         title="Mes Notifications"
         subtitle="Toutes vos alertes et activités relatives au cycle"
-        breadcrumbs={[{ label: "Mon espace", href: "/dashboard/salarie" }, { label: "Notifications" }]}
+        breadcrumbs={[{ label: "Mon espace", href: "/dashboard/mon-espace" }, { label: "Notifications" }]}
       />
 
       <div className="bg-white border border-gray-200 rounded-none shadow-sm flex flex-col">
