@@ -110,15 +110,93 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+// ─── Cache en mémoire & Déduplication des requêtes ──────────────
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const apiCache = new Map<string, CacheEntry<unknown>>();
+const pendingRequests = new Map<string, Promise<unknown>>();
+const DEFAULT_CACHE_TTL = 3 * 60 * 1000; // 3 minutes de validité
+
+function getCacheKey(endpoint: string): string {
+  if (typeof window === "undefined") return endpoint;
+  let uId = "anon";
+  try {
+    const savedUser = localStorage.getItem("agilly_user");
+    if (savedUser) {
+      uId = JSON.parse(savedUser).id || "anon";
+    }
+  } catch {}
+  return `${uId}:${endpoint}`;
+}
+
+export function clearApiCache(prefix?: string) {
+  if (!prefix) {
+    apiCache.clear();
+    return;
+  }
+  for (const key of apiCache.keys()) {
+    if (key.includes(prefix)) {
+      apiCache.delete(key);
+    }
+  }
+}
+
 // ─── Méthodes HTTP ──────────────────────────────────────────
 
 export const client = {
-  get: async <T>(endpoint: string): Promise<T> => {
-    const response = await fetch(`${getBaseUrl()}${endpoint}`, {
-      method: "GET",
-      headers: getHeaders(),
-    });
-    return handleResponse<T>(response);
+  /** Invalidation manuelle du cache client */
+  clearCache: clearApiCache,
+
+  get: async <T>(
+    endpoint: string,
+    options?: { bypassCache?: boolean; ttl?: number }
+  ): Promise<T> => {
+    // Si exécuté côté serveur (SSR), pas de cache en mémoire
+    if (typeof window === "undefined") {
+      const response = await fetch(`${getBaseUrl()}${endpoint}`, {
+        method: "GET",
+        headers: getHeaders(),
+      });
+      return handleResponse<T>(response);
+    }
+
+    const cacheKey = getCacheKey(endpoint);
+    const ttl = options?.ttl ?? DEFAULT_CACHE_TTL;
+
+    // 1. Retour instantané si en cache valide (0ms, aucun appel réseau)
+    if (!options?.bypassCache) {
+      const cached = apiCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < ttl) {
+        return cached.data as T;
+      }
+    }
+
+    // 2. Déduplication si la requête est déjà en cours d'exécution
+    if (pendingRequests.has(cacheKey)) {
+      return pendingRequests.get(cacheKey) as Promise<T>;
+    }
+
+    // 3. Exécution de l'appel réseau
+    const requestPromise = (async () => {
+      try {
+        const response = await fetch(`${getBaseUrl()}${endpoint}`, {
+          method: "GET",
+          headers: getHeaders(),
+        });
+        const data = await handleResponse<T>(response);
+        apiCache.set(cacheKey, { data, timestamp: Date.now() });
+        return data;
+      } finally {
+        pendingRequests.delete(cacheKey);
+      }
+    })();
+
+    pendingRequests.set(cacheKey, requestPromise);
+    return requestPromise;
   },
 
   post: async <T>(endpoint: string, body: unknown): Promise<T> => {
@@ -127,7 +205,10 @@ export const client = {
       headers: getHeaders(true),
       body: JSON.stringify(body),
     });
-    return handleResponse<T>(response);
+    const result = await handleResponse<T>(response);
+    // Invalidation automatique du cache après mutation
+    clearApiCache();
+    return result;
   },
 
   put: async <T>(endpoint: string, body?: unknown): Promise<T> => {
@@ -136,7 +217,9 @@ export const client = {
       headers: getHeaders(!!body),
       body: body ? JSON.stringify(body) : undefined,
     });
-    return handleResponse<T>(response);
+    const result = await handleResponse<T>(response);
+    clearApiCache();
+    return result;
   },
 
   patch: async <T>(endpoint: string, body: unknown): Promise<T> => {
@@ -145,7 +228,9 @@ export const client = {
       headers: getHeaders(true),
       body: JSON.stringify(body),
     });
-    return handleResponse<T>(response);
+    const result = await handleResponse<T>(response);
+    clearApiCache();
+    return result;
   },
 
   delete: async <T>(endpoint: string): Promise<T> => {
@@ -153,7 +238,9 @@ export const client = {
       method: "DELETE",
       headers: getHeaders(),
     });
-    return handleResponse<T>(response);
+    const result = await handleResponse<T>(response);
+    clearApiCache();
+    return result;
   },
 
   // Téléchargement de fichier (ex: export Excel)
