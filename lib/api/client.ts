@@ -52,6 +52,7 @@ function getHeaders(includeBody = false): HeadersInit {
       try {
         const u = JSON.parse(savedUser);
         if (u.id) headers["x-user-id"] = u.id;
+        if (u.email) headers["x-user-email"] = u.email;
       } catch {}
     }
   }

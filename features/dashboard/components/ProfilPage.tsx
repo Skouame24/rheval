@@ -40,42 +40,52 @@ export function ProfilPage({ role }: { role: string }) {
       .finally(() => setIsLoadingProfile(false));
   }, []);
 
-  // Synchronise les champs quand les donnees arrivent - fusion intelligente
+  // Synchronise les champs quand les donnees arrivent - source de vérité SSO garantie
   useEffect(() => {
-    if (backendProfile || ssoUser) {
-      // Priorité au prénom le plus complet
-      const prenomFinal =
-        (ssoUser?.prenom && ssoUser.prenom.length > (backendProfile?.prenom?.length || 0))
-          ? ssoUser.prenom
-          : (backendProfile?.prenom || ssoUser?.prenom || "");
+    if (ssoUser) {
+      // Valider que le profil backend correspond bien au même utilisateur (sécurité absolue)
+      const isSameUser = backendProfile && (
+        backendProfile.id === ssoUser.id ||
+        (backendProfile.email && ssoUser.email && backendProfile.email.toLowerCase() === ssoUser.email.toLowerCase())
+      );
+      const verifiedBackend = isSameUser ? backendProfile : null;
 
-      const nomFinal = ssoUser?.nom || backendProfile?.nom || "";
+      const nomFinal = ssoUser.nom || verifiedBackend?.nom || "";
+      const prenomFinal = ssoUser.prenom || verifiedBackend?.prenom || "";
+      const telFinal = (ssoUser as any)?.telephone || verifiedBackend?.telephone || "";
 
-      console.log("🔍 [ProfilPage] Détail des informations utilisateur :", {
-        source: backendProfile ? "Backend (DB)" : "SSO Microsoft",
-        backendProfile,
+      console.log("🔍 [ProfilPage] Utilisateur connecté :", {
         ssoUser,
-        prenomFinal,
+        verifiedBackend,
         nomFinal,
-        managerN1: backendProfile?.n1 || ssoUser?.n1,
-        telephone: backendProfile?.telephone || (ssoUser as any)?.telephone || "",
+        prenomFinal,
       });
 
       setPrenom(prenomFinal);
       setNom(nomFinal);
-      setTelephone(backendProfile?.telephone || (ssoUser as any)?.telephone || "");
+      setTelephone(telFinal);
     }
   }, [backendProfile, ssoUser]);
 
-  const user: User | null = ssoUser || backendProfile ? ({
-    ...(ssoUser || {}),
-    ...(backendProfile || {}),
-    prenom: prenom || backendProfile?.prenom || ssoUser?.prenom || "",
-    nom: nom || backendProfile?.nom || ssoUser?.nom || "",
-    n1: backendProfile?.n1 || ssoUser?.n1,
-    n2: backendProfile?.n2 || ssoUser?.n2,
-    telephone: telephone || backendProfile?.telephone || (ssoUser as any)?.telephone || "",
-    poste: (backendProfile?.poste && backendProfile.poste !== "Collaborateur Agilly") ? backendProfile.poste : (ssoUser?.poste || backendProfile?.poste || "Collaborateur Agilly"),
+  // L'utilisateur SSO est toujours la référence principale
+  const isSameUser = backendProfile && ssoUser && (
+    backendProfile.id === ssoUser.id ||
+    (backendProfile.email && ssoUser.email && backendProfile.email.toLowerCase() === ssoUser.email.toLowerCase())
+  );
+  const verifiedBackend = isSameUser ? backendProfile : null;
+
+  const user: User | null = ssoUser ? ({
+    ...ssoUser,
+    id: ssoUser.id,
+    email: ssoUser.email,
+    role: ssoUser.role,
+    nom: nom || ssoUser.nom,
+    prenom: prenom || ssoUser.prenom,
+    poste: ssoUser.poste || verifiedBackend?.poste || "Collaborateur",
+    departement: ssoUser.departement || verifiedBackend?.departement || "Direction",
+    telephone: telephone || (ssoUser as any)?.telephone || verifiedBackend?.telephone || "",
+    n1: ssoUser.n1 || verifiedBackend?.n1,
+    n2: ssoUser.n2 || verifiedBackend?.n2,
   } as User) : null;
 
   if (!ssoUser || isLoadingProfile) {

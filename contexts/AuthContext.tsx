@@ -93,9 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("agilly_token", u.accessToken);
       }
 
-      // Synchronisation avec la base de données PostgreSQL
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
-      fetch(`${apiUrl}/auth/sync-session`, {
+      // Synchronisation avec la base de données PostgreSQL via /api/proxy (HTTPS, même domaine, pas de Mixed Content ni CORS)
+      const syncUrl = typeof window !== "undefined" ? "/api/proxy/auth/sync-session" : `${process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api"}/auth/sync-session`;
+      fetch(syncUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
