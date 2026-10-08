@@ -71,8 +71,8 @@ export const ROLE_METADATA: Record<Role, RoleMetadata> = {
     emoji: "👔",
   },
   N2: {
-    label: "Manager N+2",
-    labelCourt: "N+2",
+    label: "Directeur (N+2)",
+    labelCourt: "Directeur",
     description: "Réalise son évaluation indépendante et participe à l'arbitrage",
     color: "#7C3AED",
     bg: "#F5F3FF",

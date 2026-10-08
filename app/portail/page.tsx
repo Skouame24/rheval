@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 import { useRouter } from "next/navigation";
 import PortailLoading from "./loading";
+import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 
 export default function PortailPage() {
   const { user, role, isLoading, logout } = useAuth();
@@ -18,8 +19,12 @@ export default function PortailPage() {
     return null;
   }
 
+  const detected = detectRoleFromPoste(user.poste, user.email);
+  const targetRole = (role === "SALARIE" && detected.role !== "SALARIE") ? detected.role : role;
+  const displayLabel = detected.displayRole === "PDG" ? "PDG" : (detected.displayRole === "STAGIAIRE" ? "Stagiaire" : (detected.label || targetRole));
+
   const navigateToDashboard = () => {
-    const dashboardRoute = ROLE_DASHBOARD[role] || "/dashboard/mon-espace";
+    const dashboardRoute = ROLE_DASHBOARD[targetRole] || "/dashboard/mon-espace";
     router.push(dashboardRoute);
   };
 
@@ -71,7 +76,7 @@ export default function PortailPage() {
           <div className="text-right hidden md:block">
             <p className="text-sm font-extrabold text-slate-900 m-0">{user.prenom} {user.nom}</p>
             <span className="text-[10px] font-bold text-[#F0822A] uppercase tracking-widest bg-orange-50 px-2 py-0.5 border border-orange-200 inline-block mt-0.5">
-              {user.role}
+              {displayLabel}
             </span>
           </div>
           <button 

@@ -9,6 +9,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
+import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -74,18 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       let assignedRole: Role = (u.role as Role) || "SALARIE";
-      if (assignedRole === "SALARIE" && u.jobTitle) {
-        const jobLower = u.jobTitle.toLowerCase();
-        if (jobLower.includes("directeur") || jobLower.includes("director")) {
-          assignedRole = "N2";
-        } else if (
-          jobLower.includes("responsable") ||
-          jobLower.includes("manager") ||
-          jobLower.includes("chef") ||
-          jobLower.includes("lead")
-        ) {
-          assignedRole = "N1";
-        }
+      // Détection automatique intelligente basée sur le poste (Directeur, Responsable, RH, etc.)
+      const detected = detectRoleFromPoste(u.jobTitle, u.email);
+      if (assignedRole === "SALARIE" || assignedRole === "N1") {
+        assignedRole = detected.role;
       }
 
       const realUser: User = {

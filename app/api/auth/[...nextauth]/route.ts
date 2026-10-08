@@ -7,6 +7,7 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import type { Role } from "@/types";
+import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 
 /** Enrichit le token avec les données Graph API (jobTitle, mobilePhone, department, manager) */
 async function fetchGraphProfile(accessToken: string): Promise<{
@@ -126,28 +127,22 @@ export const authOptions: NextAuthOptions = {
 
       // 2. Appel Graph API pour récupérer jobTitle, mobilePhone et Manager
       const tokenToUse = account?.access_token || token.accessToken;
-      if (tokenToUse && !token.manager) {
-        const graphData = await fetchGraphProfile(tokenToUse);
-        if (graphData) {
-          token.jobTitle = graphData.jobTitle || token.jobTitle;
-          token.mobilePhone = graphData.mobilePhone || token.mobilePhone;
-          token.department = graphData.department || token.department;
-          token.manager = graphData.manager || token.manager;
-
-          // Détection automatique du rôle si l'intitulé du poste Microsoft indique Responsable/Manager/Directeur
-          if (token.role === "SALARIE" && token.jobTitle) {
-            const titleLower = token.jobTitle.toLowerCase();
-            if (titleLower.includes("directeur") || titleLower.includes("director")) {
-              token.role = "N2";
-            } else if (
-              titleLower.includes("responsable") ||
-              titleLower.includes("manager") ||
-              titleLower.includes("chef") ||
-              titleLower.includes("lead")
-            ) {
-              token.role = "N1";
-            }
+      if (tokenToUse) {
+        if (!token.jobTitle || !token.manager) {
+          const graphData = await fetchGraphProfile(tokenToUse);
+          if (graphData) {
+            token.jobTitle = graphData.jobTitle || token.jobTitle;
+            token.mobilePhone = graphData.mobilePhone || token.mobilePhone;
+            token.department = graphData.department || token.department;
+            token.manager = graphData.manager || token.manager;
           }
+        }
+
+        // Si aucun rôle Azure spécifique n'est assigné, détection fine par l'intitulé de poste
+        const azureRoles: string[] = profile?.roles || [];
+        if (azureRoles.length === 0 || token.role === "SALARIE") {
+          const detected = detectRoleFromPoste(token.jobTitle, token.email);
+          token.role = detected.role;
         }
       }
 

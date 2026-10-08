@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ROLE_METADATA } from "@/lib/constants/roles";
 import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 
 interface HeaderProps {
   role: Role;
@@ -20,7 +21,7 @@ interface HeaderProps {
 const ROLES_LIST: { role: Role; label: string; badgeBg: string }[] = [
   { role: "SALARIE", label: "Salarié", badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   { role: "N1", label: "Responsable (N+1)", badgeBg: "bg-orange-50 text-[#F0822A] border-orange-200" },
-  { role: "N2", label: "Direction N+2", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
+  { role: "N2", label: "Directeur (N+2)", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
   { role: "RH", label: "DRH", badgeBg: "bg-purple-50 text-purple-700 border-purple-200" },
   { role: "ADMIN", label: "Admin", badgeBg: "bg-slate-100 text-slate-800 border-slate-300" },
 ];
@@ -30,6 +31,8 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
+  const detected = detectRoleFromPoste(user?.poste, user?.email);
+  const displayLabel = detected.displayRole === "PDG" ? "PDG" : (detected.displayRole === "STAGIAIRE" ? "Stagiaire" : roleInfo.labelCourt);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -90,7 +93,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 {userName}
               </p>
               <p className="text-[10px] font-bold text-[#F0822A] uppercase tracking-wider mt-0.5">
-                {roleInfo.labelCourt}
+                {displayLabel}
               </p>
             </div>
 
@@ -107,7 +110,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 <p className="text-sm font-bold text-slate-900 mt-1">{userName}</p>
                 <p className="text-xs text-slate-500">{user?.email || "utilisateur@agilly.com"}</p>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none text-xs font-bold bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/30">
-                  Rôle actuel : {roleInfo.labelCourt || currentRole}
+                  Rôle actuel : {displayLabel}
                 </div>
               </div>
 
