@@ -133,6 +133,21 @@ export const authOptions: NextAuthOptions = {
           token.mobilePhone = graphData.mobilePhone || token.mobilePhone;
           token.department = graphData.department || token.department;
           token.manager = graphData.manager || token.manager;
+
+          // Détection automatique du rôle si l'intitulé du poste Microsoft indique Responsable/Manager/Directeur
+          if (token.role === "SALARIE" && token.jobTitle) {
+            const titleLower = token.jobTitle.toLowerCase();
+            if (titleLower.includes("directeur") || titleLower.includes("director")) {
+              token.role = "N2";
+            } else if (
+              titleLower.includes("responsable") ||
+              titleLower.includes("manager") ||
+              titleLower.includes("chef") ||
+              titleLower.includes("lead")
+            ) {
+              token.role = "N1";
+            }
+          }
         }
       }
 

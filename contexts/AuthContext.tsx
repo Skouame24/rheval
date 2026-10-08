@@ -73,12 +73,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
+      let assignedRole: Role = (u.role as Role) || "SALARIE";
+      if (assignedRole === "SALARIE" && u.jobTitle) {
+        const jobLower = u.jobTitle.toLowerCase();
+        if (jobLower.includes("directeur") || jobLower.includes("director")) {
+          assignedRole = "N2";
+        } else if (
+          jobLower.includes("responsable") ||
+          jobLower.includes("manager") ||
+          jobLower.includes("chef") ||
+          jobLower.includes("lead")
+        ) {
+          assignedRole = "N1";
+        }
+      }
+
       const realUser: User = {
         id: u.id,
         nom: nom || "Connecté",
         prenom: prenom,
         email: u.email || "",
-        role: (u.role as Role) || "SALARIE",
+        role: assignedRole,
         poste: u.jobTitle || "Collaborateur",
         departement: u.department || "Direction",
         telephone: u.mobilePhone || "",

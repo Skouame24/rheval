@@ -19,7 +19,7 @@ interface HeaderProps {
 
 const ROLES_LIST: { role: Role; label: string; badgeBg: string }[] = [
   { role: "SALARIE", label: "Salarié", badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { role: "N1", label: "Manager N+1", badgeBg: "bg-orange-50 text-[#F0822A] border-orange-200" },
+  { role: "N1", label: "Responsable (N+1)", badgeBg: "bg-orange-50 text-[#F0822A] border-orange-200" },
   { role: "N2", label: "Direction N+2", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
   { role: "RH", label: "DRH", badgeBg: "bg-purple-50 text-purple-700 border-purple-200" },
   { role: "ADMIN", label: "Admin", badgeBg: "bg-slate-100 text-slate-800 border-slate-300" },
@@ -107,7 +107,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 <p className="text-sm font-bold text-slate-900 mt-1">{userName}</p>
                 <p className="text-xs text-slate-500">{user?.email || "utilisateur@agilly.com"}</p>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none text-xs font-bold bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/30">
-                  Rôle actuel : {currentRole}
+                  Rôle actuel : {roleInfo.labelCourt || currentRole}
                 </div>
               </div>
 
