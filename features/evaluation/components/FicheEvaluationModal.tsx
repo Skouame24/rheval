@@ -571,32 +571,26 @@ export function FicheEvaluationModal({
   };
 
   // Validation Évaluation N+2
-  const handleSaveN2 = async (customDecision?: "APPROUVE" | "ARBITRAGE") => {
+  const handleSaveN2 = async (customDecision?: "APPROUVE" | "REJETE") => {
     if (!resolvedFicheId) {
       alert("Aucune fiche d'évaluation trouvée pour validation N+2.");
       return;
     }
     setIsSaving(true);
     setSaveSuccessMsg(null);
-    const finalDecision = customDecision || decisionN2;
+    const finalDecision = customDecision || (decisionN2 as any);
     try {
-      await evaluationsApi.submitNotesN2(resolvedFicheId, {
-        evaluationCycleId: resolvedFicheId,
-        notes: objectifs.map((o) => ({
-          objectifId: o.id,
-          note: o.noteN2 ?? o.noteObtenue,
-          commentaire: o.commentaireN2,
-        })),
-        observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation N+2 validée sans réserve." : "Demande d'arbitrage hiérarchique."),
+      await evaluationsApi.validateNotesN2(resolvedFicheId, {
         decision: finalDecision,
-      } as any);
+        observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation N+2 validée sans réserve." : "Notes rejetées et renvoyées au N+1."),
+      });
 
-      const nextSt = finalDecision === "ARBITRAGE" ? "ARBITRAGE" : "VALIDATION_DRH";
+      const nextSt = finalDecision === "REJETE" ? "EVALUATION_N1" : "ACCORD_SALARIE";
       setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
       setSaveSuccessMsg(
-        finalDecision === "ARBITRAGE"
-          ? "La demande d'arbitrage N+2 a été transmise à la Direction RH."
-          : "L'évaluation N+2 a été validée avec succès et transmise à la Direction RH."
+        finalDecision === "REJETE"
+          ? "L'évaluation a été rejetée et renvoyée au N+1."
+          : "L'évaluation N+2 a été validée avec succès et transmise au collaborateur."
       );
       if (onSaved) onSaved();
       setTimeout(() => {
@@ -1273,14 +1267,14 @@ export function FicheEvaluationModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => canEditN2 && setDecisionN2("ARBITRAGE")}
+                  onClick={() => canEditN2 && setDecisionN2("REJETE")}
                   disabled={!canEditN2}
                   style={{
                     flex: 1,
                     padding: "9px 12px",
-                    border: decisionN2 === "ARBITRAGE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
-                    background: decisionN2 === "ARBITRAGE" ? "#FEF2F2" : "#FFFFFF",
-                    color: decisionN2 === "ARBITRAGE" ? "#991B1B" : "#475569",
+                    border: decisionN2 === "REJETE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
+                    background: decisionN2 === "REJETE" ? "#FEF2F2" : "#FFFFFF",
+                    color: decisionN2 === "REJETE" ? "#991B1B" : "#475569",
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: canEditN2 ? "pointer" : "default",
@@ -1531,7 +1525,7 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Enregistrement..." : decisionN2 === "ARBITRAGE" ? "Transmettre en Arbitrage" : "Valider l'Évaluation N+2"}
+                  {isSaving ? "Enregistrement..." : decisionN2 === "REJETE" ? "Transmettre en Arbitrage" : "Valider l'Évaluation N+2"}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
