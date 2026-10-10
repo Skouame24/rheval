@@ -115,6 +115,19 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     }
   }, [normalizedRole]);
 
+  const [hasTeam, setHasTeam] = useState(false);
+  const [hasN2Scope, setHasN2Scope] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/users/me/hierarchy')
+      .then(res => res.json())
+      .then(data => {
+         setHasTeam(data.hasTeam || false);
+         setHasN2Scope(data.hasN2Scope || false);
+      })
+      .catch(() => {});
+  }, []);
+
   const sections: NavSection[] = [];
 
   // NAVIGATION RH & DRH
@@ -143,13 +156,23 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     });
   }
 
-  // MANAGERS N+1 ET N+2
-  if (normalizedRole === "N1" || normalizedRole === "N2") {
+  // MANAGERS N+1
+  if (normalizedRole === "N1" || normalizedRole === "N2" || hasTeam) {
     sections.push({
       title: "MON ÉQUIPE",
       items: [
         { label: "Mes collaborateurs", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.team },
         { label: "Évaluations à valider", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+      ]
+    });
+  }
+
+  // MANAGERS N+2
+  if (normalizedRole === "N2" || hasN2Scope) {
+    sections.push({
+      title: "VALIDATION N+2",
+      items: [
+        { label: "Évaluations N+2", href: "/dashboard/mon-equipe/evaluations-n2", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }

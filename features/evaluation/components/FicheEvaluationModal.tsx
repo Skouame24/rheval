@@ -95,7 +95,7 @@ export function FicheEvaluationModal({
   const [showAddFormationForm, setShowAddFormationForm] = useState(false);
 
   // N+2 State
-  const [decisionN2, setDecisionN2] = useState<"APPROUVE" | "ARBITRAGE">("APPROUVE");
+  const [decisionN2, setDecisionN2] = useState<"APPROUVE" | "REJETE">("APPROUVE");
   const [observationN2, setObservationN2] = useState("");
 
   // RH State
@@ -1008,7 +1008,7 @@ export function FicheEvaluationModal({
                             display: "flex",
                             alignItems: "center",
                             gap: 12,
-                            cursor: (canEditSalarie || canEditN1 || canEditN2) ? "pointer" : "default",
+                            cursor: (canEditSalarie || canEditN1) ? "pointer" : "default",
                           }}
                         >
                           <span style={{
@@ -1036,14 +1036,14 @@ export function FicheEvaluationModal({
                       <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
                         Ajuster Note / 20
                       </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        step="0.5"
-                        disabled={!canEditSalarie && !canEditN1 && !canEditN2}
-                        value={currentNote}
-                        onChange={(e) => handleNoteChange(obj.id, e.target.value)}
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          step="0.5"
+                          disabled={!canEditSalarie && !canEditN1}
+                          value={currentNote}
+                          onChange={(e) => handleNoteChange(obj.id, e.target.value)}
                         style={{
                           width: 80,
                           height: 32,

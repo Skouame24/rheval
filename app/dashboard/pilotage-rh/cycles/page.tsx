@@ -90,6 +90,10 @@ export default function CyclesRhPage() {
                 libelle: cycleData.libelle,
                 dateDebut: cycleData.dateDebut,
                 dateFin: cycleData.dateFin,
+                dateDebutFixation: cycleData.dateDebutFixation,
+                dateFinFixation: cycleData.dateFinFixation,
+                dateDebutEval: cycleData.dateDebutEval,
+                dateFinEval: cycleData.dateFinEval,
               });
               await fetchCycles();
             } catch (err) {

@@ -119,7 +119,7 @@ export const rhApi = {
    * POST /api/rh/cycles
    * Crée une nouvelle campagne d'évaluation.
    */
-  creerCycle: async (data: { annee: number; libelle: string; dateDebut: string; dateFin: string }): Promise<any> => {
+  creerCycle: async (data: { annee: number; libelle: string; dateDebut: string; dateFin: string; dateDebutFixation?: string; dateFinFixation?: string; dateDebutEval?: string; dateFinEval?: string }): Promise<any> => {
     try {
       return await client.post("/rh/cycles", data);
     } catch (err) {

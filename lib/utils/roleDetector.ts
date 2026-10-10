@@ -95,3 +95,4 @@ export function detectRoleFromPoste(poste?: string, email?: string): RoleResolut
   // 7. Salarié standard (Collaborateur)
   return { role: "SALARIE", displayRole: "SALARIE", label: "Salarié" };
 }
+

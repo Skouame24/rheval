@@ -135,15 +135,46 @@ export const evaluationsApi = {
   },
 
   /**
-   * PUT /api/n2/evaluations/:id
-   * Contre-évaluation hiérarchique N+2 (avec détection écart > 2 pts).
-   * US-08 & US-09 — DashboardN2 / FicheEvaluationModal (rôle N2)
+   * PUT /api/n1/evaluations/:id/objectifs
    */
-  submitNotesN2: async (id: string, dto: ValiderEvaluationDto): Promise<EvaluationCycle> => {
+  submitObjectifsN1: async (
+    id: string,
+    dto: { objectifs: Array<{ intitule: string; description?: string; ponderation?: number }> }
+  ): Promise<EvaluationCycle> => {
+    try {
+      return await client.put<EvaluationCycle>(`/n1/evaluations/${id}/objectifs`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.submitObjectifsN1] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
+   * PUT /api/n2/evaluations/:id/objectifs
+   */
+  validateObjectifsN2: async (
+    id: string,
+    dto: { decision: "APPROUVE" | "REJETE"; observations?: string }
+  ): Promise<EvaluationCycle> => {
+    try {
+      return await client.put<EvaluationCycle>(`/n2/evaluations/${id}/objectifs`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.validateObjectifsN2] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
+   * PUT /api/n2/evaluations/:id
+   */
+  validateNotesN2: async (
+    id: string,
+    dto: { decision: "APPROUVE" | "REJETE"; observations?: string }
+  ): Promise<EvaluationCycle> => {
     try {
       return await client.put<EvaluationCycle>(`/n2/evaluations/${id}`, dto);
     } catch (err) {
-      console.error("[evaluationsApi.submitNotesN2] Backend error:", err);
+      console.error("[evaluationsApi.validateNotesN2] Backend error:", err);
       throw err;
     }
   },

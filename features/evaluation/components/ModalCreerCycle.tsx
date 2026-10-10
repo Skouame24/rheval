@@ -20,6 +20,10 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
   const [libelle, setLibelle] = useState(`Campagne d'Évaluation Annuelle ${currentYear}`);
   const [dateDebut, setDateDebut] = useState(`${currentYear}-01-01`);
   const [dateFin, setDateFin] = useState(`${currentYear}-12-31`);
+  const [dateDebutFixation, setDateDebutFixation] = useState(`${currentYear}-01-01`);
+  const [dateFinFixation, setDateFinFixation] = useState(`${currentYear}-03-31`);
+  const [dateDebutEval, setDateDebutEval] = useState(`${currentYear}-06-01`);
+  const [dateFinEval, setDateFinEval] = useState(`${currentYear}-12-31`);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -35,6 +39,10 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
         libelle,
         dateDebut,
         dateFin,
+        dateDebutFixation,
+        dateFinFixation,
+        dateDebutEval,
+        dateFinEval,
       });
       onSuccess(result);
       onClose();
@@ -147,6 +155,60 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
                 required
                 value={dateFin}
                 onChange={(e) => setDateFin(e.target.value)}
+                style={{ width: "100%", height: 42, padding: "0 12px", borderRadius: 0, border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 700, outline: "none", background: "#FFFFFF" }}
+              />
+            </div>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 900, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                Début Fixation Objectifs
+              </label>
+              <input
+                type="date"
+                required
+                value={dateDebutFixation}
+                onChange={(e) => setDateDebutFixation(e.target.value)}
+                style={{ width: "100%", height: 42, padding: "0 12px", borderRadius: 0, border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 700, outline: "none", background: "#FFFFFF" }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 900, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                Fin Fixation Objectifs
+              </label>
+              <input
+                type="date"
+                required
+                value={dateFinFixation}
+                onChange={(e) => setDateFinFixation(e.target.value)}
+                style={{ width: "100%", height: 42, padding: "0 12px", borderRadius: 0, border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 700, outline: "none", background: "#FFFFFF" }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 900, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                Début Évaluation
+              </label>
+              <input
+                type="date"
+                required
+                value={dateDebutEval}
+                onChange={(e) => setDateDebutEval(e.target.value)}
+                style={{ width: "100%", height: 42, padding: "0 12px", borderRadius: 0, border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 700, outline: "none", background: "#FFFFFF" }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 900, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                Fin Évaluation
+              </label>
+              <input
+                type="date"
+                required
+                value={dateFinEval}
+                onChange={(e) => setDateFinEval(e.target.value)}
                 style={{ width: "100%", height: 42, padding: "0 12px", borderRadius: 0, border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 700, outline: "none", background: "#FFFFFF" }}
               />
             </div>
