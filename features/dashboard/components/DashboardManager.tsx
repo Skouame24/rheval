@@ -19,7 +19,7 @@ import { UsersIcon, CheckCircleIcon, ClockIcon, PencilIcon, EyeIcon, ChartBarIco
 
 const STATS = [
   { label: "Collaborateurs à évaluer", value: "5", subValue: "2 restants (Équipe directe)", icon: <UsersIcon size={20} className="text-agilly-primary" />, progress: 60 },
-  { label: "Validations N+2 requises", value: "3", subValue: "En attente", icon: <CheckCircleIcon size={20} className="text-green-600" />, color: "text-green-600", bg: "bg-green-50" },
+  { label: "Validations requises", value: "3", subValue: "En attente", icon: <CheckCircleIcon size={20} className="text-green-600" />, color: "text-green-600", bg: "bg-green-50" },
   { label: "Arbitrages en cours", value: "1", subValue: "Action requise", icon: <ScaleIcon size={20} className="text-red-600" />, color: "text-red-600", bg: "bg-red-50" },
   { label: "Évaluations soumises", value: "8", subValue: "Ce cycle", icon: <ChartBarIcon size={20} className="text-[#F0822A]" />, color: "text-[#F0822A]", bg: "bg-[#FFF7ED]" },
 ];
@@ -162,7 +162,7 @@ export function DashboardManager() {
         <div className="flex flex-col gap-6">
           <Card padding="none" className="overflow-hidden">
             <div className="p-5 md:p-6 border-b border-gray-200 bg-white">
-              <CardHeader title="Mes Validations (N+2)" subtitle="Revues hiérarchiques en attente" />
+              <CardHeader title="Validations de la Direction" subtitle="Revues hiérarchiques en attente" />
             </div>
             <div className="bg-[#F4F7FB]">
               {isLoading ? (
@@ -173,7 +173,7 @@ export function DashboardManager() {
                 </div>
               ) : equipeN2.length === 0 ? (
                 <div className="p-5 text-center">
-                  <p className="text-sm text-slate-500">Aucune validation N+2 requise pour le moment.</p>
+                  <p className="text-sm text-slate-500">Aucune validation requise pour le moment.</p>
                 </div>
               ) : (
                 equipeN2.map((ev, idx) => (

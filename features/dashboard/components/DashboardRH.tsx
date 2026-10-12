@@ -80,8 +80,8 @@ export function DashboardRH() {
   ];
 
   const pipeline = [
-    { label: "En attente N+1", count: stats?.pipeline?.attenteN1 || 0, color: "#D97706" },
-    { label: "En attente N+2", count: stats?.pipeline?.attenteN2 || 0, color: "#7C3AED" },
+    { label: "En attente Responsable", count: stats?.pipeline?.attenteN1 || 0, color: "#D97706" },
+    { label: "En attente Direction", count: stats?.pipeline?.attenteN2 || 0, color: "#7C3AED" },
     { label: "En attente RH",  count: stats?.pipeline?.attenteRH || 0, color: "#0060AC" },
     { label: "Arbitrage",      count: stats?.pipeline?.arbitrage || 0, color: "#DC2626" },
     { label: "Validés",        count: stats?.pipeline?.valides || 0, color: "#10B981" },

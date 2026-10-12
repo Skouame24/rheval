@@ -152,7 +152,7 @@ export default function EvaluationsEquipePage() {
         )}
 
         <PageHeader
-          title={isN2 ? "Supervision des Évaluations (N+2)" : "Évaluations de l'Équipe (N+1)"}
+          title={isN2 ? "Évaluations de la Direction" : "Évaluations de l'Équipe"}
           subtitle="Saisie des appréciations, notation de performance et suivi des parcours de formation"
           breadcrumbs={[
             { label: "Mon Équipe", href: "/dashboard/mon-equipe" },

@@ -187,7 +187,7 @@ export function DashboardSalarie() {
           <EmptyState
             icon={<FileTextIcon size={24} className="text-slate-400" />}
             title="Aucune évaluation en cours"
-            description="Vous n'avez pas d'évaluation active pour la période en cours. Dès que la Direction RH ouvrira la campagne annuelle ou que votre supérieur N+1 fixera vos objectifs, votre fiche apparaîtra ici."
+            description="Vous n'avez pas d'évaluation active pour la période en cours. Dès que la Direction RH ouvrira la campagne annuelle ou que votre responsable hiérarchique fixera vos objectifs, votre fiche apparaîtra ici."
           />
         </Card>
       </div>
@@ -244,7 +244,7 @@ export function DashboardSalarie() {
           </div>
           <div>
             <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider block">Étape 02</span>
-            <span className="text-sm font-extrabold block">Consulter mes Objectifs (Fixés par N+1)</span>
+            <span className="text-sm font-extrabold block">Consulter mes Objectifs (Fixés par mon Responsable)</span>
           </div>
         </button>
 

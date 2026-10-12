@@ -92,10 +92,10 @@ export default function RhDashboardPage() {
   const getStatutLabel = (statut: string) => {
     switch (statut) {
       case "FIXATION_OBJECTIFS": return "Fixation Objectifs";
-      case "EN_ATTENTE_N1": return "En attente N+1";
-      case "EVALUATION_N1": return "Évaluation N+1";
-      case "EN_ATTENTE_N2": return "En attente N+2";
-      case "VALIDATION_N2": return "Validé N+2";
+      case "EN_ATTENTE_N1": return "En attente Responsable";
+      case "EVALUATION_N1": return "Évaluation Responsable";
+      case "EN_ATTENTE_N2": return "En attente Direction";
+      case "VALIDATION_N2": return "Validation Direction";
       case "EN_ATTENTE_RH": return "En attente RH";
       case "ARBITRAGE": return "Arbitrage Requis";
       case "VALIDE": return "Validé & Clôturé";
@@ -243,10 +243,10 @@ export default function RhDashboardPage() {
                   </p>
                   <div className="flex flex-wrap gap-4 text-xs font-bold">
                     <span className="text-[#F0822A] flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-[#F0822A] rounded-full inline-block" /> {fichesN1Done} Saisies N+1
+                      <span className="w-2.5 h-2.5 bg-[#F0822A] rounded-full inline-block" /> {fichesN1Done} Évaluations Responsables
                     </span>
                     <span className="text-blue-600 flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block" /> {fichesN2Done} Validations N+2
+                      <span className="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block" /> {fichesN2Done} Validations Direction
                     </span>
                     <span className="text-red-600 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 bg-red-600 rounded-full inline-block" /> {arbitragesEnAttente.length} Arbitrage(s)
@@ -258,8 +258,8 @@ export default function RhDashboardPage() {
               {/* Taux par étape */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "1. Saisie N+1", count: `${fichesN1Done} / ${dossiers.length}`, color: "text-[#F0822A]" },
-                  { label: "2. Validation N+2", count: `${fichesN2Done} / ${dossiers.length}`, color: "text-blue-600" },
+                  { label: "1. Évaluation Responsable", count: `${fichesN1Done} / ${dossiers.length}`, color: "text-[#F0822A]" },
+                  { label: "2. Validation Direction", count: `${fichesN2Done} / ${dossiers.length}`, color: "text-blue-600" },
                   { label: "3. Arbitrage RH", count: `${arbitragesEnAttente.length} Litige(s)`, color: "text-red-600" },
                   { label: "4. Clôture", count: `${fichesCompletes} / ${dossiers.length}`, color: "text-emerald-600" },
                 ].map((st, i) => (

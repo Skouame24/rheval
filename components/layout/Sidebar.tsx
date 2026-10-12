@@ -156,23 +156,23 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     });
   }
 
-  // MANAGERS N+1
-  if (normalizedRole === "N1" || normalizedRole === "N2" || hasTeam) {
+  // MON ÉQUIPE (MANAGERS, DIRECTEURS, DRH)
+  if (normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "DRH" || hasTeam) {
     sections.push({
       title: "MON ÉQUIPE",
       items: [
         { label: "Mes collaborateurs", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.team },
-        { label: "Évaluations à valider", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        { label: "Évaluations de mon équipe", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }
 
-  // MANAGERS N+2
+  // DIRECTION
   if (normalizedRole === "N2" || hasN2Scope) {
     sections.push({
-      title: "VALIDATION N+2",
+      title: "ESPACE DIRECTION",
       items: [
-        { label: "Évaluations N+2", href: "/dashboard/mon-equipe/evaluations-n2", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        { label: "Évaluations de la direction", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }

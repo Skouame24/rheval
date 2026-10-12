@@ -57,8 +57,8 @@ export function DashboardN1() {
 
       <PageHeader
         title="Mes évaluations Manager"
-        subtitle="Cycle 2026 — Vos collaborateurs directs (N+1)"
-        breadcrumbs={[{ label: "Tableau de bord N+1" }]}
+        subtitle="Cycle 2026 — Collaborateurs de votre équipe"
+        breadcrumbs={[{ label: "Tableau de bord Responsable" }]}
       />
 
       {/* KPIs */}
@@ -86,7 +86,7 @@ export function DashboardN1() {
             <EmptyState
               icon={<UsersIcon size={24} className="text-slate-400" />}
               title="Aucun collaborateur direct rattaché"
-              description="Aucun collaborateur n'est actuellement configuré sous votre responsabilité hiérarchique N+1. Contactez l'administration RH si nécessaire."
+              description="Aucun collaborateur n'est actuellement configuré sous votre responsabilité. Contactez l'administration RH si nécessaire."
             />
           ) : (
             collaborateurs.map((c, idx) => (

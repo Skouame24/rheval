@@ -21,8 +21,8 @@ interface HeaderProps {
 
 const ROLES_LIST: { role: Role; label: string; badgeBg: string }[] = [
   { role: "SALARIE", label: "Salarié", badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { role: "N1", label: "Responsable (N+1)", badgeBg: "bg-orange-50 text-[#F0822A] border-orange-200" },
-  { role: "N2", label: "Directeur (N+2)", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
+  { role: "N1", label: "Responsable", badgeBg: "bg-orange-50 text-[#F0822A] border-orange-200" },
+  { role: "N2", label: "Directeur", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
   { role: "RH", label: "DRH", badgeBg: "bg-purple-50 text-purple-700 border-purple-200" },
   { role: "ADMIN", label: "Admin", badgeBg: "bg-slate-100 text-slate-800 border-slate-300" },
 ];

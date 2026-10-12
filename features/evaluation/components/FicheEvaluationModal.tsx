@@ -556,7 +556,7 @@ export function FicheEvaluationModal({
           observations: "",
         });
         setFetchedEval((prev: any) => prev ? { ...prev, statut: "EVALUATION_N2" } : { statut: "EVALUATION_N2" });
-        setSaveSuccessMsg("L'évaluation N+1 et le plan de formation ont été validés et transmis à la Direction N+2.");
+        setSaveSuccessMsg("L'évaluation du manager et le plan de formation ont été validés et transmis à la Direction.");
         if (onSaved) onSaved();
         setTimeout(() => {
           onClose();
@@ -570,10 +570,10 @@ export function FicheEvaluationModal({
     }
   };
 
-  // Validation Évaluation N+2
+  // Validation Évaluation Direction
   const handleSaveN2 = async (customDecision?: "APPROUVE" | "REJETE") => {
     if (!resolvedFicheId) {
-      alert("Aucune fiche d'évaluation trouvée pour validation N+2.");
+      alert("Aucune fiche d'évaluation trouvée pour validation.");
       return;
     }
     setIsSaving(true);
@@ -582,23 +582,23 @@ export function FicheEvaluationModal({
     try {
       await evaluationsApi.validateNotesN2(resolvedFicheId, {
         decision: finalDecision,
-        observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation N+2 validée sans réserve." : "Notes rejetées et renvoyées au N+1."),
+        observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation validée sans réserve." : "Notes rejetées et renvoyées au manager."),
       });
 
       const nextSt = finalDecision === "REJETE" ? "EVALUATION_N1" : "ACCORD_SALARIE";
       setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
       setSaveSuccessMsg(
         finalDecision === "REJETE"
-          ? "L'évaluation a été rejetée et renvoyée au N+1."
-          : "L'évaluation N+2 a été validée avec succès et transmise au collaborateur."
+          ? "L'évaluation a été rejetée et renvoyée au manager."
+          : "L'évaluation a été validée avec succès et transmise au collaborateur."
       );
       if (onSaved) onSaved();
       setTimeout(() => {
         onClose();
       }, 1200);
     } catch (err: any) {
-      console.error("[FicheEvaluationModal] N2 Save error:", err);
-      alert("Erreur validation N+2 : " + (err.message || "Erreur serveur"));
+      console.error("[FicheEvaluationModal] Direction Save error:", err);
+      alert("Erreur validation : " + (err.message || "Erreur serveur"));
     } finally {
       setIsSaving(false);
     }
@@ -803,30 +803,30 @@ export function FicheEvaluationModal({
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6
-                }}
-              >
-                Évaluation N+1 & Formations ({noteGlobaleN1.toFixed(2)}/20)
-              </button>
-            )}
-
-            <button
-              onClick={() => setActiveTab("N2")}
-              style={{
-                padding: "6px 14px",
-                fontSize: 12,
-                fontWeight: 700,
-                border: activeTab === "N2" ? "2px solid #9333EA" : "1px solid #CBD5E1",
-                background: activeTab === "N2" ? "#FAF5FF" : "#FFFFFF",
-                color: activeTab === "N2" ? "#9333EA" : "#475569",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
                 gap: 6
               }}
             >
-              Évaluation N+2 ({noteGlobaleN2.toFixed(2)}/20)
+              Évaluation Responsable & Formations ({noteGlobaleN1.toFixed(2)}/20)
             </button>
+          )}
+
+          <button
+            onClick={() => setActiveTab("N2")}
+            style={{
+              padding: "6px 14px",
+              fontSize: 12,
+              fontWeight: 700,
+              border: activeTab === "N2" ? "2px solid #9333EA" : "1px solid #CBD5E1",
+              background: activeTab === "N2" ? "#FAF5FF" : "#FFFFFF",
+              color: activeTab === "N2" ? "#9333EA" : "#475569",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6
+            }}
+          >
+            Évaluation Direction ({noteGlobaleN2.toFixed(2)}/20)
+          </button>
 
             <button
               onClick={() => setActiveTab("RH")}
@@ -899,13 +899,13 @@ export function FicheEvaluationModal({
               </div>
               {!isCollabManager && (
                 <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>2. Note Manager N+1</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>2. Note Manager</span>
                   <span style={{ fontSize: 15, fontWeight: 900, color: "#F0822A" }}>{noteGlobaleN1.toFixed(2)} / 20</span>
                 </div>
               )}
               <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>
-                  {isCollabManager ? "2. Note Direction N+2" : "3. Note Direction N+2"}
+                  {isCollabManager ? "2. Note Direction" : "3. Note Direction"}
                 </span>
                 <span style={{ fontSize: 15, fontWeight: 900, color: "#9333EA" }}>{noteGlobaleN2.toFixed(2)} / 20</span>
               </div>
@@ -929,9 +929,9 @@ export function FicheEvaluationModal({
                   {activeTab === "SALARIE"
                     ? "Renseignez votre auto-évaluation sur chaque objectif opérationnel"
                     : activeTab === "N1"
-                    ? "Attribuez les notes de performance N+1 par tranche ou valeur directe"
+                    ? "Attribuez les notes de performance par tranche ou valeur directe"
                     : activeTab === "N2"
-                    ? "Examinez les notes du N+1 et attribuez l'évaluation de la Direction N+2"
+                    ? "Examinez les notes du manager et attribuez l'évaluation de la Direction"
                     : "Supervision finale DRH des écarts et moyennes consolidées"}
                 </p>
               </div>
@@ -974,13 +974,13 @@ export function FicheEvaluationModal({
                       </div>
                       {!isCollabManager && (
                         <div style={{ background: "#FFF7ED", padding: "4px 10px", border: "1px solid #FFEDD5", textAlign: "right" }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>Note N+1</span>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>Note Manager</span>
                           <span style={{ fontSize: 13, fontWeight: 900, color: "#F0822A" }}>{obj.noteObtenue} / 20</span>
                         </div>
                       )}
                       {(activeTab === "N2" || activeTab === "RH" || isCollabManager) && (
                         <div style={{ background: "#FAF5FF", padding: "4px 10px", border: "1px solid #E9D5FF", textAlign: "right" }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>Note N+2</span>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>Note Direction</span>
                           <span style={{ fontSize: 13, fontWeight: 900, color: "#9333EA" }}>{obj.noteN2 ?? obj.noteObtenue} / 20</span>
                         </div>
                       )}
@@ -1054,7 +1054,7 @@ export function FicheEvaluationModal({
                     {activeTab !== "SALARIE" && (
                       <div style={{ flex: 1, minWidth: 240 }}>
                         <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
-                          Commentaire {activeTab === "N2" ? "N+2" : "N+1"}
+                          Commentaire {activeTab === "N2" ? "Direction" : "Responsable"}
                         </label>
                         <input
                           type="text"
@@ -1088,7 +1088,7 @@ export function FicheEvaluationModal({
                   3. Formations à envisager & Plan de développement
                 </h3>
                 <p style={{ fontSize: 11, color: "#64748B", margin: "2px 0 0 0" }}>
-                  Besoins en compétences identifiés par le responsable N+1 pour accompagner les objectifs futurs
+                  Besoins en compétences identifiés par le responsable pour accompagner les objectifs futurs
                 </p>
               </div>
 
@@ -1225,26 +1225,26 @@ export function FicheEvaluationModal({
             ) : (
               <div style={{ padding: "16px", background: "#F8FAFC", border: "1px dashed #CBD5E1", textAlign: "center" }}>
                 <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>
-                  Aucune formation n'a encore été ajoutée par le manager N+1 pour ce collaborateur.
+                  Aucune formation n'a encore été ajoutée par le manager pour ce collaborateur.
                 </p>
               </div>
             )}
           </div>
 
-          {/* SECTION 4 : ÉVALUATION DIRECTION N+2 */}
+          {/* SECTION 4 : ÉVALUATION DIRECTION */}
           {activeTab === "N2" && (
             <div style={{ background: "#FAF5FF", padding: 20, border: "1px solid #E9D5FF" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h3 style={{ fontSize: 13, fontWeight: 800, color: "#581C87", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
-                  Décision & Avis de la Direction N+2
+                  Décision & Avis de la Direction
                 </h3>
                 <span style={{ fontSize: 11, fontWeight: 800, color: "#7E22CE", background: "#F3E8FF", padding: "3px 8px", border: "1px solid #E9D5FF" }}>
-                  Moyenne N+2 : {noteGlobaleN2.toFixed(2)}/20
+                  Moyenne Direction : {noteGlobaleN2.toFixed(2)}/20
                 </span>
               </div>
 
               <p style={{ fontSize: 12, color: "#6B21A8", margin: "0 0 12px 0" }}>
-                En tant que Supérieur Hiérarchique N+2, vous examinez l'évaluation et formulez votre appréciation finale.
+                En tant que Directeur / Supérieur Hiérarchique, vous examinez l'évaluation et formulez votre appréciation finale.
               </p>
 
               <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
@@ -1288,13 +1288,13 @@ export function FicheEvaluationModal({
                 value={observationN2}
                 onChange={(e) => setObservationN2(e.target.value)}
                 disabled={!canEditN2}
-                placeholder="Motivations, appréciations ou réserves du supérieur N+2..."
+                placeholder="Motivations, appréciations ou réserves de la Direction..."
                 style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: canEditN2 ? "#FFFFFF" : "#F8FAFC", marginBottom: 8 }}
               />
 
               {!canEditN2 && (
                 <p style={{ fontSize: 11, color: "#7E22CE", fontStyle: "italic", margin: "4px 0 0" }}>
-                  L'évaluation N+2 est enregistrée. Les champs sont en consultation seule.
+                  L'évaluation de la Direction est enregistrée. Les champs sont en consultation seule.
                 </p>
               )}
             </div>
@@ -1437,7 +1437,7 @@ export function FicheEvaluationModal({
             </div>
             <div>
               <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", display: "block" }}>
-                Moyenne {activeTab === "SALARIE" ? "Auto-évaluation" : activeTab === "N1" ? "Manager N+1" : activeTab === "N2" ? "Direction N+2" : "Direction RH"}
+                Moyenne {activeTab === "SALARIE" ? "Auto-évaluation" : activeTab === "N1" ? "Responsable" : activeTab === "N2" ? "Direction" : "Direction RH"}
               </span>
               <p style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: 0 }}>
                 {noteAffichee.toFixed(2)} / 20
@@ -1503,11 +1503,11 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Enregistrement..." : "Valider l'évaluation N+1"}
+                  {isSaving ? "Enregistrement..." : "Valider l'évaluation"}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                  Évaluation N+1 validée
+                  Évaluation validée
                 </div>
               )
             ) : activeTab === "N2" ? (
@@ -1525,11 +1525,11 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Enregistrement..." : decisionN2 === "REJETE" ? "Transmettre en Arbitrage" : "Valider l'Évaluation N+2"}
+                  {isSaving ? "Enregistrement..." : decisionN2 === "REJETE" ? "Transmettre en Arbitrage" : "Valider l'Évaluation"}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                  Évaluation N+2 validée
+                  Évaluation validée
                 </div>
               )
             ) : activeTab === "RH" ? (

@@ -5,7 +5,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { Card, CardHeader, AvatarWithName } from "@/components/ui";
@@ -16,6 +17,7 @@ import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEval
 import type { EvaluationCycle } from "@/types";
 
 export function DashboardN2() {
+  const { user } = useAuth();
   const [fiches, setFiches] = useState<EvaluationCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
@@ -24,11 +26,7 @@ export function DashboardN2() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      // Tenter d'abord l'endpoint dédié N2, sinon fallback sur toutes les fiches
-      let data = await evaluationsApi.getN2TeamEvaluations();
-      if (!data || data.length === 0) {
-        data = await evaluationsApi.getAllForRh();
-      }
+      const data = await evaluationsApi.getN2TeamEvaluations();
       setFiches(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("[DashboardN2] Erreur chargement fiches N2:", err);
@@ -42,16 +40,24 @@ export function DashboardN2() {
     loadData();
   }, []);
 
-  // Dossiers nécessitant une action ou revue N+2 (y compris quand le N1 a noté et que c'est en visa ou validation N2)
-  const evaluationsAValider = fiches.filter(
+  // Exclure formellement la fiche du Directeur connecté de sa propre vue de supervision
+  const fichesDirection = useMemo(() => {
+    return (fiches || []).filter((f) => {
+      const sId = f.salarie?.id;
+      return sId && sId !== user?.id;
+    });
+  }, [fiches, user?.id]);
+
+  // Dossiers nécessitant validation ou revue de la Direction
+  const evaluationsAValider = fichesDirection.filter(
     (f) => ["EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
   );
 
-  const arbitrages = fiches.filter((f) => f.statut === "ARBITRAGE");
-  const evaluationsCloturees = fiches.filter((f) => ["VALIDE", "CLOTURE"].includes(f.statut));
+  const arbitrages = fichesDirection.filter((f) => f.statut === "ARBITRAGE");
+  const evaluationsCloturees = fichesDirection.filter((f) => ["VALIDE", "CLOTURE"].includes(f.statut));
 
   // Extraction consolidée de tous les besoins en formation de l'équipe
-  const allFormations = fiches.flatMap((f) => {
+  const allFormations = fichesDirection.flatMap((f) => {
     const list = f.formations || [];
     return list.map((form) => ({
       ...form,
@@ -63,17 +69,17 @@ export function DashboardN2() {
 
   const stats = [
     {
-      label: "Dossiers à contre-évaluer",
+      label: "Dossiers à valider",
       value: String(evaluationsAValider.length),
-      subValue: evaluationsAValider.length > 0 ? "Action ou revue N+2 requise" : "À jour",
+      subValue: evaluationsAValider.length > 0 ? "Validation requise" : "À jour",
       icon: <PencilIcon size={18} className="text-purple-600" />,
       color: "text-purple-600",
       bg: "bg-purple-50",
     },
     {
-      label: "Collaborateurs supervisés",
-      value: String(fiches.length),
-      subValue: "Périmètre hiérarchique N+2",
+      label: "Collaborateurs de la direction",
+      value: String(fichesDirection.length),
+      subValue: "Périmètre de votre direction",
       icon: <UsersIcon size={18} className="text-agilly-primary" />,
       color: "text-agilly-primary",
       bg: "bg-[#FFF0E0]",
@@ -81,7 +87,7 @@ export function DashboardN2() {
     {
       label: "Besoins en formations",
       value: String(allFormations.length),
-      subValue: "Proposés par les managers N+1",
+      subValue: "Proposés par les managers",
       icon: <CheckCircleIcon size={18} className="text-blue-600" />,
       color: "text-blue-600",
       bg: "bg-blue-50",
@@ -105,7 +111,10 @@ export function DashboardN2() {
             setSelectedFicheModal(null);
             loadData();
           }}
+          evaluationId={selectedFicheModal.id}
           dossier={{
+            id: selectedFicheModal.id,
+            salarieId: selectedFicheModal.salarie?.id,
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",
@@ -114,6 +123,10 @@ export function DashboardN2() {
           objectifs={selectedFicheModal.objectifs}
           role="N2"
           readOnly={false}
+          onSaved={() => {
+            setSelectedFicheModal(null);
+            loadData();
+          }}
         />
       )}
 
@@ -121,10 +134,10 @@ export function DashboardN2() {
       <div className="flex flex-wrap justify-between items-end gap-4 border-b border-gray-200 pb-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900 m-0 tracking-tight">
-            Tableau de Bord Supervision (N+2)
+            Tableau de Bord de la Direction
           </h1>
           <p className="text-xs text-slate-500 m-0 mt-1 font-medium">
-            Supervision de la chaîne managériale, contre-évaluation hiérarchique et suivi des formations
+            Suivi des évaluations de votre direction, validations managériales et besoins en formation
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -146,7 +159,7 @@ export function DashboardN2() {
         ))}
       </div>
 
-      {/* ── NAVIGATION DES VUES N+2 ── */}
+      {/* ── NAVIGATION DES VUES ── */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-1 flex-wrap">
         <button
           onClick={() => setActiveTab("A_TRAITER")}
@@ -156,7 +169,7 @@ export function DashboardN2() {
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          ⚡ Dossiers Prioritaires N+2 ({evaluationsAValider.length})
+          ⚡ Dossiers à Valider ({evaluationsAValider.length})
         </button>
         <button
           onClick={() => setActiveTab("TOUS")}
@@ -166,7 +179,7 @@ export function DashboardN2() {
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          👥 Tous les Collaborateurs Supervisés ({fiches.length})
+          👥 Tous les Collaborateurs ({fichesDirection.length})
         </button>
         <button
           onClick={() => setActiveTab("FORMATIONS")}
@@ -194,7 +207,7 @@ export function DashboardN2() {
       {isLoading ? (
         <div className="bg-white border border-slate-200 p-12 text-center text-xs text-slate-500 font-medium">
           <div className="w-6 h-6 border-2 border-agilly-primary border-t-transparent animate-spin mx-auto mb-2" />
-          Chargement des données de supervision N+2...
+          Chargement des évaluations...
         </div>
       ) : activeTab === "A_TRAITER" ? (
         /* VUE 1 : DOSSIERS PRIORITAIRES */
@@ -202,10 +215,10 @@ export function DashboardN2() {
           <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center">
             <div>
               <h2 className="text-sm font-bold text-slate-900 m-0">
-                Évaluations en attente de visa ou contre-évaluation N+2
+                Évaluations en attente de validation
               </h2>
               <p className="text-xs text-slate-500 m-0 mt-0.5">
-                Dossiers notés par le Manager N+1 nécessitant votre validation ou contre-expertise
+                Dossiers notés nécessitant votre validation ou revue hiérarchique
               </p>
             </div>
             <span className="text-xs font-bold px-2 py-0.5 bg-purple-100 text-purple-800">
@@ -231,7 +244,7 @@ export function DashboardN2() {
                     <div className="flex items-center gap-4 flex-wrap">
                       {noteN1 && (
                         <div className="text-center px-3 py-1 bg-orange-50 border border-orange-200">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase block">Note N+1</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">Note Manager</span>
                           <span className="text-xs font-black text-agilly-primary">{noteN1} / 20</span>
                         </div>
                       )}
@@ -250,7 +263,7 @@ export function DashboardN2() {
                         className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                       >
                         <PencilIcon size={13} />
-                        Contre-évaluer & Valider Visa
+                        Valider l'évaluation
                       </button>
                     </div>
                   </div>
@@ -259,7 +272,7 @@ export function DashboardN2() {
             ) : (
               <div className="p-10 text-center">
                 <CheckCircleIcon size={28} className="text-emerald-500 mx-auto mb-2" />
-                <p className="text-xs font-bold text-slate-800 m-0">Toutes les contre-évaluations N+2 sont à jour</p>
+                <p className="text-xs font-bold text-slate-800 m-0">Toutes les validations sont à jour</p>
                 <p className="text-[11px] text-slate-500 mt-1 mb-0">Consultez l'onglet "Tous les Collaborateurs" pour revoir l'ensemble des fiches.</p>
               </div>
             )}
@@ -270,7 +283,7 @@ export function DashboardN2() {
         <Card padding="none" className="overflow-hidden border border-slate-200 shadow-xs">
           <div className="p-4 border-b border-slate-200 bg-white">
             <h2 className="text-sm font-bold text-slate-900 m-0">
-              Annuaire complet des dossiers supervisés (N-1 et N-2)
+              Annuaire complet des dossiers de la direction
             </h2>
             <p className="text-xs text-slate-500 m-0 mt-0.5">
               Vue consolidée de l'ensemble des collaborateurs sous votre direction
@@ -284,14 +297,14 @@ export function DashboardN2() {
                   <th className="p-3">Collaborateur</th>
                   <th className="p-3">Poste</th>
                   <th className="p-3 text-center">Auto-Note</th>
-                  <th className="p-3 text-center">Note N+1</th>
+                  <th className="p-3 text-center">Note Manager</th>
                   <th className="p-3 text-center">Formations</th>
                   <th className="p-3">Statut Dossier</th>
                   <th className="p-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {fiches.map((ev) => {
+                {fichesDirection.map((ev) => {
                   const nom = ev.salarie?.nom || "Collaborateur";
                   const prenom = ev.salarie?.prenom || "";
                   const poste = ev.salarie?.poste || "Collaborateur";
@@ -341,7 +354,7 @@ export function DashboardN2() {
         <Card padding="none" className="overflow-hidden border border-slate-200 shadow-xs">
           <div className="p-4 border-b border-slate-200 bg-white">
             <h2 className="text-sm font-bold text-slate-900 m-0">
-              Synthèse des besoins en formation recommandés par les managers N+1
+              Synthèse des besoins en formation recommandés par les managers
             </h2>
             <p className="text-xs text-slate-500 m-0 mt-0.5">
               Consolidation des formations à budgéter et valider pour votre département
@@ -363,9 +376,9 @@ export function DashboardN2() {
               <tbody className="divide-y divide-slate-100">
                 {allFormations.length > 0 ? (
                   allFormations.map((form) => {
-                    const ficheAssociee = fiches.find((f) => f.id === form.ficheId);
+                    const ficheAssociee = fichesDirection.find((f) => f.id === form.ficheId);
                     const prioColor =
-                      form.priorite === "HAUTE"
+                       form.priorite === "HAUTE"
                         ? "bg-red-50 text-red-700 border-red-200"
                         : form.priorite === "BASSE"
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -402,7 +415,7 @@ export function DashboardN2() {
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-xs text-slate-400">
-                      Aucune préconisation de formation n'a été saisie pour le moment par les managers N+1.
+                      Aucune préconisation de formation n'a été saisie pour le moment par les managers.
                     </td>
                   </tr>
                 )}
@@ -415,7 +428,7 @@ export function DashboardN2() {
         <Card padding="none" className="overflow-hidden border border-slate-200 shadow-xs">
           <div className="p-4 border-b border-slate-200 bg-white">
             <h2 className="text-sm font-bold text-slate-900 m-0">
-              Arbitrages et contestations nécessitant décision N+2 / RH
+              Arbitrages et contestations nécessitant décision de la Direction / RH
             </h2>
             <p className="text-xs text-slate-500 m-0 mt-0.5">
               Dossiers avec réserves du salarié ou divergence d'appréciation
@@ -451,7 +464,7 @@ export function DashboardN2() {
               <div className="p-10 text-center">
                 <CheckCircleIcon size={28} className="text-emerald-500 mx-auto mb-2" />
                 <p className="text-xs font-bold text-slate-800 m-0">Aucun arbitrage en cours</p>
-                <p className="text-[11px] text-slate-500 mt-1 mb-0">Tous les avis N+1 et visas salariés sont conformes et sans contentieux.</p>
+                <p className="text-[11px] text-slate-500 mt-1 mb-0">Toutes les évaluations sont conformes et sans contentieux.</p>
               </div>
             )}
           </div>
