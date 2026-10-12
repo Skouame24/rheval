@@ -21,7 +21,13 @@ export type StatutEvaluation =
   | "EN_ATTENTE_N2"      
   | "VALIDATION_DRH"
   | "EN_ATTENTE_RH"      
-  | "ARBITRAGE"          
+  | "OBJECTIFS_VALIDES"
+  | "AUTO_EVALUATION_SOUMISE"
+  | "VALIDATION_NOTES_N2"
+  | "ACCORD_SALARIE"
+  | "ARBITRAGE"
+  | "ARBITRAGE_RH"
+  | "CLOTUREE"
   | "VALIDE"             
   | "CLOTURE";
 

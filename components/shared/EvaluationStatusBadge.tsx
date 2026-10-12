@@ -14,7 +14,13 @@ interface EvaluationStatusBadgeProps {
 }
 
 export function EvaluationStatusBadge({ statut, size = "md", dot = true }: EvaluationStatusBadgeProps) {
-  const meta = STATUT_METADATA[statut];
+  const meta = STATUT_METADATA[statut] || {
+    label: (statut as string) ? String(statut).replace(/_/g, " ").toLowerCase() : "Non démarré",
+    color: "#64748B",
+    bg: "#F1F5F9",
+    border: "#CBD5E1",
+  };
+
   return (
     <Badge
       label={meta.label}
