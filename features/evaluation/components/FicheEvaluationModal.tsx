@@ -585,7 +585,7 @@ export function FicheEvaluationModal({
     setSaveSuccessMsg(null);
     const finalDecision = customDecision || (decisionN2 as any);
     try {
-      if (effectiveStatut === "VALIDATION_OBJECTIFS_N2") {
+      if (currentStatut === "VALIDATION_OBJECTIFS_N2") {
         await evaluationsApi.validateObjectifsN2(resolvedFicheId, {
           decision: finalDecision,
           observations: observationN2 || (finalDecision === "APPROUVE" ? "Objectifs validés par la Direction." : "Objectifs rejetés et renvoyés au manager."),
