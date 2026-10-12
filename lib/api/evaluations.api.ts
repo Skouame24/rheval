@@ -50,7 +50,6 @@ export const evaluationsApi = {
       if (res) return res;
       return null;
     } catch (err) {
-      // Si on reçoit une erreur (ex: 404) on renvoie null plutôt que de faire planter l'UX
       console.error("[evaluationsApi.getMyCurrent] Backend error:", err);
       return null;
     }
@@ -166,6 +165,7 @@ export const evaluationsApi = {
 
   /**
    * PUT /api/n2/evaluations/:id
+   * Validation de l'évaluation par le N+2.
    */
   validateNotesN2: async (
     id: string,
@@ -175,6 +175,19 @@ export const evaluationsApi = {
       return await client.put<EvaluationCycle>(`/n2/evaluations/${id}`, dto);
     } catch (err) {
       console.error("[evaluationsApi.validateNotesN2] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
+   * PUT /api/n2/evaluations/:id
+   * Contre-évaluation hiérarchique N+2 (alias compatible avec l'ancienne signature).
+   */
+  submitNotesN2: async (id: string, dto: ValiderEvaluationDto | { decision: "APPROUVE" | "REJETE"; observations?: string }): Promise<EvaluationCycle> => {
+    try {
+      return await client.put<EvaluationCycle>(`/n2/evaluations/${id}`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.submitNotesN2] Backend error:", err);
       throw err;
     }
   },

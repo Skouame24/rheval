@@ -1,6 +1,6 @@
 // ============================================================
 // features/dashboard/components/DashboardN2.tsx — Espace Supervision N+2
-// Revue hiérarchique, fixation objectifs N+1, évaluation N+2 & vision département
+// Revue hiérarchique, contre-évaluation, vision d'équipe & formations
 // ============================================================
 
 "use client";
@@ -9,40 +9,22 @@ import { useState, useEffect } from "react";
 import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { Card, CardHeader, AvatarWithName } from "@/components/ui";
-import {
-  CheckCircleIcon,
-  PencilIcon,
-  EyeIcon,
-  ScaleIcon,
-  UsersIcon,
-  ArrowPathIcon,
-  TargetIcon,
-  ClockIcon,
-  GraduationCapIcon,
-} from "@/components/ui/Icons";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { CheckCircleIcon, PencilIcon, EyeIcon, ScaleIcon, UsersIcon, ArrowPathIcon } from "@/components/ui/Icons";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
-import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
-import { useAuth } from "@/contexts/AuthContext";
 import type { EvaluationCycle } from "@/types";
 
 export function DashboardN2() {
-  const { user } = useAuth();
   const [fiches, setFiches] = useState<EvaluationCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
-  const [selectedCollabForObjectifs, setSelectedCollabForObjectifs] = useState<{
-    id: string;
-    name: string;
-    poste?: string;
-  } | null>(null);
-
   const [activeTab, setActiveTab] = useState<"A_TRAITER" | "TOUS" | "FORMATIONS" | "ARBITRAGES">("A_TRAITER");
 
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // Tenter d'abord l'endpoint dédié N2, sinon fallback sur toutes les fiches
       let data = await evaluationsApi.getN2TeamEvaluations();
       if (!data || data.length === 0) {
         data = await evaluationsApi.getAllForRh();
@@ -60,25 +42,13 @@ export function DashboardN2() {
     loadData();
   }, []);
 
-  // 1. Dossiers où le Directeur N+2 doit fixer les objectifs :
-  // UNIQUEMENT ses N-1 directs (Managers / Responsables N+1 sous lui, ex: Marc AUBERT).
-  const dossiersAFixer = fiches.filter((f) => {
-    if (f.statut !== "FIXATION_OBJECTIFS") return false;
-    if ((f.objectifs || []).length > 0) return false;
-    const role = (f.salarie as any)?.role;
-    const managerId = (f.salarie as any)?.managerId;
-    return role === "N1" || (user?.id && managerId === user.id);
-  });
-
-  // 2. Dossiers nécessitant l'évaluation finale N+2 (après notation N+1, pour tout le département)
-  const evaluationsAValider = fiches.filter((f) =>
-    ["EVALUATION_N2", "EN_ATTENTE_N2", "VALIDATION_N2"].includes(f.statut)
+  // Dossiers nécessitant une action ou revue N+2 (y compris quand le N1 a noté et que c'est en visa ou validation N2)
+  const evaluationsAValider = fiches.filter(
+    (f) => ["EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
   );
 
-  // Actions Prioritaires N+2 (Marc pour les objectifs + fiches arrivées au stade N+2)
-  const dossiersActionN2 = [...dossiersAFixer, ...evaluationsAValider];
-
   const arbitrages = fiches.filter((f) => f.statut === "ARBITRAGE");
+  const evaluationsCloturees = fiches.filter((f) => ["VALIDE", "CLOTURE"].includes(f.statut));
 
   // Extraction consolidée de tous les besoins en formation de l'équipe
   const allFormations = fiches.flatMap((f) => {
@@ -93,42 +63,41 @@ export function DashboardN2() {
 
   const stats = [
     {
-      label: "Objectifs à fixer",
-      value: String(dossiersAFixer.length),
-      subValue: dossiersAFixer.length > 0 ? "Fixation requise (N+1)" : "Tous fixés",
-      icon: <TargetIcon size={18} className="text-orange-600" />,
-      color: "text-orange-600",
-      bg: "bg-orange-50",
-    },
-    {
-      label: "Évaluations N+2",
+      label: "Dossiers à contre-évaluer",
       value: String(evaluationsAValider.length),
-      subValue: evaluationsAValider.length > 0 ? "Évaluation requise" : "À jour",
-      icon: <CheckCircleIcon size={18} className="text-purple-600" />,
+      subValue: evaluationsAValider.length > 0 ? "Action ou revue N+2 requise" : "À jour",
+      icon: <PencilIcon size={18} className="text-purple-600" />,
       color: "text-purple-600",
       bg: "bg-purple-50",
     },
     {
-      label: "Collaborateurs",
+      label: "Collaborateurs supervisés",
       value: String(fiches.length),
-      subValue: "Périmètre supervisé",
+      subValue: "Périmètre hiérarchique N+2",
       icon: <UsersIcon size={18} className="text-agilly-primary" />,
       color: "text-agilly-primary",
       bg: "bg-[#FFF0E0]",
     },
     {
-      label: "Besoins formations",
+      label: "Besoins en formations",
       value: String(allFormations.length),
-      subValue: "Proposés par managers N+1",
-      icon: <GraduationCapIcon size={18} className="text-blue-600" />,
+      subValue: "Proposés par les managers N+1",
+      icon: <CheckCircleIcon size={18} className="text-blue-600" />,
       color: "text-blue-600",
       bg: "bg-blue-50",
+    },
+    {
+      label: "Arbitrages hiérarchiques",
+      value: String(arbitrages.length),
+      subValue: arbitrages.length > 0 ? "Écart ou contestation" : "Aucun litige",
+      icon: <ScaleIcon size={18} className="text-red-600" />,
+      color: "text-red-600",
+      bg: "bg-red-50",
     },
   ];
 
   return (
     <div className="flex flex-col gap-6 pb-10 max-w-[1200px] mx-auto w-full font-sans">
-      {/* ── MODALE ÉVALUATION FICHE N+2 ── */}
       {selectedFicheModal && (
         <FicheEvaluationModal
           isOpen={true}
@@ -136,37 +105,15 @@ export function DashboardN2() {
             setSelectedFicheModal(null);
             loadData();
           }}
-          evaluationId={selectedFicheModal.id}
           dossier={{
-            id: selectedFicheModal.id,
-            ficheId: selectedFicheModal.id,
-            salarieId: selectedFicheModal.salarie?.id,
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",
-            role: selectedFicheModal.salarie?.role || "SALARIE",
             direction: (selectedFicheModal.salarie as any)?.departement || "Direction Technique",
-            formations: selectedFicheModal.formations || [],
           }}
           objectifs={selectedFicheModal.objectifs}
           role="N2"
           readOnly={false}
-          onSaved={loadData}
-        />
-      )}
-
-      {/* ── MODALE FIXATION OBJECTIFS PAR N+2 (POUR N+1) ── */}
-      {selectedCollabForObjectifs && (
-        <ModalDefinirObjectifs
-          isOpen={true}
-          onClose={() => {
-            setSelectedCollabForObjectifs(null);
-            loadData();
-          }}
-          salariedId={selectedCollabForObjectifs.id}
-          salariedName={selectedCollabForObjectifs.name}
-          salariedPoste={selectedCollabForObjectifs.poste || ""}
-          onSaved={loadData}
         />
       )}
 
@@ -177,13 +124,13 @@ export function DashboardN2() {
             Tableau de Bord Supervision (N+2)
           </h1>
           <p className="text-xs text-slate-500 m-0 mt-1 font-medium">
-            Supervision de la chaîne managériale, fixation des objectifs N+1 et évaluation N+2
+            Supervision de la chaîne managériale, contre-évaluation hiérarchique et suivi des formations
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={loadData}
-            className="px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 flex items-center gap-2 cursor-pointer shadow-xs"
+            className="px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
             title="Rafraîchir"
           >
             <ArrowPathIcon size={14} className={isLoading ? "animate-spin" : ""} />
@@ -203,83 +150,43 @@ export function DashboardN2() {
       <div className="flex items-center gap-2 border-b border-slate-200 pb-1 flex-wrap">
         <button
           onClick={() => setActiveTab("A_TRAITER")}
-          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === "A_TRAITER"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          <ClockIcon size={14} />
-          <span>Actions Prioritaires N+2</span>
-          <span
-            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
-              activeTab === "A_TRAITER"
-                ? "bg-[#F0822A] text-white"
-                : "bg-slate-200 text-slate-700"
-            }`}
-          >
-            {dossiersActionN2.length}
-          </span>
+          ⚡ Dossiers Prioritaires N+2 ({evaluationsAValider.length})
         </button>
         <button
           onClick={() => setActiveTab("TOUS")}
-          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === "TOUS"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          <UsersIcon size={14} />
-          <span>Tous les Collaborateurs</span>
-          <span
-            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
-              activeTab === "TOUS"
-                ? "bg-[#F0822A] text-white"
-                : "bg-slate-200 text-slate-700"
-            }`}
-          >
-            {fiches.length}
-          </span>
+          👥 Tous les Collaborateurs Supervisés ({fiches.length})
         </button>
         <button
           onClick={() => setActiveTab("FORMATIONS")}
-          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === "FORMATIONS"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          <GraduationCapIcon size={14} />
-          <span>Formations Demandées</span>
-          <span
-            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
-              activeTab === "FORMATIONS"
-                ? "bg-[#F0822A] text-white"
-                : "bg-slate-200 text-slate-700"
-            }`}
-          >
-            {allFormations.length}
-          </span>
+          🎓 Formations Demandées ({allFormations.length})
         </button>
         <button
           onClick={() => setActiveTab("ARBITRAGES")}
-          className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+          className={`px-3 py-2 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === "ARBITRAGES"
               ? "border-agilly-primary text-agilly-primary bg-orange-50/50"
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          <ScaleIcon size={14} />
-          <span>Arbitrages</span>
-          <span
-            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-none ${
-              activeTab === "ARBITRAGES"
-                ? "bg-[#F0822A] text-white"
-                : "bg-slate-200 text-slate-700"
-            }`}
-          >
-            {arbitrages.length}
-          </span>
+          ⚖️ Arbitrages ({arbitrages.length})
         </button>
       </div>
 
@@ -290,106 +197,71 @@ export function DashboardN2() {
           Chargement des données de supervision N+2...
         </div>
       ) : activeTab === "A_TRAITER" ? (
-        /* VUE 1 : ACTIONS PRIORITAIRES N+2 (FIXATION OBJECTIFS + EVALUATION N+2) */
+        /* VUE 1 : DOSSIERS PRIORITAIRES */
         <Card padding="none" className="overflow-hidden border border-slate-200 shadow-xs">
-          <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center flex-wrap gap-2">
+          <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center">
             <div>
               <h2 className="text-sm font-bold text-slate-900 m-0">
-                Actions Prioritaires de Supervision N+2
+                Évaluations en attente de visa ou contre-évaluation N+2
               </h2>
               <p className="text-xs text-slate-500 m-0 mt-0.5">
-                Objectifs à fixer pour vos Responsables N+1 & fiches en attente d'évaluation N+2
+                Dossiers notés par le Manager N+1 nécessitant votre validation ou contre-expertise
               </p>
             </div>
-            <span className="text-xs font-bold px-2.5 py-1 bg-orange-100 text-orange-900 border border-orange-200">
-              {dossiersActionN2.length} action(s) requise(s)
+            <span className="text-xs font-bold px-2 py-0.5 bg-purple-100 text-purple-800">
+              {evaluationsAValider.length} dossier(s)
             </span>
           </div>
 
           <div className="divide-y divide-slate-100 bg-white">
-            {dossiersActionN2.length > 0 ? (
-              dossiersActionN2.map((ev) => {
+            {evaluationsAValider.length > 0 ? (
+              evaluationsAValider.map((ev) => {
                 const nom = ev.salarie?.nom || "Collaborateur";
                 const prenom = ev.salarie?.prenom || "";
-                const fullName = `${prenom} ${nom}`.trim();
                 const poste = ev.salarie?.poste || "Collaborateur";
-                const isFixation = ev.statut === "FIXATION_OBJECTIFS";
                 const noteN1 = ev.noteGlobale !== undefined ? Number(ev.noteGlobale).toFixed(2) : null;
                 const formationsCount = ev.formations?.length || 0;
 
                 return (
                   <div key={ev.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors flex-wrap">
                     <div className="flex items-center gap-3 min-w-[240px]">
-                      <AvatarWithName nom={nom} prenom={prenom} poste={poste} role={ev.salarie?.role as any || "SALARIE"} size="sm" />
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-500 block">
-                          {(ev.salarie as any)?.departement || "Direction Technique"}
-                        </span>
-                      </div>
+                      <AvatarWithName nom={nom} prenom={prenom} poste={poste} role="SALARIE" size="sm" />
                     </div>
 
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {isFixation ? (
-                        <div className="text-center px-3 py-1 bg-amber-50 border border-amber-200">
-                          <span className="text-[10px] font-bold text-amber-800 uppercase block">Étape</span>
-                          <span className="text-xs font-bold text-amber-900 inline-flex items-center gap-1.5">
-                            <TargetIcon size={12} className="text-amber-800" />
-                            Fixation Objectifs
-                          </span>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {noteN1 && (
+                        <div className="text-center px-3 py-1 bg-orange-50 border border-orange-200">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">Note N+1</span>
+                          <span className="text-xs font-black text-agilly-primary">{noteN1} / 20</span>
                         </div>
-                      ) : (
-                        <>
-                          {noteN1 && (
-                            <div className="text-center px-3 py-1 bg-orange-50 border border-orange-200">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase block">Note N+1</span>
-                              <span className="text-xs font-black text-agilly-primary">{noteN1} / 20</span>
-                            </div>
-                          )}
+                      )}
 
-                          {formationsCount > 0 && (
-                            <div className="text-center px-3 py-1 bg-blue-50 border border-blue-200">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase block">Formations</span>
-                              <span className="text-xs font-bold text-blue-700">{formationsCount} proposée(s)</span>
-                            </div>
-                          )}
-                        </>
+                      {formationsCount > 0 && (
+                        <div className="text-center px-3 py-1 bg-blue-50 border border-blue-200">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">Formations</span>
+                          <span className="text-xs font-bold text-blue-700">{formationsCount} proposée(s)</span>
+                        </div>
                       )}
 
                       <EvaluationStatusBadge statut={ev.statut} size="sm" />
 
-                      {isFixation ? (
-                        <button
-                          onClick={() =>
-                            setSelectedCollabForObjectifs({
-                              id: ev.salarie?.id || (ev as any).salarieId || ev.id,
-                              name: fullName,
-                              poste: poste,
-                            })
-                          }
-                          className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#F0822A] hover:bg-[#d97220] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                        >
-                          <TargetIcon size={13} />
-                          Fixer les Objectifs (N+1)
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setSelectedFicheModal(ev)}
-                          className="px-3.5 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                        >
-                          <PencilIcon size={13} />
-                          Évaluer N+2
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setSelectedFicheModal(ev)}
+                        className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <PencilIcon size={13} />
+                        Contre-évaluer & Valider Visa
+                      </button>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <EmptyState
-                icon={<CheckCircleIcon size={24} className="text-emerald-600" />}
-                title="Toutes les actions de supervision N+2 sont à jour"
-                description="Aucun objectif à fixer ni évaluation N+2 en attente. Consultez l'onglet « Tous les Collaborateurs » pour revoir l'ensemble des fiches."
-              />
+              <div className="p-10 text-center">
+                <CheckCircleIcon size={28} className="text-emerald-500 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-800 m-0">Toutes les contre-évaluations N+2 sont à jour</p>
+                <p className="text-[11px] text-slate-500 mt-1 mb-0">Consultez l'onglet "Tous les Collaborateurs" pour revoir l'ensemble des fiches.</p>
+              </div>
             )}
           </div>
         </Card>
@@ -410,26 +282,19 @@ export function DashboardN2() {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="p-3">Collaborateur</th>
-                  <th className="p-3">Rôle / Poste</th>
+                  <th className="p-3">Poste</th>
                   <th className="p-3 text-center">Auto-Note</th>
                   <th className="p-3 text-center">Note N+1</th>
                   <th className="p-3 text-center">Formations</th>
                   <th className="p-3">Statut Dossier</th>
-                  <th className="p-3 text-right">Actions</th>
+                  <th className="p-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {fiches.map((ev) => {
                   const nom = ev.salarie?.nom || "Collaborateur";
                   const prenom = ev.salarie?.prenom || "";
-                  const fullName = `${prenom} ${nom}`.trim();
                   const poste = ev.salarie?.poste || "Collaborateur";
-                  const hasObjectifs = (ev.objectifs && ev.objectifs.length > 0);
-                  const resolvedStatut = (ev.statut === "FIXATION_OBJECTIFS" && hasObjectifs) ? "AUTO_EVALUATION" : ev.statut;
-                  const isFixation = resolvedStatut === "FIXATION_OBJECTIFS";
-                  const isAutoEval = resolvedStatut === "AUTO_EVALUATION";
-                  const isEvaluationN2 = ["EVALUATION_N2", "VALIDATION_N2", "EN_ATTENTE_N2"].includes(resolvedStatut);
-                  const isDirectReport = (ev.salarie as any)?.role === "N1" || (user?.id && (ev.salarie as any)?.managerId === user.id);
                   const autoNote = ev.noteAutoEvaluation !== undefined ? Number(ev.noteAutoEvaluation).toFixed(2) : "—";
                   const noteN1 = ev.noteGlobale !== undefined ? Number(ev.noteGlobale).toFixed(2) : "—";
                   const formCount = ev.formations?.length || 0;
@@ -437,13 +302,10 @@ export function DashboardN2() {
                   return (
                     <tr key={ev.id} className="hover:bg-slate-50 transition-colors">
                       <td className="p-3">
-                        <span className="text-xs font-bold text-slate-900 block">{fullName}</span>
+                        <span className="text-xs font-bold text-slate-900 block">{prenom} {nom}</span>
                         <span className="text-[10px] text-slate-400 font-mono">{ev.salarie?.email}</span>
                       </td>
-                      <td className="p-3 text-xs text-slate-600">
-                        <span className="font-bold text-slate-800 block">{poste}</span>
-                        <span className="text-[10px] text-[#F0822A] font-bold uppercase">{ev.salarie?.role || "SALARIE"}</span>
-                      </td>
+                      <td className="p-3 text-xs text-slate-600">{poste}</td>
                       <td className="p-3 text-xs font-semibold text-slate-700 text-center">{autoNote}</td>
                       <td className="p-3 text-xs font-black text-agilly-primary text-center">{noteN1}</td>
                       <td className="p-3 text-center">
@@ -456,58 +318,16 @@ export function DashboardN2() {
                         )}
                       </td>
                       <td className="p-3">
-                        <EvaluationStatusBadge statut={resolvedStatut} size="sm" />
+                        <EvaluationStatusBadge statut={ev.statut} size="sm" />
                       </td>
                       <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {isFixation && isDirectReport && (
-                            <button
-                              onClick={() =>
-                                setSelectedCollabForObjectifs({
-                                  id: ev.salarie?.id || (ev as any).salarieId || ev.id,
-                                  name: fullName,
-                                  poste: poste,
-                                })
-                              }
-                              className="px-2.5 py-1 text-xs font-bold text-white bg-[#F0822A] hover:bg-[#d97220] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                            >
-                              <TargetIcon size={12} />
-                              Fixer Objectifs
-                            </button>
-                          )}
-
-                          {isFixation && !isDirectReport && (
-                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 inline-flex items-center gap-1">
-                              <ClockIcon size={11} className="text-slate-400" />
-                              En attente N+1
-                            </span>
-                          )}
-
-                          {isAutoEval && (
-                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 inline-flex items-center gap-1">
-                              <ClockIcon size={11} className="text-blue-500" />
-                              Auto-évaluation
-                            </span>
-                          )}
-
-                          {isEvaluationN2 && (
-                            <button
-                              onClick={() => setSelectedFicheModal(ev)}
-                              className="px-2.5 py-1 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                            >
-                              <PencilIcon size={12} />
-                              Évaluer N+2
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => setSelectedFicheModal(ev)}
-                            className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition-colors inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            <EyeIcon size={12} />
-                            Examiner
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => setSelectedFicheModal(ev)}
+                          className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <EyeIcon size={12} />
+                          Examiner
+                        </button>
                       </td>
                     </tr>
                   );
@@ -581,12 +401,8 @@ export function DashboardN2() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-0">
-                      <EmptyState
-                        icon={<GraduationCapIcon size={24} className="text-slate-400" />}
-                        title="Aucun besoin en formation répertorié"
-                        description="Aucune préconisation de formation n'a été saisie pour le moment par les managers N+1 du département."
-                      />
+                    <td colSpan={6} className="p-8 text-center text-xs text-slate-400">
+                      Aucune préconisation de formation n'a été saisie pour le moment par les managers N+1.
                     </td>
                   </tr>
                 )}
@@ -618,7 +434,7 @@ export function DashboardN2() {
                     <div>
                       <AvatarWithName nom={nom} prenom={prenom} poste={poste} role="SALARIE" size="sm" />
                       <p className="text-xs mt-2 p-2 bg-red-50 text-red-800 border border-red-200 font-medium">
-                        {arb.observation || "Désaccord exprimé ou écart significatif de notation."}
+                        {arb.observation || "Désaccord exprimé lors du visa ou écart significatif de notation."}
                       </p>
                     </div>
                     <button
@@ -632,11 +448,11 @@ export function DashboardN2() {
                 );
               })
             ) : (
-              <EmptyState
-                icon={<CheckCircleIcon size={24} className="text-emerald-600" />}
-                title="Aucun arbitrage en cours"
-                description="Tous les avis N+1 sont conformes et sans contentieux ni divergence nécessitant une médiation N+2."
-              />
+              <div className="p-10 text-center">
+                <CheckCircleIcon size={28} className="text-emerald-500 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-800 m-0">Aucun arbitrage en cours</p>
+                <p className="text-[11px] text-slate-500 mt-1 mb-0">Tous les avis N+1 et visas salariés sont conformes et sans contentieux.</p>
+              </div>
             )}
           </div>
         </Card>
@@ -644,3 +460,4 @@ export function DashboardN2() {
     </div>
   );
 }
+

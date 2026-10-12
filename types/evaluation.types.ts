@@ -13,8 +13,8 @@ export type StatutEvaluation =
   | "AUTO_EVALUATION"    
   | "EVALUATION_N1"
   | "EN_ATTENTE_N1"      
-  | "VISA_SALARIE"       // legacy — ne plus utiliser dans le nouveau workflow
-  | "EVALUATION_N2"      // nouveau statut officiel N+2
+  | "VISA_SALARIE"       
+  | "EVALUATION_N2"
   | "VALIDATION_N2"
   | "EN_ATTENTE_N2"      
   | "VALIDATION_DRH"
@@ -23,8 +23,10 @@ export type StatutEvaluation =
   | "VALIDE"             
   | "CLOTURE";
 
-
 // Qui a réalisé l'évaluation
+
+
+
 export type TypeEvaluateur = "SALARIE" | "N1" | "N2" | "RH";
 
 // Note attribuée par un évaluateur pour un objectif
@@ -36,6 +38,7 @@ export interface NoteObjectif {
   noteSalarie?: number; // Auto-note /20 du salarié
   commentaireSalarie?: string; // Auto-commentaire du salarié
 }
+
 
 // Une évaluation individuelle (Salarié, N+1, N+2 ou RH)
 export interface Evaluation {
@@ -137,3 +140,4 @@ export interface EnregistrerDecisionDto {
   decision: string;
   noteDecidee: number;
 }
+

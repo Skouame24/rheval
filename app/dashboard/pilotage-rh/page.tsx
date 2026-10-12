@@ -119,10 +119,13 @@ export default function RhDashboardPage() {
 
         <FicheEvaluationModal 
           isOpen={selectedFicheModal !== null} 
-          onClose={() => setSelectedFicheModal(null)} 
-          evaluationId={selectedFicheModal?.id}
+          onClose={() => {
+            setSelectedFicheModal(null);
+            loadData();
+          }} 
           role="RH"
           readOnly={false}
+          evaluationId={selectedFicheModal?.id}
           dossier={selectedFicheModal ? {
             id: selectedFicheModal.id,
             ficheId: selectedFicheModal.id,
@@ -130,9 +133,8 @@ export default function RhDashboardPage() {
             nom: selectedFicheModal.salarie?.nom || "",
             prenom: selectedFicheModal.salarie?.prenom || "",
             poste: selectedFicheModal.salarie?.poste || "",
-            direction: (selectedFicheModal.salarie as any)?.departement || "Direction",
-            statut: selectedFicheModal.statut,
-            formations: (selectedFicheModal as any)?.formations || [],
+            direction: (selectedFicheModal.salarie as any)?.departement || "Direction Technique",
+            formations: selectedFicheModal.formations || [],
           } : null}
           objectifs={selectedFicheModal?.objectifs || []}
           onSaved={loadData}
