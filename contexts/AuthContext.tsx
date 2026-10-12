@@ -21,6 +21,7 @@ interface AuthContextValue {
   isSimulated: boolean;
   login: (email: string, password: string) => Promise<void>;
   switchRole: (newRole: Role) => void;
+  switchProfile: (newUser: User) => void;
   resetToSsoUser: () => void;
   logout: () => void;
 }
@@ -35,12 +36,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSimulated, setIsSimulated] = useState(false);
 
   // Synchronisation dynamique avec la session Microsoft Entra ID réelle
   useEffect(() => {
     if (status === "loading") {
       setIsLoading(true);
       return;
+    }
+
+    // Vérifier en priorité si un profil de test est simulé
+    const simulatedStored = typeof window !== "undefined" ? localStorage.getItem("agilly_simulated_user") : null;
+    if (simulatedStored) {
+      try {
+        const simUser = JSON.parse(simulatedStored);
+        if (simUser?.id) {
+          setUser(simUser);
+          setIsSimulated(true);
+          setIsLoading(false);
+          return;
+        }
+      } catch {}
     }
 
     if (status === "authenticated" && session?.user) {
@@ -152,14 +168,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const switchProfile = (newUser: User) => {
+    localStorage.setItem("agilly_simulated_user", JSON.stringify(newUser));
+    localStorage.setItem("agilly_user", JSON.stringify(newUser));
+    setUser(newUser);
+    setIsSimulated(true);
+    const target = ROLE_DASHBOARD[newUser.role] || "/dashboard/mon-espace";
+    window.location.href = target;
+  };
+
   const resetToSsoUser = () => {
-    window.location.href = "/portail";
+    localStorage.removeItem("agilly_simulated_user");
+    localStorage.removeItem("agilly_user");
+    setIsSimulated(false);
+    window.location.href = "/dashboard/mon-espace";
   };
 
   const logout = async () => {
     localStorage.removeItem("agilly_user");
     localStorage.removeItem("agilly_token");
+    localStorage.removeItem("agilly_simulated_user");
     setUser(null);
+    setIsSimulated(false);
     try {
       await nextAuthSignOut({ redirect: false });
     } catch {}
@@ -173,9 +203,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: user?.role ?? null,
         isLoading,
         isAuthenticated: !!user,
-        isSimulated: false,
+        isSimulated,
         login,
         switchRole,
+        switchProfile,
         resetToSsoUser,
         logout,
       }}

@@ -10,6 +10,7 @@ import { ROLE_METADATA } from "@/lib/constants/roles";
 import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
+import { TEST_PROFILES } from "@/lib/constants/testProfiles";
 
 interface HeaderProps {
   role: Role;
@@ -27,7 +28,7 @@ const ROLES_LIST: { role: Role; label: string; badgeBg: string }[] = [
 ];
 
 export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 0 }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isSimulated, switchProfile, resetToSsoUser } = useAuth();
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
@@ -54,6 +55,18 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
         <h1 className="text-lg font-bold text-slate-900 tracking-tight m-0">
           {pageTitle || "AGILLY RHEVAL"}
         </h1>
+        {isSimulated && (
+          <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold rounded-none">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>Simulation : <strong>{user?.prenom} {user?.nom}</strong> ({displayLabel})</span>
+            <button
+              onClick={resetToSsoUser}
+              className="text-[11px] underline text-amber-900 font-bold hover:text-black ml-1.5 cursor-pointer"
+            >
+              Quitter
+            </button>
+          </div>
+        )}
       </div>
 
 
@@ -112,6 +125,63 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none text-xs font-bold bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/30">
                   Rôle actuel : {displayLabel}
                 </div>
+              </div>
+
+              {/* Profils de test pour explorer les parcours */}
+              <div className="py-2 px-3 border-b border-slate-200 bg-slate-50/70">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Simuler un profil / parcours
+                </p>
+                <div className="flex flex-col gap-1">
+                  {TEST_PROFILES.map((p) => {
+                    const isCurrent = user?.id === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          switchProfile({
+                            id: p.id,
+                            nom: p.nom,
+                            prenom: p.prenom,
+                            email: p.email,
+                            role: p.role,
+                            poste: p.poste,
+                            departement: p.departement,
+                            telephone: "",
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                          });
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-2 py-1.5 text-xs flex items-center justify-between transition-colors cursor-pointer rounded-none ${
+                          isCurrent
+                            ? "bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/40 font-bold"
+                            : "text-slate-700 hover:bg-slate-200/60 font-medium"
+                        }`}
+                      >
+                        <div className="truncate mr-2">
+                          <span className="block truncate text-xs">{p.prenom} {p.nom}</span>
+                          <span className="text-[10px] text-slate-400 block truncate">{p.poste}</span>
+                        </div>
+                        <span className={`text-[9px] px-1.5 py-0.5 font-bold uppercase shrink-0 ${p.badgeBg}`}>
+                          {p.roleLabel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {isSimulated && (
+                  <button
+                    onClick={() => {
+                      resetToSsoUser();
+                      setIsDropdownOpen(false);
+                    }}
+                    className="w-full text-center mt-2 px-2 py-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer rounded-none"
+                  >
+                    Revenir à mon compte réel
+                  </button>
+                )}
               </div>
 
 
