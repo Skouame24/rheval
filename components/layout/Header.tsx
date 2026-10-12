@@ -33,7 +33,14 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
   const detected = detectRoleFromPoste(user?.poste, user?.email);
-  const displayLabel = detected.displayRole === "PDG" ? "PDG" : (detected.displayRole === "STAGIAIRE" ? "Stagiaire" : roleInfo.labelCourt);
+  const displayLabel =
+    user?.poste?.toLowerCase().includes("assistante")
+      ? "Assistante RH"
+      : detected.displayRole === "PDG"
+      ? "PDG"
+      : detected.displayRole === "STAGIAIRE"
+      ? "Stagiaire"
+      : roleInfo.labelCourt;
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

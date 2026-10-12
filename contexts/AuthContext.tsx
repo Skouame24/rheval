@@ -10,6 +10,7 @@ import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
+import { TEST_PROFILES } from "@/lib/constants/testProfiles";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -51,7 +52,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const simUser = JSON.parse(simulatedStored);
         if (simUser?.id) {
-          setUser(simUser);
+          const fresh = TEST_PROFILES.find((p) => p.id === simUser.id);
+          const effectiveUser = fresh
+            ? {
+                ...simUser,
+                role: fresh.role,
+                poste: fresh.poste,
+                departement: fresh.departement,
+              }
+            : simUser;
+          setUser(effectiveUser);
           setIsSimulated(true);
           setIsLoading(false);
           return;

@@ -44,7 +44,7 @@ export default function MonEquipePage() {
         setEvaluationsMap(map);
       })
       .catch(() => {});
-  }, []);
+  }, [user?.id]);
 
   const filteredTeam = search(searchQuery);
 
