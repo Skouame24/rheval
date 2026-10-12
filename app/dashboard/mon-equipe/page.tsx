@@ -11,24 +11,39 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, Button, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { DashboardN2 } from "@/features/dashboard/components/DashboardN2";
-import { UsersIcon, TargetIcon, AlertTriangleIcon } from "@/components/ui/Icons";
+import { UsersIcon, TargetIcon, AlertTriangleIcon, EyeIcon } from "@/components/ui/Icons";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTeam } from "@/lib/hooks/useTeam";
 import { cyclesApi } from "@/lib/api/cycles.api";
-import type { User, Cycle } from "@/types";
+import { evaluationsApi } from "@/lib/api/evaluations.api";
+import type { User, Cycle, EvaluationCycle } from "@/types";
 
 export default function MonEquipePage() {
   const { user } = useAuth();
   const [selectedCollab, setSelectedCollab] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCycle, setActiveCycle] = useState<Cycle | null | undefined>(undefined);
+  const [evaluationsMap, setEvaluationsMap] = useState<Record<string, EvaluationCycle>>({});
   const { isLoading, error, search } = useMyTeam();
 
   useEffect(() => {
     cyclesApi.getActif()
       .then((c) => setActiveCycle(c))
       .catch(() => setActiveCycle(null));
+
+    evaluationsApi.getN1TeamEvaluations()
+      .then((fiches) => {
+        const map: Record<string, EvaluationCycle> = {};
+        (fiches || []).forEach((f) => {
+          if (f.salarie?.id) {
+            map[f.salarie.id] = f;
+          }
+        });
+        setEvaluationsMap(map);
+      })
+      .catch(() => {});
   }, []);
 
   const filteredTeam = search(searchQuery);
@@ -46,6 +61,14 @@ export default function MonEquipePage() {
     );
   }
 
+  const selectedFiche = selectedCollab ? evaluationsMap[selectedCollab.id] : null;
+  const isSelectedReadOnly = Boolean(
+    selectedFiche && (
+      (selectedFiche.objectifs && selectedFiche.objectifs.length > 0) ||
+      selectedFiche.statut !== "FIXATION_OBJECTIFS"
+    )
+  );
+
   return (
     <AppShell
       role={user?.role || "N1"}
@@ -60,6 +83,16 @@ export default function MonEquipePage() {
             salariedId={selectedCollab.id}
             salariedName={`${selectedCollab.prenom} ${selectedCollab.nom}`}
             salariedPoste={selectedCollab.poste}
+            readOnly={isSelectedReadOnly}
+            onSaved={() => {
+              evaluationsApi.getN1TeamEvaluations().then((fiches) => {
+                const map: Record<string, EvaluationCycle> = {};
+                (fiches || []).forEach((f) => {
+                  if (f.salarie?.id) map[f.salarie.id] = f;
+                });
+                setEvaluationsMap(map);
+              }).catch(() => {});
+            }}
           />
         )}
 
@@ -154,20 +187,47 @@ export default function MonEquipePage() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-100 text-slate-600 uppercase tracking-wider">
-                          {member.role}
-                        </span>
-                        <Button
-                          variant={!activeCycle ? "secondary" : "primary"}
-                          size="sm"
-                          leftIcon={<TargetIcon size={14} />}
-                          onClick={() => setSelectedCollab(member)}
-                          disabled={!activeCycle}
-                        >
-                          {!activeCycle ? "Consulter les Objectifs" : "Fixer les Objectifs"}
-                        </Button>
-                      </div>
+                      {(() => {
+                        const fiche = evaluationsMap[member.id];
+                        const hasObjectifs = Boolean(
+                          (fiche && fiche.objectifs && fiche.objectifs.length > 0) ||
+                          (fiche && fiche.statut && fiche.statut !== "FIXATION_OBJECTIFS")
+                        );
+
+                        return (
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-100 text-slate-600 uppercase tracking-wider">
+                                {member.role}
+                              </span>
+                              {fiche?.statut ? (
+                                <EvaluationStatusBadge statut={fiche.statut} size="sm" />
+                              ) : null}
+                            </div>
+
+                            {hasObjectifs ? (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={<EyeIcon size={14} />}
+                                onClick={() => setSelectedCollab(member)}
+                              >
+                                Consulter les Objectifs
+                              </Button>
+                            ) : (
+                              <Button
+                                variant={!activeCycle ? "secondary" : "primary"}
+                                size="sm"
+                                leftIcon={<TargetIcon size={14} />}
+                                onClick={() => setSelectedCollab(member)}
+                                disabled={!activeCycle}
+                              >
+                                {!activeCycle ? "Consulter les Objectifs" : "Fixer les Objectifs"}
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>

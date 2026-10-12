@@ -72,7 +72,7 @@ export const TEST_PROFILES: TestProfile[] = [
     nom: "DIOP",
     prenom: "Fatou",
     email: "assistante.rh@agilly.net",
-    role: "SALARIE",
+    role: "RH",
     roleLabel: "Assistante RH",
     poste: "Assistante Ressources Humaines",
     departement: "Direction des Ressources Humaines",

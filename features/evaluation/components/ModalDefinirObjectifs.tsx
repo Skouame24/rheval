@@ -21,6 +21,7 @@ interface ModalDefinirObjectifsProps {
   isN1Validated?: boolean;
   objectifs?: any[];
   onSaved?: () => void;
+  readOnly?: boolean;
 }
 
 interface ObjectifItem {
@@ -52,14 +53,16 @@ export function ModalDefinirObjectifs({
   isN1Validated = false,
   objectifs: initialObjectifs,
   onSaved,
+  readOnly = false,
 }: ModalDefinirObjectifsProps) {
   const { user, role } = useAuth();
 
   // Droit d'édition :
   // Si c'est un collaborateur qui consulte ses propres objectifs -> lecture seule
+  // Si readOnly est explicitement passé (objectifs déjà fixés) -> lecture seule
   // Si c'est un N+1, N+2, RH, DRH ou ADMIN configurant un collaborateur -> édition autorisée
   const isSelf = Boolean(user?.id && salariedId && user.id === salariedId);
-  const canEdit = !isSelf;
+  const canEdit = !isSelf && !readOnly;
 
   const [objectifsState, setObjectifsState] = useState<ObjectifItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -274,7 +277,7 @@ export function ModalDefinirObjectifs({
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 m-0 tracking-tight">
-                {isSelf ? "Mes Objectifs de Performance" : "Fixation des Objectifs de Performance"}
+                {isSelf || readOnly ? "Consultation des Objectifs de Performance" : "Fixation des Objectifs de Performance"}
               </h2>
               <p className="text-xs font-bold text-[#F0822A] m-0 mt-0.5">
                 Collaborateur : {salariedName} {salariedPoste ? `· ${salariedPoste}` : ""}

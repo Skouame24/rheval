@@ -203,10 +203,14 @@ export function FicheEvaluationModal({
     isCollabHimself ? "SALARIE" : (propRole || auth.role || "SALARIE")
   ).toUpperCase();
 
-  // Initialisation de l'onglet actif selon le profil connecté et la fiche
+  // Initialisation de l'onglet actif selon le statut de la fiche et le profil connecté
   useEffect(() => {
     if (isCollabHimself || isAutoEvaluationMode || propRole === "SALARIE") {
       setActiveTab("SALARIE");
+    } else if (fetchedEval?.statut === "EVALUATION_N1" || fetchedEval?.statut === "EN_ATTENTE_N1") {
+      setActiveTab("N1");
+    } else if (fetchedEval?.statut === "VALIDATION_N2" || fetchedEval?.statut === "EVALUATION_N2") {
+      setActiveTab("N2");
     } else if (effectiveRole === "N2") {
       setActiveTab("N2");
     } else if (effectiveRole === "RH" || effectiveRole === "DRH") {
@@ -216,7 +220,7 @@ export function FicheEvaluationModal({
     } else {
       setActiveTab("SALARIE");
     }
-  }, [effectiveRole, isOpen, isCollabHimself, isAutoEvaluationMode, propRole, isCollabManager]);
+  }, [effectiveRole, isOpen, isCollabHimself, isAutoEvaluationMode, propRole, isCollabManager, fetchedEval?.statut]);
 
   // Initialisation des objectifs avec pondération et notes
   const apiObjectifsKey = effectiveObjectifs?.map((o: any) => o.id).join(",") ?? "";

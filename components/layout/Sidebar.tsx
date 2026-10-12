@@ -144,8 +144,8 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     });
   }
 
-  // ESPACE PERSONNEL (POUR SALARIÉ, N1, N2 EXCLUSIVEMENT — NON VISIBLE PAR L'ADMIN)
-  if (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2") {
+  // ESPACE PERSONNEL (POUR SALARIÉ, N1, N2, RH — NON VISIBLE PAR L'ADMIN)
+  if (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "RH") {
     sections.push({
       title: "MON ESPACE PERSONNEL",
       items: [
@@ -156,23 +156,22 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     });
   }
 
-  // MON ÉQUIPE (MANAGERS, DIRECTEURS, DRH)
-  if (normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "DRH" || hasTeam) {
+  // DIRECTION (POUR DIRECTEUR / N2)
+  if (normalizedRole === "N2" || hasN2Scope) {
+    sections.push({
+      title: "ESPACE DIRECTION",
+      items: [
+        { label: "Tableau de bord Direction", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
+        { label: "Évaluations de la Direction", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+      ]
+    });
+  } else if (normalizedRole === "N1" || normalizedRole === "DRH" || hasTeam) {
+    // MON ÉQUIPE (MANAGERS N1 & DRH)
     sections.push({
       title: "MON ÉQUIPE",
       items: [
         { label: "Mes collaborateurs", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.team },
         { label: "Évaluations de mon équipe", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
-      ]
-    });
-  }
-
-  // DIRECTION
-  if (normalizedRole === "N2" || hasN2Scope) {
-    sections.push({
-      title: "ESPACE DIRECTION",
-      items: [
-        { label: "Évaluations de la direction", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }

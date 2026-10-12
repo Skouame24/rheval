@@ -169,7 +169,7 @@ export function DashboardN2() {
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          ⚡ Dossiers à Valider ({evaluationsAValider.length})
+          Dossiers à valider ({evaluationsAValider.length})
         </button>
         <button
           onClick={() => setActiveTab("TOUS")}
@@ -179,7 +179,7 @@ export function DashboardN2() {
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          👥 Tous les Collaborateurs ({fichesDirection.length})
+          Tous les collaborateurs ({fichesDirection.length})
         </button>
         <button
           onClick={() => setActiveTab("FORMATIONS")}
@@ -189,7 +189,7 @@ export function DashboardN2() {
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          🎓 Formations Demandées ({allFormations.length})
+          Formations demandées ({allFormations.length})
         </button>
         <button
           onClick={() => setActiveTab("ARBITRAGES")}
@@ -199,7 +199,7 @@ export function DashboardN2() {
               : "border-transparent text-slate-600 hover:text-slate-900"
           }`}
         >
-          ⚖️ Arbitrages ({arbitrages.length})
+          Arbitrages ({arbitrages.length})
         </button>
       </div>
 

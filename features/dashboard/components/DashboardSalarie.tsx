@@ -194,6 +194,9 @@ export function DashboardSalarie() {
     );
   }
 
+  const hasObjectifs = Boolean(objectifs && objectifs.length > 0);
+  const canAutoEval = hasObjectifs && statut === "AUTO_EVALUATION";
+
   return (
     <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full">
       <FicheEvaluationModal
@@ -224,6 +227,7 @@ export function DashboardSalarie() {
         salariedPoste={user?.poste ?? "Collaborateur Agilly"}
         isN1Validated={false}
         objectifs={objectifs}
+        readOnly={true}
       />
 
       {/* Page Header */}
@@ -235,31 +239,57 @@ export function DashboardSalarie() {
 
       {/* Raccourcis d'actions Salarié */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <button
-          onClick={() => setIsDefinirObjectifsOpen(true)}
-          className="p-4 bg-white border border-blue-200 hover:border-blue-400 text-blue-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
-        >
-          <div className="w-10 h-10 bg-blue-50 text-blue-600 font-extrabold text-lg flex items-center justify-center border border-blue-200 shrink-0">
-            <TargetIcon size={20} className="text-blue-600" />
+        {hasObjectifs ? (
+          <button
+            onClick={() => setIsDefinirObjectifsOpen(true)}
+            className="p-4 bg-white border border-blue-200 hover:border-blue-400 text-blue-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
+          >
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 font-extrabold text-lg flex items-center justify-center border border-blue-200 shrink-0">
+              <TargetIcon size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider block">Étape 01</span>
+              <span className="text-sm font-extrabold block">Consulter mes Objectifs (Fixés par mon Responsable)</span>
+            </div>
+          </button>
+        ) : (
+          <div className="p-4 bg-slate-50 border border-slate-200 text-slate-400 rounded-none flex items-center gap-3 opacity-60 cursor-not-allowed text-left">
+            <div className="w-10 h-10 bg-slate-100 text-slate-400 font-extrabold text-lg flex items-center justify-center border border-slate-200 shrink-0">
+              <TargetIcon size={20} className="text-slate-400" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Étape 01 · En attente</span>
+              <span className="text-sm font-bold text-slate-500 block">Objectifs non encore fixés par votre responsable</span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider block">Étape 02</span>
-            <span className="text-sm font-extrabold block">Consulter mes Objectifs (Fixés par mon Responsable)</span>
-          </div>
-        </button>
+        )}
 
-        <button
-          onClick={() => openFicheModal({ autoEval: true })}
-          className="p-4 bg-white border border-sky-200 hover:border-sky-400 text-sky-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
-        >
-          <div className="w-10 h-10 bg-sky-50 text-sky-600 font-extrabold text-lg flex items-center justify-center border border-sky-200 shrink-0">
-            <PencilIcon size={18} className="text-sky-600" />
+        {canAutoEval ? (
+          <button
+            onClick={() => openFicheModal({ autoEval: true })}
+            className="p-4 bg-white border border-sky-200 hover:border-sky-400 text-sky-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
+          >
+            <div className="w-10 h-10 bg-sky-50 text-sky-600 font-extrabold text-lg flex items-center justify-center border border-sky-200 shrink-0">
+              <PencilIcon size={18} className="text-sky-600" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black text-sky-600 uppercase tracking-wider block">Étape 02</span>
+              <span className="text-sm font-extrabold block">Faire mon Auto-évaluation</span>
+            </div>
+          </button>
+        ) : (
+          <div className="p-4 bg-slate-50 border border-slate-200 text-slate-400 rounded-none flex items-center gap-3 opacity-60 cursor-not-allowed text-left">
+            <div className="w-10 h-10 bg-slate-100 text-slate-400 font-extrabold text-lg flex items-center justify-center border border-slate-200 shrink-0">
+              <PencilIcon size={18} className="text-slate-400" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Étape 02 · Verrouillée</span>
+              <span className="text-sm font-bold text-slate-500 block">
+                {!hasObjectifs ? "Auto-évaluation (disponible après fixation des objectifs)" : "Auto-évaluation déjà transmise ou terminée"}
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] font-black text-sky-600 uppercase tracking-wider block">Étape 03</span>
-            <span className="text-sm font-extrabold block">Faire mon Auto-évaluation</span>
-          </div>
-        </button>
+        )}
       </div>
 
       {/* Hero Card : Progression du Cycle */}
@@ -320,25 +350,36 @@ export function DashboardSalarie() {
 
         {/* CTA Consulter Fiche Officielle */}
         <div className="border-t border-slate-200 pt-6 mt-6 flex justify-between items-center flex-wrap gap-4">
-          <div className="flex items-center gap-3 bg-emerald-50 text-emerald-800 px-4 py-2 rounded-none border border-emerald-200">
-            <span className="w-2 h-2 rounded-none bg-emerald-500 shrink-0 animate-pulse" />
+          <div className={`flex items-center gap-3 px-4 py-2 rounded-none border ${
+            hasObjectifs ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+          }`}>
+            <span className={`w-2 h-2 rounded-none shrink-0 ${
+              hasObjectifs ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+            }`} />
             <span className="text-xs font-bold">
-              Votre dossier est en cours de traitement. Evalué par{" "}
-              {evaluateurN1
-                ? `${evaluateurN1.prenom} ${evaluateurN1.nom}`.trim()
-                : "votre Responsable N+1"}
-              {evaluateurN2
-                ? ` et ${evaluateurN2.prenom} ${evaluateurN2.nom}`.trim()
-                : ""}.
+              {hasObjectifs ? (
+                <>
+                  Votre dossier est en cours de traitement. Évalué par{" "}
+                  {evaluateurN1
+                    ? `${evaluateurN1.prenom} ${evaluateurN1.nom}`.trim()
+                    : "votre Responsable"}
+                  {evaluateurN2
+                    ? ` et ${evaluateurN2.prenom} ${evaluateurN2.nom}`.trim()
+                    : ""}.
+                </>
+              ) : (
+                "Campagne ouverte : vos objectifs sont en cours de définition par votre responsable hiérarchique."
+              )}
             </span>
           </div>
 
           <Button
-            variant="primary"
+            variant={hasObjectifs ? "primary" : "secondary"}
             onClick={() => openFicheModal()}
             leftIcon={<EyeIcon size={16} />}
+            disabled={!hasObjectifs}
           >
-            Consulter ma Fiche Officielle Excel
+            {hasObjectifs ? "Consulter ma Fiche Officielle" : "Fiche non encore disponible"}
           </Button>
         </div>
       </Card>
@@ -350,7 +391,7 @@ export function DashboardSalarie() {
           subtitle={
             objectifs.length > 0
               ? `${objectifs.length} objectif${objectifs.length > 1 ? "s" : ""} défini${objectifs.length > 1 ? "s" : ""} pour le cycle 2026`
-              : "Aucun objectif assigné pour le moment (en attente de saisie par le Manager N+1)"
+              : "Aucun objectif assigné pour le moment (en attente de saisie par votre responsable)"
           }
         />
 
@@ -359,7 +400,7 @@ export function DashboardSalarie() {
             <EmptyState
               icon={<TargetIcon size={24} className="text-slate-400" />}
               title="Aucun objectif fixé pour ce cycle"
-              description="Votre responsable N+1 n'a pas encore défini vos objectifs opérationnels pour l'année 2026."
+              description="Votre responsable hiérarchique n'a pas encore défini vos objectifs opérationnels pour l'année 2026."
             />
           )}
 

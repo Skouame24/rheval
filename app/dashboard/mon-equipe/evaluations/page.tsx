@@ -77,25 +77,27 @@ export default function EvaluationsEquipePage() {
       const matchStatut =
         filtreStatut === "TOUS" ||
         (filtreStatut === "A_TRAITER" &&
-          (isN2
-            ? item.statut === "EVALUATION_N2" || item.statut === "VALIDATION_N2"
-            : item.statut === "EVALUATION_N1" || item.statut === "EN_ATTENTE_N1")) ||
+          (item.statut === "EVALUATION_N2" ||
+           item.statut === "VALIDATION_N2" ||
+           item.statut === "EVALUATION_N1" ||
+           item.statut === "EN_ATTENTE_N1")) ||
         (filtreStatut === "TERMINE" &&
           (item.statut === "VALIDATION_DRH" || item.statut === "CLOTURE" || item.statut === "VALIDE"));
 
       return matchSearch && matchStatut;
     });
-  }, [evaluations, searchQuery, filtreStatut, isN2]);
+  }, [evaluations, searchQuery, filtreStatut]);
 
   // Métriques
   const totalCount = evaluations.length;
   const aTraiterCount = useMemo(() => {
     return evaluations.filter((e) =>
-      isN2
-        ? e.statut === "EVALUATION_N2" || e.statut === "VALIDATION_N2"
-        : e.statut === "EVALUATION_N1" || e.statut === "EN_ATTENTE_N1"
+      e.statut === "EVALUATION_N2" ||
+      e.statut === "VALIDATION_N2" ||
+      e.statut === "EVALUATION_N1" ||
+      e.statut === "EN_ATTENTE_N1"
     ).length;
-  }, [evaluations, isN2]);
+  }, [evaluations]);
 
   const clotureesCount = useMemo(() => {
     return evaluations.filter(
@@ -292,9 +294,8 @@ export default function EvaluationsEquipePage() {
                   const noteVal = item.noteGlobale != null ? Number(item.noteGlobale) : null;
                   const formations = (item as any)?.formations || [];
 
-                  const needsAction = isN2
-                    ? item.statut === "EVALUATION_N2" || item.statut === "VALIDATION_N2"
-                    : item.statut === "EVALUATION_N1" || item.statut === "EN_ATTENTE_N1";
+                  const isN2Validation = item.statut === "EVALUATION_N2" || item.statut === "VALIDATION_N2" || item.statut === "EN_ATTENTE_N2";
+                  const isN1Evaluation = item.statut === "EVALUATION_N1" || item.statut === "EN_ATTENTE_N1";
 
                   return (
                     <div
@@ -353,15 +354,35 @@ export default function EvaluationsEquipePage() {
                           </div>
                         )}
 
-                        {/* Bouton d'action principal */}
-                        <Button
-                          variant={needsAction ? "primary" : "secondary"}
-                          size="sm"
-                          leftIcon={needsAction ? <PencilIcon size={14} /> : <EyeIcon size={14} />}
-                          onClick={() => setSelectedFicheId(item.id)}
-                        >
-                          {needsAction ? "Évaluer & Noter" : "Consulter la fiche"}
-                        </Button>
+                        {/* Bouton d'action contextuel */}
+                        {isN2Validation ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            leftIcon={<CheckCircleIcon size={14} />}
+                            onClick={() => setSelectedFicheId(item.id)}
+                          >
+                            Valider l'évaluation
+                          </Button>
+                        ) : isN1Evaluation ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            leftIcon={<PencilIcon size={14} />}
+                            onClick={() => setSelectedFicheId(item.id)}
+                          >
+                            Évaluer & Noter
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            leftIcon={<EyeIcon size={14} />}
+                            onClick={() => setSelectedFicheId(item.id)}
+                          >
+                            Consulter la fiche
+                          </Button>
+                        )}
 
                         {/* Bouton Export Excel */}
                         <button

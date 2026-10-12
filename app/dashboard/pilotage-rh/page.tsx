@@ -299,7 +299,7 @@ export default function RhDashboardPage() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 m-0 leading-relaxed font-medium">
-                      Écart de notation constaté entre l'évaluation du Manager N+1 et la Direction N+2.
+                      Écart de notation constaté entre l'évaluation du manager et la direction.
                     </p>
                     <div className="mt-4">
                       <button

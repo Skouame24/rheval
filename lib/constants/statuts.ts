@@ -18,8 +18,8 @@ export interface StatutMetadata {
 
 export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
   FIXATION_OBJECTIFS: {
-    label: "🎯 Fixation des Objectifs",
-    description: "Le N+1 définit les objectifs et pondérations du salarié",
+    label: "Fixation des objectifs",
+    description: "Le manager direct définit les objectifs et pondérations du salarié",
     color: "#2563EB",
     bg: "#EFF6FF",
     border: "#BFDBFE",
@@ -27,7 +27,7 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   MI_PARCOURS: {
-    label: "📊 Mi-Parcours",
+    label: "Mi-parcours",
     description: "Point d'étape sur l'avancement des objectifs",
     color: "#8B5CF6",
     bg: "#F5F3FF",
@@ -36,7 +36,7 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   AUTO_EVALUATION: {
-    label: "✍️ Auto-évaluation Salarié",
+    label: "Auto-évaluation",
     description: "Le salarié saisit ses auto-notes (notes uniquement, pas de commentaires)",
     color: "#0284C7",
     bg: "#F0F9FF",
@@ -46,8 +46,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
   },
   // Alias legacy — mappés sur EVALUATION_N1
   EN_ATTENTE_N1: {
-    label: "⏳ Évaluation N+1",
-    description: "Attribution des notes, commentaires et formations par le N+1",
+    label: "Évaluation manager",
+    description: "Attribution des notes, commentaires et formations par le manager",
     color: "#D97706",
     bg: "#FFFBEB",
     border: "#FDE68A",
@@ -55,8 +55,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   EVALUATION_N1: {
-    label: "⏳ Évaluation N+1",
-    description: "Attribution des notes, commentaires et formations par le N+1",
+    label: "Évaluation manager",
+    description: "Attribution des notes, commentaires et formations par le manager",
     color: "#D97706",
     bg: "#FFFBEB",
     border: "#FDE68A",
@@ -65,8 +65,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
   },
   // Alias legacy — VISA_SALARIE n'existe plus dans le nouveau workflow
   VISA_SALARIE: {
-    label: "⏳ Évaluation N+1",
-    description: "Attribution des notes par le manager direct",
+    label: "Visa salarié",
+    description: "Consultation et visa de l'évaluation par le collaborateur",
     color: "#D97706",
     bg: "#FFFBEB",
     border: "#FDE68A",
@@ -75,8 +75,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
   },
   // Alias legacy — mappés sur EVALUATION_N2
   EN_ATTENTE_N2: {
-    label: "🔍 Évaluation N+2",
-    description: "Évaluation et notation par la direction hiérarchique N+2",
+    label: "Validation direction",
+    description: "Revue hiérarchique et visa de la direction",
     color: "#7C3AED",
     bg: "#F5F3FF",
     border: "#DDD6FE",
@@ -84,8 +84,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   VALIDATION_N2: {
-    label: "🔍 Évaluation N+2",
-    description: "Évaluation et notation par la direction hiérarchique N+2",
+    label: "Validation direction",
+    description: "Revue hiérarchique et visa de la direction",
     color: "#7C3AED",
     bg: "#F5F3FF",
     border: "#DDD6FE",
@@ -93,8 +93,8 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   EVALUATION_N2: {
-    label: "🔍 Évaluation N+2",
-    description: "Évaluation et notation par la direction hiérarchique N+2",
+    label: "Validation direction",
+    description: "Revue hiérarchique et visa de la direction",
     color: "#7C3AED",
     bg: "#F5F3FF",
     border: "#DDD6FE",
@@ -103,7 +103,7 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
   },
   // Alias legacy
   EN_ATTENTE_RH: {
-    label: "⏳ Validation RH",
+    label: "Validation RH",
     description: "Revue finale et validation par le Pôle DRH",
     color: "#EA580C",
     bg: "#FFF7ED",
@@ -112,7 +112,7 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   VALIDATION_DRH: {
-    label: "⏳ Validation RH",
+    label: "Validation RH",
     description: "Revue finale et validation par le Pôle DRH",
     color: "#EA580C",
     bg: "#FFF7ED",
@@ -121,7 +121,7 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   ARBITRAGE: {
-    label: "⚖️ Arbitrage RH",
+    label: "Arbitrage RH",
     description: "Dossier en arbitrage — désaccord de notation",
     color: "#DC2626",
     bg: "#FEF2F2",
@@ -130,7 +130,7 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   VALIDE: {
-    label: "✓ Validé",
+    label: "Validé",
     description: "Évaluation définitivement validée par la Direction RH",
     color: "#059669",
     bg: "#ECFDF5",
@@ -139,7 +139,7 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     isFinal: false,
   },
   CLOTURE: {
-    label: "🔒 Clôturé & Archivé",
+    label: "Clôturé",
     description: "Cycle d'évaluation clôturé et archivé",
     color: "#475569",
     bg: "#F8FAFC",
