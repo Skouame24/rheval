@@ -223,11 +223,14 @@ export function DashboardSalarie() {
         isOpen={isDefinirObjectifsOpen}
         onClose={() => setIsDefinirObjectifsOpen(false)}
         salariedId={user?.id}
+        evaluationId={evaluation?.id}
+        statut={statut}
         salariedName={`${user?.prenom ?? ""} ${user?.nom ?? ""}`.trim() || "Collaborateur"}
         salariedPoste={user?.poste ?? "Collaborateur Agilly"}
         isN1Validated={false}
         objectifs={objectifs}
         readOnly={true}
+        onSaved={refetch}
       />
 
       {/* Page Header */}
@@ -249,7 +252,11 @@ export function DashboardSalarie() {
             </div>
             <div>
               <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider block">Étape 01</span>
-              <span className="text-sm font-extrabold block">Consulter mes Objectifs (Fixés par mon Responsable)</span>
+              <span className="text-sm font-extrabold block">
+                {statut === "VALIDATION_OBJECTIFS_SALARIE"
+                  ? "Consulter & Confirmer mes Objectifs (Action Requise)"
+                  : "Consulter mes Objectifs (Fixés par mon Responsable)"}
+              </span>
             </div>
           </button>
         ) : (

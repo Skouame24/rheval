@@ -348,9 +348,10 @@ export function FicheEvaluationModal({
   const isN1EvalOpen = !isFicheCloturee && (currentStatut === "EVALUATION_N1" || currentStatut === "EN_ATTENTE_N1");
   const canEditN1 = !readOnly && !isFicheCloturee && activeTab === "N1" && isN1EvalOpen && !isCollabHimself && (effectiveRole === "N1" || effectiveRole === "ADMIN");
 
-  // 3. N+2 : ne peut évaluer QUE si le statut est EVALUATION_N2 (ou EN_ATTENTE_N2 / VALIDATION_N2) et NON clôturé
+  // 3. N+2 : ne peut évaluer QUE si le statut est EVALUATION_N2 (ou EN_ATTENTE_N2 / VALIDATION_N2 / VALIDATION_OBJECTIFS_N2) et NON clôturé
   // Si le salarié est un manager N1 direct (ex: Marc AUBERT), dès qu'il a soumis son auto-évaluation, son N+2 Claire peut l'évaluer !
   const isN2EvalOpen = !isFicheCloturee && (
+    currentStatut === "VALIDATION_OBJECTIFS_N2" ||
     currentStatut === "EVALUATION_N2" ||
     currentStatut === "VALIDATION_N2" ||
     currentStatut === "EN_ATTENTE_N2" ||
@@ -584,18 +585,33 @@ export function FicheEvaluationModal({
     setSaveSuccessMsg(null);
     const finalDecision = customDecision || (decisionN2 as any);
     try {
-      await evaluationsApi.validateNotesN2(resolvedFicheId, {
-        decision: finalDecision,
-        observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation validée sans réserve." : "Notes rejetées et renvoyées au manager."),
-      });
+      if (effectiveStatut === "VALIDATION_OBJECTIFS_N2") {
+        await evaluationsApi.validateObjectifsN2(resolvedFicheId, {
+          decision: finalDecision,
+          observations: observationN2 || (finalDecision === "APPROUVE" ? "Objectifs validés par la Direction." : "Objectifs rejetés et renvoyés au manager."),
+        });
 
-      const nextSt = finalDecision === "REJETE" ? "EVALUATION_N1" : "ACCORD_SALARIE";
-      setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
-      setSaveSuccessMsg(
-        finalDecision === "REJETE"
-          ? "L'évaluation a été rejetée et renvoyée au manager."
-          : "L'évaluation a été validée avec succès et transmise au collaborateur."
-      );
+        const nextSt = finalDecision === "REJETE" ? "FIXATION_OBJECTIFS" : "VALIDATION_OBJECTIFS_SALARIE";
+        setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
+        setSaveSuccessMsg(
+          finalDecision === "REJETE"
+            ? "Les objectifs ont été rejetés et renvoyés au manager."
+            : "Les objectifs ont été approuvés par la Direction et transmis au salarié pour confirmation."
+        );
+      } else {
+        await evaluationsApi.validateNotesN2(resolvedFicheId, {
+          decision: finalDecision,
+          observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation validée sans réserve." : "Notes rejetées et renvoyées au manager."),
+        });
+
+        const nextSt = finalDecision === "REJETE" ? "EVALUATION_N1" : "ACCORD_SALARIE";
+        setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
+        setSaveSuccessMsg(
+          finalDecision === "REJETE"
+            ? "L'évaluation a été rejetée et renvoyée au manager."
+            : "L'évaluation a été validée avec succès et transmise au collaborateur."
+        );
+      }
       if (onSaved) onSaved();
       setTimeout(() => {
         onClose();
@@ -1529,7 +1545,11 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Enregistrement..." : decisionN2 === "REJETE" ? "Transmettre en Arbitrage" : "Valider l'Évaluation"}
+                  {isSaving
+                    ? "Enregistrement..."
+                    : currentStatut === "VALIDATION_OBJECTIFS_N2"
+                    ? (decisionN2 === "REJETE" ? "Rejeter les objectifs" : "Approuver les objectifs")
+                    : (decisionN2 === "REJETE" ? "Transmettre en Arbitrage" : "Valider l'Évaluation")}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>

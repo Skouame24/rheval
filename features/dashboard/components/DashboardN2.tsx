@@ -50,7 +50,7 @@ export function DashboardN2() {
 
   // Dossiers nécessitant validation ou revue de la Direction
   const evaluationsAValider = fichesDirection.filter(
-    (f) => ["EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
+    (f) => ["VALIDATION_OBJECTIFS_N2", "EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
   );
 
   const arbitrages = fichesDirection.filter((f) => f.statut === "ARBITRAGE");
@@ -263,7 +263,7 @@ export function DashboardN2() {
                         className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                       >
                         <PencilIcon size={13} />
-                        Valider l'évaluation
+                        {ev.statut === "VALIDATION_OBJECTIFS_N2" ? "Valider les objectifs" : "Valider l'évaluation"}
                       </button>
                     </div>
                   </div>

@@ -9,6 +9,8 @@ import type { CycleSummary, Objectif } from "./cycle.types";
 // Statuts possibles d'un cycle d'évaluation (machine à états)
 export type StatutEvaluation =
   | "FIXATION_OBJECTIFS" 
+  | "VALIDATION_OBJECTIFS_N2"
+  | "VALIDATION_OBJECTIFS_SALARIE"
   | "MI_PARCOURS"
   | "AUTO_EVALUATION"    
   | "EVALUATION_N1"

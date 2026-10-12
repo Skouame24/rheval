@@ -164,6 +164,22 @@ export const evaluationsApi = {
   },
 
   /**
+   * PUT /api/evaluations/:id/objectifs/confirmer-salarie
+   * Confirmation et validation formelle de ses objectifs par le collaborateur.
+   */
+  validateObjectifsSalarie: async (
+    id: string,
+    dto: { accord?: boolean; observation?: string } = { accord: true }
+  ): Promise<EvaluationCycle> => {
+    try {
+      return await client.put<EvaluationCycle>(`/evaluations/${id}/objectifs/confirmer-salarie`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.validateObjectifsSalarie] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
    * PUT /api/n2/evaluations/:id
    * Validation de l'évaluation par le N+2.
    */

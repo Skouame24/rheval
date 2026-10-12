@@ -10,7 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { objectivesApi } from "@/lib/api/objectives.api";
 import { cyclesApi } from "@/lib/api/cycles.api";
 import { ScaleIcon, TrashIcon, TargetIcon, CheckCircleIcon, AlertTriangleIcon } from "@/components/ui/Icons";
-import type { Cycle } from "@/types";
+import { evaluationsApi } from "@/lib/api/evaluations.api";
+import type { Cycle, StatutEvaluation } from "@/types";
 
 interface ModalDefinirObjectifsProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ interface ModalDefinirObjectifsProps {
   salariedName: string;
   salariedPoste?: string;
   salariedId?: string;
+  evaluationId?: string;
+  statut?: StatutEvaluation;
   isN1Validated?: boolean;
   objectifs?: any[];
   onSaved?: () => void;
@@ -50,6 +53,8 @@ export function ModalDefinirObjectifs({
   salariedName,
   salariedPoste,
   salariedId,
+  evaluationId,
+  statut,
   isN1Validated = false,
   objectifs: initialObjectifs,
   onSaved,
@@ -621,8 +626,47 @@ export function ModalDefinirObjectifs({
             Fermer
           </button>
 
-          {canEdit && (
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            {/* Si le collaborateur consulte ses objectifs en attente de confirmation */}
+            {isSelf && (statut === "VALIDATION_OBJECTIFS_SALARIE" || !statut || statut === "FIXATION_OBJECTIFS") && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const targetFicheId = evaluationId || salariedId;
+                  if (!targetFicheId) return;
+                  try {
+                    setIsSaving(true);
+                    await evaluationsApi.validateObjectifsSalarie(targetFicheId, { accord: true });
+                    setSuccessMessage("✓ Vos objectifs ont été confirmés avec succès ! La phase d'auto-évaluation est maintenant ouverte.");
+                    if (onSaved) onSaved();
+                    setTimeout(() => {
+                      onClose();
+                      window.location.reload();
+                    }, 1200);
+                  } catch (err: any) {
+                    setErrorMessage(err.message || "Erreur lors de la confirmation de vos objectifs.");
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                disabled={isSaving}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+              >
+                {isSaving ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent animate-spin inline-block" />
+                    <span>Confirmation en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon size={14} />
+                    <span>Confirmer & Valider mes Objectifs</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {canEdit && (
               <button
                 type="button"
                 onClick={handleSave}
@@ -642,8 +686,8 @@ export function ModalDefinirObjectifs({
                   </>
                 )}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
