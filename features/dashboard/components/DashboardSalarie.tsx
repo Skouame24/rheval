@@ -179,7 +179,7 @@ export function DashboardSalarie() {
     return (
       <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full">
         <PageHeader
-          title="Espace Salarié — Bilan d'Évaluation"
+          title="Espace Salarié - Bilan d'Évaluation"
           subtitle="Suivi en direct de votre performance annuelle"
           breadcrumbs={[{ label: "Mon Espace" }, { label: "Tableau de Bord" }]}
         />
@@ -235,7 +235,7 @@ export function DashboardSalarie() {
 
       {/* Page Header */}
       <PageHeader
-        title="Espace Salarié — Bilan d'Évaluation"
+        title="Espace Salarié - Bilan d'Évaluation"
         subtitle="Suivi en direct de votre performance annuelle, consultation de vos objectifs fixés par le manager et auto-évaluation"
         breadcrumbs={[{ label: "Mon Espace" }, { label: "Tableau de Bord" }]}
       />
