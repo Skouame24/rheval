@@ -10,7 +10,6 @@ import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
-import { TEST_PROFILES } from "@/lib/constants/testProfiles";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -22,8 +21,8 @@ interface AuthContextValue {
   isSimulated: boolean;
   login: (email: string, password: string) => Promise<void>;
   switchRole: (newRole: Role) => void;
-  switchProfile: (newUser: User) => void;
-  resetToSsoUser: () => void;
+  switchProfile?: (newUser: User) => void;
+  resetToSsoUser?: () => void;
   logout: () => void;
 }
 
@@ -37,36 +36,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSimulated, setIsSimulated] = useState(false);
+  const [isSimulated] = useState(false);
 
   // Synchronisation dynamique avec la session Microsoft Entra ID réelle
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("agilly_simulated_user");
+    }
+
     if (status === "loading") {
       setIsLoading(true);
       return;
-    }
-
-    // Vérifier en priorité si un profil de test est simulé
-    const simulatedStored = typeof window !== "undefined" ? localStorage.getItem("agilly_simulated_user") : null;
-    if (simulatedStored) {
-      try {
-        const simUser = JSON.parse(simulatedStored);
-        if (simUser?.id) {
-          const fresh = TEST_PROFILES.find((p) => p.id === simUser.id);
-          const effectiveUser = fresh
-            ? {
-                ...simUser,
-                role: fresh.role,
-                poste: fresh.poste,
-                departement: fresh.departement,
-              }
-            : simUser;
-          setUser(effectiveUser);
-          setIsSimulated(true);
-          setIsLoading(false);
-          return;
-        }
-      } catch {}
     }
 
     if (status === "authenticated" && session?.user) {
@@ -179,10 +159,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const switchProfile = (newUser: User) => {
-    localStorage.setItem("agilly_simulated_user", JSON.stringify(newUser));
+    localStorage.removeItem("agilly_simulated_user");
     localStorage.setItem("agilly_user", JSON.stringify(newUser));
     setUser(newUser);
-    setIsSimulated(true);
     const target = ROLE_DASHBOARD[newUser.role] || "/dashboard/mon-espace";
     window.location.href = target;
   };
@@ -190,7 +169,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetToSsoUser = () => {
     localStorage.removeItem("agilly_simulated_user");
     localStorage.removeItem("agilly_user");
-    setIsSimulated(false);
     window.location.href = "/dashboard/mon-espace";
   };
 
@@ -199,7 +177,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("agilly_token");
     localStorage.removeItem("agilly_simulated_user");
     setUser(null);
-    setIsSimulated(false);
     try {
       await nextAuthSignOut({ redirect: false });
     } catch {}
