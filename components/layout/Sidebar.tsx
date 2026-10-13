@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
+import { employeesApi } from "@/lib/api/employees.api";
 
 type NavItem = {
   label: string;
@@ -119,14 +120,24 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
   const [hasN2Scope, setHasN2Scope] = useState(false);
 
   useEffect(() => {
-    fetch('/api/users/me/hierarchy')
-      .then(res => res.json())
-      .then(data => {
-         setHasTeam(data.hasTeam || false);
-         setHasN2Scope(data.hasN2Scope || false);
+    // Vérifier si l'utilisateur connecté encadre réellement des collaborateurs N-1
+    employeesApi
+      .getMyTeam()
+      .then((team) => {
+        setHasTeam(Array.isArray(team) && team.length > 0);
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => setHasTeam(false));
+
+    // Si rôle N2, vérifier le périmètre N2
+    if (normalizedRole === "N2") {
+      employeesApi
+        .getN2Subordinates()
+        .then((subs) => {
+          setHasN2Scope(Array.isArray(subs) && subs.length > 0);
+        })
+        .catch(() => setHasN2Scope(false));
+    }
+  }, [normalizedRole]);
 
   const sections: NavSection[] = [];
 
@@ -165,8 +176,8 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
         { label: "Évaluations de la Direction", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
-  } else if (normalizedRole === "N1" || normalizedRole === "DRH" || hasTeam) {
-    // MON ÉQUIPE (MANAGERS N1 & DRH)
+  } else if (hasTeam) {
+    // MON ÉQUIPE (UNIQUEMENT POUR LES MANAGERS AYANT AU MOINS UN COLLABORATEUR RÉEL)
     sections.push({
       title: "MON ÉQUIPE",
       items: [

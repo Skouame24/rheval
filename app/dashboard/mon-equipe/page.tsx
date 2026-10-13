@@ -6,6 +6,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, Button, PageHeaderSkeleton, CollaborateursListSkeleton } from "@/components/ui";
@@ -21,6 +22,7 @@ import { evaluationsApi } from "@/lib/api/evaluations.api";
 import type { User, Cycle, EvaluationCycle } from "@/types";
 
 export default function MonEquipePage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [selectedCollab, setSelectedCollab] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,15 +150,26 @@ export default function MonEquipePage() {
               </div>
 
               {filteredTeam.length === 0 ? (
-                <EmptyState
-                  icon={<UsersIcon size={32} className="text-slate-400" />}
-                  title="Aucun collaborateur trouvé"
-                  description={
-                    searchQuery
-                      ? "Aucun membre de l'équipe ne correspond aux critères de recherche."
-                      : "Aucun collaborateur direct n'est actuellement rattaché sous votre responsabilité hiérarchique."
-                  }
-                />
+                <div className="flex flex-col items-center py-6">
+                  <EmptyState
+                    icon={<UsersIcon size={32} className="text-slate-400" />}
+                    title="Aucun collaborateur rattaché"
+                    description={
+                      searchQuery
+                        ? "Aucun membre de l'équipe ne correspond aux critères de recherche."
+                        : "Aucun collaborateur direct n'est actuellement rattaché sous votre responsabilité hiérarchique dans l'organigramme."
+                    }
+                  />
+                  {!searchQuery && (
+                    <Button
+                      variant="primary"
+                      onClick={() => router.push("/dashboard/mon-espace")}
+                      className="mt-4"
+                    >
+                      Accéder à mon espace personnel
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredTeam.map((member: User) => (

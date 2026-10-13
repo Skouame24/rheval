@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 
+import { employeesApi } from "@/lib/api/employees.api";
+
 export default function DashboardIndexPage() {
   const router = useRouter();
   const { user, role, isLoading } = useAuth();
@@ -18,6 +20,23 @@ export default function DashboardIndexPage() {
     }
 
     const targetRole = role || user.role || "SALARIE";
+
+    if (targetRole === "N1") {
+      employeesApi
+        .getMyTeam()
+        .then((team) => {
+          if (Array.isArray(team) && team.length > 0) {
+            router.replace("/dashboard/mon-equipe");
+          } else {
+            router.replace("/dashboard/mon-espace");
+          }
+        })
+        .catch(() => {
+          router.replace("/dashboard/mon-espace");
+        });
+      return;
+    }
+
     const targetDashboard = ROLE_DASHBOARD[targetRole] || "/dashboard/mon-espace";
     router.replace(targetDashboard);
   }, [user, role, isLoading, router]);

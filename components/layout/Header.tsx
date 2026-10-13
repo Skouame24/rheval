@@ -29,6 +29,10 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
       ? "Assistante RH"
       : detected.displayRole === "PDG"
       ? "PDG"
+      : detected.displayRole === "RESPONSABLE"
+      ? "Responsable"
+      : detected.displayRole === "DIRECTEUR"
+      ? "Directeur"
       : detected.displayRole === "STAGIAIRE"
       ? "Stagiaire"
       : roleInfo.labelCourt;
