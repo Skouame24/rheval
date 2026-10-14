@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
 
 const PATH_LABELS: Record<string, string> = {
   dashboard: "Tableau de Bord",
-  "mon-espace": "Mon Espace Salarié",
+  "mon-espace": "Mon Espace Personnel",
   objectifs: "Mes Objectifs",
   historique: "Historique Campagnes",
   "mon-equipe": "Mon Équipe",

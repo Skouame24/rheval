@@ -11,6 +11,7 @@ export { cyclesApi } from "./cycles.api";
 export { objectivesApi } from "./objectives.api";
 export { rhApi } from "./rh.api";
 export { adminApi } from "./admin.api";
+export { notificationsApi } from "./notifications.api";
 
 // Re-export des types utiles
 export type { LoginDto, AuthResponse } from "./auth.api";
@@ -18,3 +19,5 @@ export type { SignSalarieDto, HistoriqueItem, HistoriqueFilters } from "./evalua
 export type { CreateObjectifsDto } from "./objectives.api";
 export type { RhDashboardStats, ResolveArbitrageDto } from "./rh.api";
 export type { AuditLog } from "./admin.api";
+export type { AppNotification } from "./notifications.api";
+

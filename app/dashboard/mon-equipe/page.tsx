@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMyTeam } from "@/lib/hooks/useTeam";
 import { cyclesApi } from "@/lib/api/cycles.api";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
+import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import type { User, Cycle, EvaluationCycle } from "@/types";
 
 export default function MonEquipePage() {
@@ -210,9 +211,20 @@ export default function MonEquipePage() {
                         return (
                           <div className="flex items-center justify-between pt-2 border-t border-slate-100 flex-wrap gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-100 text-slate-600 uppercase tracking-wider">
-                                {member.role}
-                              </span>
+                              {(() => {
+                                const detected = detectRoleFromPoste(member.poste, member.email);
+                                const isManager = member.role === "N1" || detected.role === "N1" || detected.role === "N2";
+                                const badgeLabel = detected.label || member.role;
+                                return (
+                                  <span className={`text-[10px] font-extrabold px-2 py-0.5 uppercase tracking-wider ${
+                                    isManager
+                                      ? "bg-orange-50 text-[#F0822A] border border-orange-200"
+                                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                                  }`}>
+                                    {badgeLabel}
+                                  </span>
+                                );
+                              })()}
                               {fiche?.statut ? (
                                 <EvaluationStatusBadge statut={fiche.statut} size="sm" />
                               ) : null}

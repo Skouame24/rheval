@@ -6,6 +6,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ROLE_METADATA } from "@/lib/constants/roles";
 import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +51,11 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const pathname = usePathname();
+  const notifHref = pathname?.startsWith("/dashboard/mon-equipe")
+    ? "/dashboard/mon-equipe/notifications"
+    : "/dashboard/mon-espace/notifications";
+
   return (
     <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
       {/* Gauche — Titre de Page */}
@@ -66,7 +72,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
       <div className="flex items-center gap-4">
         {/* Cloche de Notifications */}
         <Link
-          href="/dashboard/mon-espace/notifications"
+          href={notifHref}
           className="relative w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all rounded-none border border-slate-200"
           title="Notifications"
         >
