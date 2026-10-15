@@ -141,7 +141,9 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
 
   const sections: NavSection[] = [];
 
-  // NAVIGATION RH & DRH
+  // 1. ESPACES DE GESTION & SUPERVISION (SELON LE RÔLE)
+
+  // PILOTAGE RH (POUR RH & DRH)
   if (normalizedRole === "RH" || normalizedRole === "DRH") {
     sections.push({
       title: "PILOTAGE RH",
@@ -155,19 +157,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     });
   }
 
-  // ESPACE PERSONNEL (POUR SALARIÉ, N1, N2, RH, DRH — NON VISIBLE PAR L'ADMIN)
-  if (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "RH" || normalizedRole === "DRH") {
-    sections.push({
-      title: "MON ESPACE PERSONNEL",
-      items: [
-        { label: "Mon évaluation", href: "/dashboard/mon-espace", iconSvg: NAV_ICONS.dashboard },
-        { label: "Mes objectifs", href: "/dashboard/mon-espace/objectifs", iconSvg: NAV_ICONS.objectifs },
-        { label: "Historique", href: "/dashboard/mon-espace/historique", iconSvg: NAV_ICONS.historique },
-      ]
-    });
-  }
-
-  // DIRECTION (POUR DIRECTEUR / N2)
+  // DIRECTION (POUR DIRECTEUR / DIRECTRICE / N2)
   if (normalizedRole === "N2" || hasN2Scope) {
     sections.push({
       title: "ESPACE DIRECTION",
@@ -176,13 +166,27 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
         { label: "Évaluations de la Direction", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
-  } else if (hasTeam) {
-    // MON ÉQUIPE (UNIQUEMENT POUR LES MANAGERS AYANT AU MOINS UN COLLABORATEUR RÉEL)
+  }
+
+  // MON ÉQUIPE (POUR LES MANAGERS N1 OU TOUT ENCADRANT AYANT DES COLLABORATEURS DIRECTS)
+  if (normalizedRole === "N1" || (normalizedRole !== "N2" && hasTeam)) {
     sections.push({
       title: "MON ÉQUIPE",
       items: [
         { label: "Mes collaborateurs", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.team },
         { label: "Évaluations de mon équipe", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+      ]
+    });
+  }
+
+  // 2. ESPACE PERSONNEL (POUR TOUS LES COLLABORATEURS : SALARIÉ, N1, N2, RH, DRH)
+  if (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "RH" || normalizedRole === "DRH") {
+    sections.push({
+      title: "MON ESPACE PERSONNEL",
+      items: [
+        { label: "Mon évaluation", href: "/dashboard/mon-espace", iconSvg: NAV_ICONS.dashboard },
+        { label: "Mes objectifs", href: "/dashboard/mon-espace/objectifs", iconSvg: NAV_ICONS.objectifs },
+        { label: "Historique", href: "/dashboard/mon-espace/historique", iconSvg: NAV_ICONS.historique },
       ]
     });
   }

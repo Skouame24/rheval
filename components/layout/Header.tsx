@@ -58,11 +58,67 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
 
   return (
     <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
-      {/* Gauche — Titre de Page */}
+      {/* Gauche — Titre de Page & Bouton Switch Rapide de Rôle */}
       <div className="flex items-center gap-4 flex-wrap">
         <h1 className="text-lg font-bold text-slate-900 tracking-tight m-0">
           {pageTitle || "AGILLY RHEVAL"}
-        </h1>      </div>
+        </h1>
+
+        {/* Bouton de bascule rapide pour RH, Directeurs et Managers */}
+        {(currentRole === "RH" || currentRole === "DRH") && (
+          pathname?.startsWith("/dashboard/pilotage-rh") || pathname?.startsWith("/dashboard/personnel") ? (
+            <Link
+              href="/dashboard/mon-espace"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
+            >
+              <span>👤 Mon Espace Salarié</span>
+            </Link>
+          ) : (
+            <Link
+              href="/dashboard/pilotage-rh"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
+            >
+              <span>⚙️ Pilotage RH</span>
+            </Link>
+          )
+        )}
+
+        {(currentRole === "N2") && (
+          pathname?.startsWith("/dashboard/mon-equipe") ? (
+            <Link
+              href="/dashboard/mon-espace"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
+            >
+              <span>👤 Mon Espace Salarié</span>
+            </Link>
+          ) : (
+            <Link
+              href="/dashboard/mon-equipe"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
+            >
+              <span>👔 Espace Direction</span>
+            </Link>
+          )
+        )}
+
+        {(currentRole === "N1") && (
+          pathname?.startsWith("/dashboard/mon-equipe") ? (
+            <Link
+              href="/dashboard/mon-espace"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
+            >
+              <span>👤 Mon Espace Salarié</span>
+            </Link>
+          ) : (
+            <Link
+              href="/dashboard/mon-equipe"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
+            >
+              <span>👥 Mon Équipe</span>
+            </Link>
+          )
+        )}
+      </div>
 
 
 
@@ -124,6 +180,41 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
 
 
 
+
+              <div className="py-1 border-b border-slate-100">
+                {(currentRole === "RH" || currentRole === "DRH") && (
+                  <Link
+                    href="/dashboard/pilotage-rh"
+                    className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-[#F0822A] hover:bg-orange-50 transition-colors"
+                  >
+                    <span>⚙️ Espace Pilotage RH</span>
+                  </Link>
+                )}
+                {(currentRole === "N2") && (
+                  <Link
+                    href="/dashboard/mon-equipe"
+                    className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-[#F0822A] hover:bg-orange-50 transition-colors"
+                  >
+                    <span>👔 Espace Direction</span>
+                  </Link>
+                )}
+                {(currentRole === "N1") && (
+                  <Link
+                    href="/dashboard/mon-equipe"
+                    className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-[#F0822A] hover:bg-orange-50 transition-colors"
+                  >
+                    <span>👥 Mon Équipe (Collaborateurs)</span>
+                  </Link>
+                )}
+                {(currentRole === "SALARIE" || currentRole === "N1" || currentRole === "N2" || currentRole === "RH" || currentRole === "DRH") && (
+                  <Link
+                    href="/dashboard/mon-espace"
+                    className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <span>👤 Mon Espace Salarié</span>
+                  </Link>
+                )}
+              </div>
 
               <div className="py-1">
                 <Link
