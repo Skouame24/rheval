@@ -162,8 +162,8 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     sections.push({
       title: "ESPACE DIRECTION",
       items: [
-        { label: "Tableau de bord Direction", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
-        { label: "Évaluations de la Direction", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        { label: "Tableau de bord ", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
+        { label: "Évaluations ", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }

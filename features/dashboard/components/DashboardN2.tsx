@@ -11,9 +11,10 @@ import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { Card, CardHeader, AvatarWithName } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CheckCircleIcon, PencilIcon, EyeIcon, ScaleIcon, UsersIcon, ArrowPathIcon } from "@/components/ui/Icons";
+import { CheckCircleIcon, PencilIcon, EyeIcon, ScaleIcon, UsersIcon, ArrowPathIcon, TargetIcon } from "@/components/ui/Icons";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
+import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import type { EvaluationCycle } from "@/types";
 
 export function DashboardN2() {
@@ -21,6 +22,7 @@ export function DashboardN2() {
   const [fiches, setFiches] = useState<EvaluationCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
+  const [selectedFicheForObjectifs, setSelectedFicheForObjectifs] = useState<EvaluationCycle | null>(null);
   const [activeTab, setActiveTab] = useState<"A_TRAITER" | "TOUS" | "FORMATIONS" | "ARBITRAGES">("A_TRAITER");
 
   const loadData = async () => {
@@ -125,6 +127,24 @@ export function DashboardN2() {
           readOnly={false}
           onSaved={() => {
             setSelectedFicheModal(null);
+            loadData();
+          }}
+        />
+      )}
+
+      {selectedFicheForObjectifs && (
+        <ModalDefinirObjectifs
+          isOpen={true}
+          onClose={() => setSelectedFicheForObjectifs(null)}
+          salariedId={selectedFicheForObjectifs.salarie?.id}
+          evaluationId={selectedFicheForObjectifs.id}
+          salariedName={`${selectedFicheForObjectifs.salarie?.prenom || ""} ${selectedFicheForObjectifs.salarie?.nom || ""}`.trim() || "Collaborateur"}
+          salariedPoste={selectedFicheForObjectifs.salarie?.poste}
+          statut={selectedFicheForObjectifs.statut}
+          objectifs={selectedFicheForObjectifs.objectifs}
+          readOnly={false}
+          onSaved={() => {
+            setSelectedFicheForObjectifs(null);
             loadData();
           }}
         />
@@ -258,13 +278,35 @@ export function DashboardN2() {
 
                       <EvaluationStatusBadge statut={ev.statut} size="sm" />
 
-                      <button
-                        onClick={() => setSelectedFicheModal(ev)}
-                        className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                      >
-                        <PencilIcon size={13} />
-                        {ev.statut === "VALIDATION_OBJECTIFS_N2" ? "Valider les objectifs" : "Valider l'évaluation"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {ev.statut === "FIXATION_OBJECTIFS" && (
+                          <button
+                            onClick={() => setSelectedFicheForObjectifs(ev)}
+                            className="px-3 py-1.5 text-xs font-bold text-white bg-[#F0822A] hover:bg-orange-600 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            <TargetIcon size={13} />
+                            Fixer les objectifs
+                          </button>
+                        )}
+                        {ev.statut === "VALIDATION_OBJECTIFS_N2" && (
+                          <button
+                            onClick={() => setSelectedFicheForObjectifs(ev)}
+                            className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            <CheckCircleIcon size={13} />
+                            Valider les objectifs
+                          </button>
+                        )}
+                        {ev.statut !== "FIXATION_OBJECTIFS" && ev.statut !== "VALIDATION_OBJECTIFS_N2" && (
+                          <button
+                            onClick={() => setSelectedFicheModal(ev)}
+                            className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            <PencilIcon size={13} />
+                            Valider l'évaluation
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -334,13 +376,35 @@ export function DashboardN2() {
                         <EvaluationStatusBadge statut={ev.statut} size="sm" />
                       </td>
                       <td className="p-3 text-right">
-                        <button
-                          onClick={() => setSelectedFicheModal(ev)}
-                          className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition-colors inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <EyeIcon size={12} />
-                          Examiner
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {ev.statut === "FIXATION_OBJECTIFS" && (
+                            <button
+                              onClick={() => setSelectedFicheForObjectifs(ev)}
+                              className="px-2.5 py-1 text-xs font-bold text-white bg-[#F0822A] hover:bg-orange-600 transition-colors inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Définir et fixer les objectifs annuels"
+                            >
+                              <TargetIcon size={12} />
+                              Fixer objectifs
+                            </button>
+                          )}
+                          {ev.statut === "VALIDATION_OBJECTIFS_N2" && (
+                            <button
+                              onClick={() => setSelectedFicheForObjectifs(ev)}
+                              className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Valider les objectifs soumis par le manager"
+                            >
+                              <CheckCircleIcon size={12} />
+                              Valider objectifs
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setSelectedFicheModal(ev)}
+                            className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <EyeIcon size={12} />
+                            Examiner
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
