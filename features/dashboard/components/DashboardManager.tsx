@@ -1,208 +1,535 @@
 // ============================================================
-// features/dashboard/components/DashboardManager.tsx — IBM Carbon x Agilly
+// features/dashboard/components/DashboardManager.tsx
+// Tableau de bord officiel Manager N+1 / Encadrant — 100% Données Réelles
+// Standardisé avec IBM Carbon x Agilly Design System
 // ============================================================
 
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
-import { Card, CardHeader, AvatarWithName, ProgressBar, Button, CollaborateurRowSkeleton, Skeleton } from "@/components/ui";
+import { Card, CardHeader, Button, CollaborateursListSkeleton } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatDateRelative } from "@/lib/utils/formatDate";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
-import { FicheEvaluation360ManagerModal } from "@/features/evaluation/components/FicheEvaluation360ManagerModal";
-import { ModalDefinirObjectifs } from "./ModalDefinirObjectifs";
-import type { StatutEvaluation, User } from "@/types";
+import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { employeesApi } from "@/lib/api/employees.api";
-
-import { UsersIcon, CheckCircleIcon, ClockIcon, PencilIcon, EyeIcon, ChartBarIcon, ScaleIcon, TargetIcon } from "@/components/ui/Icons";
-
-const STATS = [
-  { label: "Collaborateurs à évaluer", value: "5", subValue: "2 restants (Équipe directe)", icon: <UsersIcon size={20} className="text-agilly-primary" />, progress: 60 },
-  { label: "Validations requises", value: "3", subValue: "En attente", icon: <CheckCircleIcon size={20} className="text-green-600" />, color: "text-green-600", bg: "bg-green-50" },
-  { label: "Arbitrages en cours", value: "1", subValue: "Action requise", icon: <ScaleIcon size={20} className="text-red-600" />, color: "text-red-600", bg: "bg-red-50" },
-  { label: "Évaluations soumises", value: "8", subValue: "Ce cycle", icon: <ChartBarIcon size={20} className="text-[#F0822A]" />, color: "text-[#F0822A]", bg: "bg-[#FFF7ED]" },
-];
-
-
+import { cyclesApi } from "@/lib/api/cycles.api";
+import {
+  UsersIcon,
+  CheckCircleIcon,
+  TargetIcon,
+  PencilIcon,
+  EyeIcon,
+  AlertTriangleIcon,
+  ArrowPathIcon,
+} from "@/components/ui/Icons";
+import type { EvaluationCycle, User, Cycle } from "@/types";
 
 export function DashboardManager() {
-  const [selectedCollab, setSelectedCollab] = useState<string | null>(null);
-  const [objectifsModalOpen, setObjectifsModalOpen] = useState<string | null>(null);
-  const [is360ModalOpen, setIs360ModalOpen] = useState(false);
-  const [equipeDirecte, setEquipeDirecte] = useState<User[]>([]);
-  const [equipeN2, setEquipeN2] = useState<User[]>([]);
+  const { user } = useAuth();
+  const [fiches, setFiches] = useState<EvaluationCycle[]>([]);
+  const [team, setTeam] = useState<User[]>([]);
+  const [activeCycle, setActiveCycle] = useState<Cycle | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTab, setFilterTab] = useState<"TOUS" | "A_FIXER" | "A_NOTER" | "EN_COURS">("TOUS");
+
+  // Modales
+  const [selectedCollabForObjectifs, setSelectedCollabForObjectifs] = useState<{
+    id: string;
+    nom: string;
+    poste: string;
+    readOnly: boolean;
+  } | null>(null);
+  const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [fichesData, teamData, cycleData] = await Promise.all([
+        evaluationsApi.getN1TeamEvaluations().catch(() => []),
+        employeesApi.getMyTeam().catch(() => []),
+        cyclesApi.getActif().catch(() => null),
+      ]);
+      setFiches(Array.isArray(fichesData) ? fichesData : []);
+      setTeam(Array.isArray(teamData) ? teamData : []);
+      setActiveCycle(cycleData);
+    } catch (err) {
+      console.error("[DashboardManager] Erreur chargement:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    Promise.all([
-      employeesApi.getMyTeam(),
-      employeesApi.getN2Subordinates()
-    ]).then(([team1, team2]) => {
-      setEquipeDirecte(team1);
-      setEquipeN2(team2);
-      setIsLoading(false);
-    }).catch(() => setIsLoading(false));
-  }, []);
+    loadData();
+  }, [user?.id]);
+
+  // Carte de correspondance collaborateur -> fiche d'évaluation
+  const evaluationsMap = useMemo(() => {
+    const map: Record<string, EvaluationCycle> = {};
+    (fiches || []).forEach((f) => {
+      const sId = f.salarie?.id;
+      if (sId) map[sId] = f;
+    });
+    return map;
+  }, [fiches]);
+
+  // Liste unifiée des collaborateurs directs avec leur fiche
+  const directReports = useMemo(() => {
+    // Si team renvoie des utilisateurs, on les associe à leur fiche
+    if (team.length > 0) {
+      return team.map((member) => ({
+        user: member,
+        fiche: evaluationsMap[member.id] || null,
+      }));
+    }
+    // Secours si team est vide mais fiches contient des collaborateurs N-1
+    return fiches.map((f) => ({
+      user: {
+        id: f.salarie?.id || f.id,
+        nom: f.salarie?.nom || "Collaborateur",
+        prenom: f.salarie?.prenom || "",
+        email: f.salarie?.email || "",
+        poste: f.salarie?.poste || "Poste non défini",
+        departement: (f.salarie as any)?.departement || "Direction",
+        role: "SALARIE" as const,
+      },
+      fiche: f,
+    }));
+  }, [team, fiches, evaluationsMap]);
+
+  // Statistiques dynamiques réelles pour l'équipe directe
+  const stats = useMemo(() => {
+    const total = directReports.length;
+
+    const aFixer = directReports.filter(({ fiche }) => {
+      if (!fiche) return true;
+      return (
+        fiche.statut === "FIXATION_OBJECTIFS" &&
+        (!fiche.objectifs || fiche.objectifs.length === 0)
+      );
+    }).length;
+
+    const aNoter = directReports.filter(({ fiche }) => {
+      if (!fiche) return false;
+      return fiche.statut === "EVALUATION_N1" || fiche.statut === "EN_ATTENTE_N1";
+    }).length;
+
+    const finalises = directReports.filter(({ fiche }) => {
+      if (!fiche) return false;
+      return [
+        "VALIDATION_N2",
+        "EVALUATION_N2",
+        "VISA_SALARIE",
+        "ACCORD_SALARIE",
+        "VALIDE",
+        "CLOTURE",
+      ].includes(fiche.statut);
+    }).length;
+
+    return [
+      {
+        label: "Collaborateurs directs",
+        value: String(total),
+        subValue: "Membres de votre équipe",
+        icon: <UsersIcon size={18} className="text-agilly-primary" />,
+        color: "text-agilly-primary",
+        bg: "bg-[#FFF0E0]",
+      },
+      {
+        label: "Objectifs à définir",
+        value: String(aFixer),
+        subValue: aFixer > 0 ? "Fixation requise" : "Tous définis",
+        icon: <TargetIcon size={18} className="text-amber-600" />,
+        color: "text-amber-600",
+        bg: "bg-amber-50",
+      },
+      {
+        label: "Évaluations à réaliser",
+        value: String(aNoter),
+        subValue: aNoter > 0 ? "Entretiens & notes N+1" : "À jour",
+        icon: <PencilIcon size={18} className="text-purple-600" />,
+        color: "text-purple-600",
+        bg: "bg-purple-50",
+      },
+      {
+        label: "Dossiers finalisés",
+        value: String(finalises),
+        subValue: "Transmis ou clôturés",
+        icon: <CheckCircleIcon size={18} className="text-emerald-600" />,
+        color: "text-emerald-600",
+        bg: "bg-emerald-50",
+      },
+    ];
+  }, [directReports]);
+
+  // Filtrage selon l'onglet actif et la recherche
+  const filteredReports = useMemo(() => {
+    return directReports.filter(({ user: member, fiche }) => {
+      // Filtre texte
+      if (searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase();
+        const fullName = `${member.prenom} ${member.nom}`.toLowerCase();
+        const poste = (member.poste || "").toLowerCase();
+        const email = (member.email || "").toLowerCase();
+        if (!fullName.includes(query) && !poste.includes(query) && !email.includes(query)) {
+          return false;
+        }
+      }
+
+      // Filtre onglet
+      if (filterTab === "A_FIXER") {
+        return (
+          !fiche ||
+          (fiche.statut === "FIXATION_OBJECTIFS" && (!fiche.objectifs || fiche.objectifs.length === 0))
+        );
+      }
+      if (filterTab === "A_NOTER") {
+        return fiche?.statut === "EVALUATION_N1" || fiche?.statut === "EN_ATTENTE_N1";
+      }
+      if (filterTab === "EN_COURS") {
+        return (
+          fiche &&
+          [
+            "VALIDATION_OBJECTIFS_N2",
+            "VALIDATION_OBJECTIFS_SALARIE",
+            "AUTO_EVALUATION",
+            "VALIDATION_N2",
+            "VISA_SALARIE",
+            "VALIDE",
+            "CLOTURE",
+          ].includes(fiche.statut)
+        );
+      }
+
+      return true;
+    });
+  }, [directReports, filterTab, searchQuery]);
 
   return (
-    <div className="flex flex-col gap-8 pb-10 max-w-[1200px] mx-auto">
-
-      {/* Modal pour évaluer la fiche classique */}
-      <FicheEvaluationModal
-        isOpen={selectedCollab !== null}
-        onClose={() => setSelectedCollab(null)}
-      />
-
-      {/* Modal pour Évaluation 360° Managers & Cadres */}
-      <FicheEvaluation360ManagerModal
-        isOpen={is360ModalOpen}
-        onClose={() => setIs360ModalOpen(false)}
-      />
-
-      {/* Modal pour définir les objectifs */}
-      {objectifsModalOpen && (
+    <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full font-sans">
+      {/* Modale de fixation des objectifs */}
+      {selectedCollabForObjectifs && (
         <ModalDefinirObjectifs
           isOpen={true}
-          onClose={() => setObjectifsModalOpen(null)}
-          salariedId={objectifsModalOpen}
-          salariedName={
-            equipeDirecte.find(e => e.id === objectifsModalOpen)?.nom ||
-            equipeN2.find(e => e.id === objectifsModalOpen)?.nom ||
-            "Collaborateur"
-          }
-          salariedPoste={
-            equipeDirecte.find(e => e.id === objectifsModalOpen)?.poste ||
-            equipeN2.find(e => e.id === objectifsModalOpen)?.poste ||
-            ""
+          onClose={() => setSelectedCollabForObjectifs(null)}
+          salariedId={selectedCollabForObjectifs.id}
+          salariedName={selectedCollabForObjectifs.nom}
+          salariedPoste={selectedCollabForObjectifs.poste}
+          readOnly={selectedCollabForObjectifs.readOnly}
+          onSaved={() => {
+            setSelectedCollabForObjectifs(null);
+            loadData();
+          }}
+        />
+      )}
+
+      {/* Modale d'évaluation (Notation N+1 & Formations) */}
+      {selectedFicheModal && (
+        <FicheEvaluationModal
+          isOpen={true}
+          evaluationId={selectedFicheModal.id}
+          onClose={() => {
+            setSelectedFicheModal(null);
+            loadData();
+          }}
+          dossier={{
+            id: selectedFicheModal.id,
+            ficheId: selectedFicheModal.id,
+            salarieId: selectedFicheModal.salarie?.id,
+            nom: selectedFicheModal.salarie?.nom || "",
+            prenom: selectedFicheModal.salarie?.prenom || "",
+            poste: selectedFicheModal.salarie?.poste || "",
+            direction: (selectedFicheModal.salarie as any)?.departement || "Direction",
+            formations: selectedFicheModal.formations || [],
+          }}
+          objectifs={selectedFicheModal.objectifs || []}
+          role="N1"
+          readOnly={
+            selectedFicheModal.statut !== "EVALUATION_N1" &&
+            selectedFicheModal.statut !== "EN_ATTENTE_N1"
           }
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* En-tête standardisé */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader
-          title="Espace Manager"
-          subtitle="Pilotez votre équipe directe et vos validations hiérarchiques."
-          breadcrumbs={[{ label: "Tableau de bord Manager" }]}
+          title="Tableau de bord de mon équipe"
+          subtitle="Supervision de vos collaborateurs directs, fixation des objectifs et avancement des évaluations."
+          breadcrumbs={[{ label: "Espace Manager" }, { label: "Tableau de bord" }]}
         />
 
-        <Button
-          variant="primary"
-          onClick={() => setIs360ModalOpen(true)}
-          className="bg-[#F0822A] hover:bg-[#D97706] text-white font-extrabold shadow-sm"
-        >
-          🌟 Évaluation 360° Cadres & Managers
-        </Button>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {STATS.map((s) => <StatCard key={s.label} {...s} />)}
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Liste équipe directe (N1) */}
-        <Card padding="none" className="overflow-hidden">
-          <div className="p-5 md:p-6 border-b border-gray-200 flex items-center justify-between bg-white">
-            <CardHeader title="Mon Équipe Directe" subtitle="Fixez les objectifs et évaluez." />
-            <span className="text-[10px] font-bold px-3 py-1 bg-[#FFF0E0] text-agilly-primary border border-agilly-primary/20 uppercase tracking-wider hidden sm:block">
-              1 action requise
-            </span>
-          </div>
-
-          <div className="bg-[#F4F7FB]">
-            {isLoading ? (
-              <div className="divide-y divide-gray-100">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <CollaborateurRowSkeleton key={i} />
-                ))}
-              </div>
-            ) : equipeDirecte.length === 0 ? (
-              <div className="p-10 text-center">
-                <h4 className="text-lg font-bold text-slate-800">Aucun collaborateur direct rattaché</h4>
-                <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-                  Aucun collaborateur n'est actuellement configuré sous votre responsabilité N+1.
-                </p>
-              </div>
-            ) : (
-              equipeDirecte.map((c, idx) => (
-                <div
-                  key={c.id}
-                  className={`
-                    p-5 flex flex-col sm:flex-row sm:items-center gap-4 bg-white transition-colors
-                    ${idx !== equipeDirecte.length - 1 ? "border-b border-gray-200" : ""}
-                    border-l-2 border-transparent hover:border-l-agilly-primary hover:bg-[#F4F7FB]
-                  `}
-                >
-                  <div className="flex-1 flex items-center gap-4">
-                    <AvatarWithName nom={c.nom} prenom={c.prenom} poste={c.poste} role="SALARIE" size="sm" />
-                  </div>
-
-                  <div className="flex items-center gap-4 shrink-0">
-                    <EvaluationStatusBadge statut={"EN_ATTENTE_N1"} size="sm" />
-
-                    <div className="flex shrink-0">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        leftIcon={<PencilIcon size={14} />}
-                        onClick={() => setSelectedCollab(c.id)}
-                      >
-                        Évaluer
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-
-        {/* Validations N2 & Arbitrages */}
-        <div className="flex flex-col gap-6">
-          <Card padding="none" className="overflow-hidden">
-            <div className="p-5 md:p-6 border-b border-gray-200 bg-white">
-              <CardHeader title="Validations de la Direction" subtitle="Revues hiérarchiques en attente" />
-            </div>
-            <div className="bg-[#F4F7FB]">
-              {isLoading ? (
-                <div className="divide-y divide-gray-100">
-                  {Array.from({ length: 2 }).map((_, i) => (
-                    <CollaborateurRowSkeleton key={i} />
-                  ))}
-                </div>
-              ) : equipeN2.length === 0 ? (
-                <div className="p-5 text-center">
-                  <p className="text-sm text-slate-500">Aucune validation requise pour le moment.</p>
-                </div>
-              ) : (
-                equipeN2.map((ev, idx) => (
-                  <div key={ev.id} className={`p-5 flex items-center gap-4 bg-white border-l-2 border-transparent hover:border-agilly-primary hover:bg-[#F4F7FB] transition-colors ${idx !== equipeN2.length - 1 ? "border-b border-gray-200" : ""}`}>
-                    <AvatarWithName nom={ev.nom} prenom={ev.prenom} poste={ev.poste} role="SALARIE" size="sm" />
-                    <div className="flex-1 flex items-center justify-end gap-4">
-                      <EvaluationStatusBadge statut={"EN_ATTENTE_N2"} size="sm" />
-                      <Button variant="secondary" size="sm" leftIcon={<EyeIcon size={14} />}>
-                        Revoir
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
-
-          <Card padding="none" className="overflow-hidden">
-            <div className="p-5 md:p-6 border-b border-gray-200 bg-white">
-              <CardHeader title="Arbitrages en cours" subtitle="Alerte : Écart > 2 points (N1 vs N2)" />
-            </div>
-            <div className="bg-[#F4F7FB]">
-              <div className="p-5 text-center">
-                <p className="text-sm text-slate-500">Aucun dossier en arbitrage.</p>
-              </div>
-            </div>
-          </Card>
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={loadData}
+            leftIcon={<ArrowPathIcon size={14} className={isLoading ? "animate-spin" : ""} />}
+          >
+            Actualiser
+          </Button>
+          <Link href="/dashboard/mon-equipe/evaluations">
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<EyeIcon size={14} />}
+            >
+              Évaluations détaillées →
+            </Button>
+          </Link>
         </div>
       </div>
+
+      {/* Alerte si aucune campagne active */}
+      {activeCycle === null && (
+        <div className="bg-amber-50 border border-amber-300 p-4 text-amber-900 text-sm font-semibold flex items-center gap-3">
+          <AlertTriangleIcon size={20} className="text-amber-600 shrink-0" />
+          <div>
+            <p className="font-bold text-amber-900 m-0">Campagne d'évaluation non ouverte</p>
+            <p className="m-0 mt-0.5 text-xs text-amber-800 font-normal">
+              Aucune campagne d'évaluation n'est actuellement ouverte par les RH. La fixation et la notation des objectifs débuteront dès le lancement officiel du cycle.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 4 KPIs Standardisés (100% Données Réelles) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <StatCard
+            key={s.label}
+            label={s.label}
+            value={s.value}
+            subValue={s.subValue}
+            icon={s.icon}
+            color={s.color}
+            bg={s.bg}
+          />
+        ))}
+      </div>
+
+      {/* Carte Principale du Tableau de Bord */}
+      <Card padding="none" className="bg-white border border-slate-200 overflow-hidden shadow-2xs">
+        {/* Barre d'onglets de filtrage & Recherche */}
+        <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Onglets standardisés */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setFilterTab("TOUS")}
+              className={`px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                filterTab === "TOUS"
+                  ? "bg-white text-slate-900 border border-slate-300 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              Tous ({directReports.length})
+            </button>
+            <button
+              onClick={() => setFilterTab("A_FIXER")}
+              className={`px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                filterTab === "A_FIXER"
+                  ? "bg-amber-500 text-white shadow-2xs font-extrabold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              🎯 Objectifs à définir ({stats[1].value})
+            </button>
+            <button
+              onClick={() => setFilterTab("A_NOTER")}
+              className={`px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                filterTab === "A_NOTER"
+                  ? "bg-purple-600 text-white shadow-2xs font-extrabold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              📝 À évaluer ({stats[2].value})
+            </button>
+            <button
+              onClick={() => setFilterTab("EN_COURS")}
+              className={`px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                filterTab === "EN_COURS"
+                  ? "bg-white text-slate-900 border border-slate-300 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              En cours / Finalisés ({stats[3].value})
+            </button>
+          </div>
+
+          {/* Recherche rapide */}
+          <div className="w-full md:w-72">
+            <input
+              type="text"
+              placeholder="Rechercher par nom, poste..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-1.5 text-xs border border-slate-300 bg-white rounded-none focus:border-[#F0822A] focus:outline-none transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Tableau des collaborateurs directs */}
+        {isLoading ? (
+          <div className="p-6">
+            <CollaborateursListSkeleton count={3} />
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <div className="py-12 px-4 text-center">
+            <EmptyState
+              icon={<UsersIcon size={36} className="text-slate-300" />}
+              title={
+                searchQuery
+                  ? "Aucun collaborateur ne correspond à la recherche"
+                  : filterTab === "A_FIXER"
+                  ? "Tous les objectifs sont définis"
+                  : filterTab === "A_NOTER"
+                  ? "Aucune évaluation en attente de notation"
+                  : "Aucun collaborateur direct rattaché"
+              }
+              description={
+                searchQuery
+                  ? "Vérifiez l'orthographe du nom ou du poste recherché."
+                  : "Vos collaborateurs directs apparaîtront automatiquement dès leur rattachement managérial."
+              }
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4">Collaborateur direct</th>
+                  <th className="py-3 px-4">Département</th>
+                  <th className="py-3 px-4">Cycle 2026</th>
+                  <th className="py-3 px-4">Statut d'avancement</th>
+                  <th className="py-3 px-4 text-right">Action requise</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredReports.map(({ user: member, fiche }) => {
+                  const fullName = `${member.prenom ? member.prenom + " " : ""}${member.nom}`.trim();
+                  const initials = member.prenom?.charAt(0) || member.nom?.charAt(0) || "U";
+                  const hasObjectifs = Boolean(
+                    (fiche && fiche.objectifs && fiche.objectifs.length > 0) ||
+                    (fiche && fiche.statut && fiche.statut !== "FIXATION_OBJECTIFS")
+                  );
+                  const isReadyToNote =
+                    fiche?.statut === "EVALUATION_N1" || fiche?.statut === "EN_ATTENTE_N1";
+
+                  return (
+                    <tr
+                      key={member.id}
+                      className="hover:bg-slate-50/80 transition-colors"
+                    >
+                      {/* Identité */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-[#F0822A] text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 truncate m-0">
+                              {fullName}
+                            </p>
+                            <p className="text-slate-500 text-[11px] truncate m-0 mt-0.5">
+                              {member.poste || "Collaborateur"} • {member.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Département */}
+                      <td className="py-3.5 px-4 text-slate-600 font-medium">
+                        {member.departement || "Direction"}
+                      </td>
+
+                      {/* Cycle */}
+                      <td className="py-3.5 px-4 text-slate-500">
+                        {fiche?.cycle?.libelle || activeCycle?.libelle || "Campagne 2026"}
+                      </td>
+
+                      {/* Statut d'avancement */}
+                      <td className="py-3.5 px-4">
+                        {fiche?.statut ? (
+                          <EvaluationStatusBadge statut={fiche.statut} size="sm" />
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+                            Non démarré
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="inline-flex items-center justify-end gap-2">
+                          {/* Cas 1 : À évaluer (Notes & Entretien) */}
+                          {isReadyToNote && fiche ? (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              leftIcon={<PencilIcon size={13} />}
+                              onClick={() => setSelectedFicheModal(fiche)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                            >
+                              Évaluer & Noter
+                            </Button>
+                          ) : !hasObjectifs ? (
+                            /* Cas 2 : Objectifs à définir */
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              leftIcon={<TargetIcon size={13} />}
+                              onClick={() =>
+                                setSelectedCollabForObjectifs({
+                                  id: member.id,
+                                  nom: fullName,
+                                  poste: member.poste || "",
+                                  readOnly: false,
+                                })
+                              }
+                              disabled={!activeCycle}
+                            >
+                              Fixer les objectifs
+                            </Button>
+                          ) : (
+                            /* Cas 3 : Consulter fiche ou objectifs */
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              leftIcon={<EyeIcon size={13} />}
+                              onClick={() => {
+                                if (fiche) {
+                                  setSelectedFicheModal(fiche);
+                                } else {
+                                  setSelectedCollabForObjectifs({
+                                    id: member.id,
+                                    nom: fullName,
+                                    poste: member.poste || "",
+                                    readOnly: true,
+                                  });
+                                }
+                              }}
+                            >
+                              Consulter
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

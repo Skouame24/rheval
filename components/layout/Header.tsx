@@ -64,8 +64,37 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
           {pageTitle || "AGILLY RHEVAL"}
         </h1>
 
-        {/* Bouton de bascule rapide pour RH, Directeurs et Managers */}
-        {(currentRole === "RH" || currentRole === "DRH") && (
+        {/* Boutons de bascule rapide standardisés */}
+        {currentRole === "DRH" && (
+          <div className="flex items-center gap-2">
+            {!pathname?.startsWith("/dashboard/pilotage-rh") && !pathname?.startsWith("/dashboard/personnel") && (
+              <Link
+                href="/dashboard/pilotage-rh"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
+              >
+                <span>⚙️ Pilotage RH</span>
+              </Link>
+            )}
+            {!pathname?.startsWith("/dashboard/mon-equipe") && (
+              <Link
+                href="/dashboard/mon-equipe"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
+              >
+                <span>👥 Tableau de bord Équipe</span>
+              </Link>
+            )}
+            {!pathname?.startsWith("/dashboard/mon-espace") && (
+              <Link
+                href="/dashboard/mon-espace"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
+              >
+                <span>👤 Mon Espace Salarié</span>
+              </Link>
+            )}
+          </div>
+        )}
+
+        {currentRole === "RH" && (
           pathname?.startsWith("/dashboard/pilotage-rh") || pathname?.startsWith("/dashboard/personnel") ? (
             <Link
               href="/dashboard/mon-espace"
@@ -83,7 +112,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
           )
         )}
 
-        {(currentRole === "N2") && (
+        {currentRole === "N2" && (
           pathname?.startsWith("/dashboard/mon-equipe") ? (
             <Link
               href="/dashboard/mon-espace"
@@ -96,12 +125,12 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
               href="/dashboard/mon-equipe"
               className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
             >
-              <span>👔 Espace Direction</span>
+              <span>👔 Tableau de bord Direction</span>
             </Link>
           )
         )}
 
-        {(currentRole === "N1") && (
+        {currentRole === "N1" && (
           pathname?.startsWith("/dashboard/mon-equipe") ? (
             <Link
               href="/dashboard/mon-espace"
@@ -114,7 +143,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
               href="/dashboard/mon-equipe"
               className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
             >
-              <span>👥 Mon Équipe</span>
+              <span>👥 Tableau de bord Équipe</span>
             </Link>
           )
         )}

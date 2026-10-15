@@ -86,17 +86,22 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
           setN1PendingCount(pending.length > 0 ? pending.length : undefined);
         })
         .catch(() => setN1PendingCount(undefined));
-    } else if (normalizedRole === "N1") {
+    } else if (normalizedRole === "N1" || normalizedRole === "DRH") {
       evaluationsApi
         .getN1TeamEvaluations()
         .then((fiches) => {
           const pending = (fiches || []).filter(
-            (f) => f.statut === "EVALUATION_N1" || f.statut === "EN_ATTENTE_N1"
+            (f) =>
+              f.statut === "EVALUATION_N1" ||
+              f.statut === "EN_ATTENTE_N1" ||
+              (f.statut === "FIXATION_OBJECTIFS" && (!f.objectifs || f.objectifs.length === 0))
           );
           setN1PendingCount(pending.length > 0 ? pending.length : undefined);
         })
         .catch(() => setN1PendingCount(undefined));
-    } else if (normalizedRole === "RH" || normalizedRole === "DRH") {
+    }
+
+    if (normalizedRole === "RH" || normalizedRole === "DRH") {
       evaluationsApi
         .getAllForRh()
         .then((fiches) => {
@@ -162,19 +167,19 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     sections.push({
       title: "ESPACE DIRECTION",
       items: [
-        { label: "Tableau de bord ", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
-        { label: "Évaluations ", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        { label: "Tableau de bord", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
+        { label: "Évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }
 
-  // MON ÉQUIPE (POUR LES MANAGERS N1 OU TOUT ENCADRANT AYANT DES COLLABORATEURS DIRECTS)
-  if (normalizedRole === "N1" || (normalizedRole !== "N2" && hasTeam)) {
+  // MON ÉQUIPE (POUR LES MANAGERS N1, LA DRH OU TOUT ENCADRANT AYANT DES COLLABORATEURS DIRECTS)
+  if (normalizedRole === "N1" || normalizedRole === "DRH" || (normalizedRole !== "N2" && hasTeam)) {
     sections.push({
-      title: "MON ÉQUIPE",
+      title: normalizedRole === "DRH" ? "MON ÉQUIPE (DIRECTION RH)" : "MON ÉQUIPE",
       items: [
-        { label: "Mes collaborateurs", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.team },
-        { label: "Évaluations de mon équipe", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        { label: "Tableau de bord", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
+        { label: "Évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
       ]
     });
   }

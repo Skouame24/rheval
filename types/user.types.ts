@@ -14,6 +14,7 @@ export interface User {
   poste: string;
   departement: string;
   telephone?: string;        // Mobile depuis Microsoft Graph
+  managerId?: string | null;
   n1?: UserSummary;          // Manager direct
   n2?: UserSummary;          // Supérieur du manager
   avatarUrl?: string;
@@ -29,6 +30,7 @@ export interface UserSummary {
   email: string;
   role: Role;
   poste: string;
+  managerId?: string | null;
 }
 
 // DTO pour la création / modification d'un utilisateur

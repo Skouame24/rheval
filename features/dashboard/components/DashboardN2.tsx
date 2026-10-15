@@ -50,9 +50,9 @@ export function DashboardN2() {
     });
   }, [fiches, user?.id]);
 
-  // Dossiers nécessitant validation ou revue de la Direction
-  const evaluationsAValider = fichesDirection.filter(
-    (f) => ["VALIDATION_OBJECTIFS_N2", "EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
+  // Dossiers nécessitant validation ou arbitrage de la Direction
+  const evaluationsAValider = fichesDirection.filter((f) =>
+    ["VALIDATION_OBJECTIFS_N2", "EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
   );
 
   const arbitrages = fichesDirection.filter((f) => f.statut === "ARBITRAGE");
@@ -279,16 +279,7 @@ export function DashboardN2() {
                       <EvaluationStatusBadge statut={ev.statut} size="sm" />
 
                       <div className="flex items-center gap-2">
-                        {ev.statut === "FIXATION_OBJECTIFS" && (
-                          <button
-                            onClick={() => setSelectedFicheForObjectifs(ev)}
-                            className="px-3 py-1.5 text-xs font-bold text-white bg-[#F0822A] hover:bg-orange-600 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          >
-                            <TargetIcon size={13} />
-                            Fixer les objectifs
-                          </button>
-                        )}
-                        {ev.statut === "VALIDATION_OBJECTIFS_N2" && (
+                        {ev.statut === "VALIDATION_OBJECTIFS_N2" ? (
                           <button
                             onClick={() => setSelectedFicheForObjectifs(ev)}
                             className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -296,8 +287,7 @@ export function DashboardN2() {
                             <CheckCircleIcon size={13} />
                             Valider les objectifs
                           </button>
-                        )}
-                        {ev.statut !== "FIXATION_OBJECTIFS" && ev.statut !== "VALIDATION_OBJECTIFS_N2" && (
+                        ) : (
                           <button
                             onClick={() => setSelectedFicheModal(ev)}
                             className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -377,16 +367,6 @@ export function DashboardN2() {
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {ev.statut === "FIXATION_OBJECTIFS" && (
-                            <button
-                              onClick={() => setSelectedFicheForObjectifs(ev)}
-                              className="px-2.5 py-1 text-xs font-bold text-white bg-[#F0822A] hover:bg-orange-600 transition-colors inline-flex items-center gap-1 cursor-pointer shadow-2xs"
-                              title="Définir et fixer les objectifs annuels"
-                            >
-                              <TargetIcon size={12} />
-                              Fixer objectifs
-                            </button>
-                          )}
                           {ev.statut === "VALIDATION_OBJECTIFS_N2" && (
                             <button
                               onClick={() => setSelectedFicheForObjectifs(ev)}
