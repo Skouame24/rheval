@@ -33,7 +33,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
       : detected.displayRole === "RESPONSABLE"
       ? "Responsable"
       : detected.displayRole === "DIRECTEUR"
-      ? "Directeur"
+      ? (user?.poste?.toLowerCase().includes("directrice") ? "Directrice" : "Directeur")
       : detected.displayRole === "STAGIAIRE"
       ? "Stagiaire"
       : roleInfo.labelCourt;

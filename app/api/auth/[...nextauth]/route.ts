@@ -114,9 +114,9 @@ export const authOptions: NextAuthOptions = {
           role = "DRH";
         } else if (azureRoles.includes("RHEVAL.RH") || azureRoles.includes("RH") || emailLower.includes("rh")) {
           role = "RH";
-        } else if (azureRoles.includes("RHEVAL.N2") || azureRoles.includes("N2") || emailLower.includes("n2") || emailLower.includes("bamba")) {
+        } else if (azureRoles.includes("RHEVAL.N2") || azureRoles.includes("N2") || emailLower.includes("n2")) {
           role = "N2";
-        } else if (azureRoles.includes("RHEVAL.N1") || azureRoles.includes("N1") || emailLower.includes("n1") || emailLower.includes("akoumia")) {
+        } else if (azureRoles.includes("RHEVAL.N1") || azureRoles.includes("N1") || emailLower.includes("n1")) {
           role = "N1";
         } else {
           role = "SALARIE";

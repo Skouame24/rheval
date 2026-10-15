@@ -155,8 +155,8 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     });
   }
 
-  // ESPACE PERSONNEL (POUR SALARIÉ, N1, N2, RH — NON VISIBLE PAR L'ADMIN)
-  if (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "RH") {
+  // ESPACE PERSONNEL (POUR SALARIÉ, N1, N2, RH, DRH — NON VISIBLE PAR L'ADMIN)
+  if (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "RH" || normalizedRole === "DRH") {
     sections.push({
       title: "MON ESPACE PERSONNEL",
       items: [

@@ -164,7 +164,7 @@ export function ProfilPage({ role }: { role: string }) {
                 {user.n1 && (
                   <div className="bg-[#F4F7FB] border border-gray-200 p-4 border-l-4 border-l-[#F0822A]">
                     <span className="text-[10px] font-bold text-[#F0822A] uppercase tracking-wider block mb-1">Responsable Hiérarchique</span>
-                    <p className="text-base font-bold text-agilly-black m-0">{user.n1.prenom} {user.n1.nom}</p>
+                    <p className="text-base font-bold text-agilly-black m-0">{user.n1.prenom ? `${user.n1.prenom} ` : ''}{user.n1.nom}</p>
                     <p className="text-xs text-gray-500 m-0 mt-0.5">{user.n1.poste || "Responsable"}</p>
                     {user.n1.email && <p className="text-xs text-slate-400 m-0 mt-1 font-mono">{user.n1.email}</p>}
                   </div>
@@ -172,7 +172,7 @@ export function ProfilPage({ role }: { role: string }) {
                 {user.n2 && (
                   <div className="bg-[#F4F7FB] border border-gray-200 p-4 border-l-4 border-l-slate-700">
                     <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">Direction / Validation</span>
-                    <p className="text-base font-bold text-agilly-black m-0">{user.n2.prenom} {user.n2.nom}</p>
+                    <p className="text-base font-bold text-agilly-black m-0">{user.n2.prenom ? `${user.n2.prenom} ` : ''}{user.n2.nom}</p>
                     <p className="text-xs text-gray-500 m-0 mt-0.5">{user.n2.poste || "Directeur"}</p>
                     {user.n2.email && <p className="text-xs text-slate-400 m-0 mt-1 font-mono">{user.n2.email}</p>}
                   </div>
