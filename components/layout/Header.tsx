@@ -37,7 +37,7 @@ interface HeaderProps {
 
 export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 0 }: HeaderProps) {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, switchProfile, resetToSsoUser, isSimulated } = useAuth();
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
@@ -411,7 +411,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                         key={p.email}
                         type="button"
                         onClick={() => {
-                          const testUser: any = {
+                          const targetUser: any = {
                             id: p.id,
                             nom: p.nom,
                             prenom: p.prenom,
@@ -423,10 +423,9 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString(),
                           };
-                          localStorage.setItem("agilly_user", JSON.stringify(testUser));
-                          window.location.reload();
+                          switchProfile?.(targetUser);
                         }}
-                        className={`text-left text-xs px-2 py-1 transition-all flex items-center justify-between ${
+                        className={`text-left text-xs px-2 py-1 transition-all flex items-center justify-between cursor-pointer ${
                           isCurrent
                             ? "bg-[#F0822A] text-white font-black"
                             : "bg-white text-slate-700 hover:bg-orange-100 font-semibold border border-slate-200"
@@ -437,6 +436,15 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                       </button>
                     );
                   })}
+                  {isSimulated && (
+                    <button
+                      type="button"
+                      onClick={() => resetToSsoUser?.()}
+                      className="text-center text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 py-1 mt-1 transition-colors cursor-pointer"
+                    >
+                      ↩ Revenir à mon compte réel SSO
+                    </button>
+                  )}
                 </div>
               </div>
 

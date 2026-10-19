@@ -36,12 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSimulated] = useState(false);
+  const [isSimulated, setIsSimulated] = useState(false);
 
-  // Synchronisation dynamique avec la session Microsoft Entra ID réelle
+  // Synchronisation dynamique avec la session Microsoft Entra ID ou le profil simulé
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("agilly_simulated_user");
+    // 1. Si un profil de test simulé est sélectionné par l'utilisateur, il a la priorité absolue
+    const simulated = typeof window !== "undefined" ? localStorage.getItem("agilly_simulated_user") : null;
+    if (simulated) {
+      try {
+        const parsed = JSON.parse(simulated);
+        setUser(parsed);
+        setIsSimulated(true);
+        setIsLoading(false);
+        return;
+      } catch {}
     }
 
     if (status === "loading") {
@@ -159,9 +167,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const switchProfile = (newUser: User) => {
-    localStorage.removeItem("agilly_simulated_user");
+    localStorage.setItem("agilly_simulated_user", JSON.stringify(newUser));
     localStorage.setItem("agilly_user", JSON.stringify(newUser));
     setUser(newUser);
+    setIsSimulated(true);
     const target = ROLE_DASHBOARD[newUser.role] || "/dashboard/mon-espace";
     window.location.href = target;
   };
