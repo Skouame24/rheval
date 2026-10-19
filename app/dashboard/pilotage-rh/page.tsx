@@ -234,7 +234,7 @@ export default function RhDashboardPage() {
 
                 <div className="flex-1">
                   <h4 className="text-sm font-bold text-slate-900 m-0 mb-1">
-                    Progression globale de l'exercice
+                    Progression globale de la période d'évaluation
                   </h4>
                   <p className="text-sm text-slate-600 m-0 mb-4 font-medium">
                     {dossiers.length > 0 

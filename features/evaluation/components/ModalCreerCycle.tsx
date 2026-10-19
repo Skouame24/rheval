@@ -109,7 +109,7 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
         <form onSubmit={handleSubmit} style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18, background: "#F7F8FA" }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 900, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-              Année d&apos;Exercice
+              Période d&apos;Évaluation
             </label>
             <input
               type="number"
