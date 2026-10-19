@@ -94,7 +94,8 @@ export function FicheEvaluationModal({
   const [isAddingFormation, setIsAddingFormation] = useState(false);
   const [showAddFormationForm, setShowAddFormationForm] = useState(false);
 
-  // N+2 State
+  // N+1 & N+2 State
+  const [observationN1, setObservationN1] = useState("");
   const [decisionN2, setDecisionN2] = useState<"APPROUVE" | "REJETE">("APPROUVE");
   const [observationN2, setObservationN2] = useState("");
 
@@ -121,6 +122,9 @@ export function FicheEvaluationModal({
         evaluationsApi.getById(resolvedFicheId).then((data) => {
           if (data) {
             setFetchedEval(data);
+            if (data.observation) {
+              setObservationN1(data.observation);
+            }
             if (data.formations && Array.isArray(data.formations)) {
               setFormations(data.formations);
             }
@@ -546,7 +550,7 @@ export function FicheEvaluationModal({
           priorite: f.priorite,
           objectifVise: f.objectifVise,
         })),
-        observations: "",
+        observations: observationN1,
       });
       setFetchedEval((prev: any) => prev ? { ...prev, statut: "EVALUATION_N2" } : { statut: "EVALUATION_N2" });
       setSaveSuccessMsg("L'évaluation du manager et le plan de formation ont été validés et transmis à la Direction.");
@@ -946,24 +950,100 @@ export function FicheEvaluationModal({
                       </h4>
                     </div>
 
-                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
                       {!isCollabManager && (
-                        <div style={{ background: "#FFF7ED", padding: "4px 10px", border: "1px solid #FFEDD5", textAlign: "right" }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>Note Manager</span>
-                          <span style={{ fontSize: 13, fontWeight: 900, color: "#F0822A" }}>{obj.noteObtenue} / 20</span>
+                        <div style={{
+                          background: "#FFF7ED",
+                          padding: "6px 10px",
+                          border: "1px solid #FFEDD5",
+                          textAlign: "right",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-end",
+                          justifyContent: "center"
+                        }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block", marginBottom: 2 }}>
+                            Note Manager
+                          </span>
+                          {canEditN1 ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <input
+                                type="number"
+                                min="0"
+                                max="20"
+                                step="0.5"
+                                value={obj.noteObtenue}
+                                onChange={(e) => handleNoteChange(obj.id, e.target.value)}
+                                style={{
+                                  width: 54,
+                                  height: 28,
+                                  textAlign: "center",
+                                  fontSize: 13,
+                                  fontWeight: 900,
+                                  color: "#EA580C",
+                                  border: "1px solid #FDBA74",
+                                  background: "#FFFFFF",
+                                  outline: "none"
+                                }}
+                              />
+                              <span style={{ fontSize: 12, fontWeight: 800, color: "#EA580C" }}>/ 20</span>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 13, fontWeight: 900, color: "#F0822A" }}>
+                              {obj.noteObtenue} / 20
+                            </span>
+                          )}
                         </div>
                       )}
                       {(activeTab === "N2" || activeTab === "RH" || isCollabManager) && (
-                        <div style={{ background: "#FAF5FF", padding: "4px 10px", border: "1px solid #E9D5FF", textAlign: "right" }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>Note Direction</span>
-                          <span style={{ fontSize: 13, fontWeight: 900, color: "#9333EA" }}>{obj.noteN2 ?? obj.noteObtenue} / 20</span>
+                        <div style={{
+                          background: "#FAF5FF",
+                          padding: "6px 10px",
+                          border: "1px solid #E9D5FF",
+                          textAlign: "right",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-end",
+                          justifyContent: "center"
+                        }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block", marginBottom: 2 }}>
+                            Note Direction
+                          </span>
+                          {canEditN2 ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <input
+                                type="number"
+                                min="0"
+                                max="20"
+                                step="0.5"
+                                value={obj.noteN2 ?? obj.noteObtenue}
+                                onChange={(e) => handleNoteChange(obj.id, e.target.value)}
+                                style={{
+                                  width: 54,
+                                  height: 28,
+                                  textAlign: "center",
+                                  fontSize: 13,
+                                  fontWeight: 900,
+                                  color: "#9333EA",
+                                  border: "1px solid #D8B4FE",
+                                  background: "#FFFFFF",
+                                  outline: "none"
+                                }}
+                              />
+                              <span style={{ fontSize: 12, fontWeight: 800, color: "#9333EA" }}>/ 20</span>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 13, fontWeight: 900, color: "#9333EA" }}>
+                              {obj.noteN2 ?? obj.noteObtenue} / 20
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Tranches d'atteinte cliquables */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {obj.criteres.map((c, i) => {
                       const isSelected = currentNote >= c.min && currentNote <= c.max && currentNote > 0;
                       return (
@@ -998,58 +1078,52 @@ export function FicheEvaluationModal({
                       );
                     })}
                   </div>
-
-                  {/* Saisie note et appréciation */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, background: "#F8FAFC", padding: 12, border: "1px solid #E2E8F0" }}>
-                    <div style={{ width: 140, flexShrink: 0 }}>
-                      <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
-                        Ajuster Note / 20
-                      </label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="20"
-                          step="0.5"
-                          disabled={!canEditN1 && !canEditN2}
-                          value={currentNote}
-                          onChange={(e) => handleNoteChange(obj.id, e.target.value)}
-                        style={{
-                          width: 80,
-                          height: 32,
-                          textAlign: "center",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          border: "1px solid #CBD5E1",
-                          background: "#FFFFFF",
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 240 }}>
-                      <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
-                        Commentaire {activeTab === "N2" ? "Direction" : "Responsable"}
-                      </label>
-                      <input
-                        type="text"
-                        disabled={!canEditN1 && !canEditN2}
-                        value={activeTab === "N2" ? (obj.commentaireN2 || "") : obj.commentaire}
-                        onChange={(e) => handleCommentaireChange(obj.id, e.target.value)}
-                          placeholder="Commentaires, justifications opérationnelles..."
-                          style={{
-                            width: "100%",
-                            height: 32,
-                            padding: "0 10px",
-                            fontSize: 12,
-                            border: "1px solid #CBD5E1",
-                            background: "#FFFFFF",
-                          }}
-                        />
-                      </div>
-                  </div>
-
                 </div>
               );
             })}
+
+            {/* Commentaire général & Appréciation globale de fin */}
+            <div style={{ background: "#FFFFFF", padding: 20, border: "1px solid #E2E8F0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <h4 style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                    Commentaire général & Appréciation du Responsable (N+1)
+                  </h4>
+                  <p style={{ fontSize: 11, color: "#64748B", margin: "2px 0 0 0" }}>
+                    Bilan global sur la période : atteinte des objectifs, investissement, points forts et axes d'amélioration.
+                  </p>
+                </div>
+                {canEditN1 && (
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#F0822A", background: "#FFF7ED", padding: "2px 8px", border: "1px solid #FFEDD5" }}>
+                    SYNTHÈSE FINALE
+                  </span>
+                )}
+              </div>
+
+              <textarea
+                rows={4}
+                disabled={!canEditN1}
+                value={observationN1}
+                onChange={(e) => setObservationN1(e.target.value)}
+                placeholder={
+                  canEditN1
+                    ? "Saisissez votre commentaire général d'évaluation (forces, compétences démontrées, axes de progrès...)..."
+                    : "Aucun commentaire général renseigné par le responsable."
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  fontSize: 12,
+                  border: "1px solid #CBD5E1",
+                  background: canEditN1 ? "#FFFFFF" : "#F8FAFC",
+                  color: "#0F172A",
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  outline: "none",
+                }}
+              />
+            </div>
           </div>
 
           {/* SECTION 3 : FORMATIONS RECOMMANDÉES (VISIBLE PAR TOUS) */}
