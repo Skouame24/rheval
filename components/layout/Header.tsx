@@ -400,10 +400,11 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 <div className="flex flex-col gap-1">
                   {[
                     { label: "👑 PDG (Christian BAMBA)", email: "christian.bamba@agilly.net", role: "N2", poste: "PDG & Directeur Général", id: "aaf364d4-b002-4ae1-943d-d7ab5ec90a9a", prenom: "Christian", nom: "BAMBA", dept: "Direction Générale" },
+                    { label: "👔 Directeur N+2 (Marc KOFFI)", email: "directeur.n2@agilly.net", role: "N2", poste: "Directeur Technique & Opérations", id: "dir-n2-7777-4a48-bed2-72b525325c81", prenom: "Marc", nom: "KOFFI", dept: "Technique & Digital" },
                     { label: "💼 DRH (Germaine YAO)", email: "germaine.yao@agilly.net", role: "DRH", poste: "Directrice des Ressources Humaines", id: "c970e84d-5fd5-4cb9-8c4e-7cccc14ad269", prenom: "Germaine", nom: "YAO", dept: "Direction des Ressources Humaines" },
                     { label: "📋 Assistante RH (Fatou DIOP)", email: "assistante.rh@agilly.net", role: "RH", poste: "Assistante Ressources Humaines", id: "asst-rh-1144-4a48-bed2-72b525325c81", prenom: "Fatou", nom: "DIOP", dept: "Direction des Ressources Humaines" },
-                    { label: "👔 Manager (Sevan AKOUMIA)", email: "sevan.akoumia@agilly.net", role: "N1", poste: "Responsable Technique Digital", id: "abe87afa-a80b-4a48-bed2-72b525325c81", prenom: "Sevan", nom: "AKOUMIA", dept: "Technique & Digital" },
-                    { label: "👤 Développeur (Ebenezer KOUAME)", email: "ebenezer.kouame@agilly.net", role: "SALARIE", poste: "Développeur Fullstack", id: "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb", prenom: "Ebenezer Samuel", nom: "KOUAME", dept: "Technique & Digital" },
+                    { label: "👔 Manager N+1 (Sevan AKOUMIA)", email: "sevan.akoumia@agilly.net", role: "N1", poste: "Responsable Technique Digital", id: "abe87afa-a80b-4a48-bed2-72b525325c81", prenom: "Sevan", nom: "AKOUMIA", dept: "Technique & Digital" },
+                    { label: "👤 Salarié (Ebenezer KOUAME)", email: "ebenezer.kouame@agilly.net", role: "SALARIE", poste: "Développeur Fullstack", id: "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb", prenom: "Ebenezer Samuel", nom: "KOUAME", dept: "Technique & Digital" },
                   ].map((p) => {
                     const isCurrent = user?.email?.toLowerCase() === p.email.toLowerCase();
                     return (
