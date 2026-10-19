@@ -506,26 +506,8 @@ export function DashboardManager() {
                             >
                               Évaluer & Noter
                             </Button>
-                          ) : !hasObjectifs ? (
-                            /* Cas 2 : Objectifs à définir */
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              leftIcon={<TargetIcon size={13} />}
-                              onClick={() =>
-                                setSelectedCollabForObjectifs({
-                                  id: member.id,
-                                  nom: fullName,
-                                  poste: member.poste || "",
-                                  readOnly: false,
-                                })
-                              }
-                              disabled={!activeCycle}
-                            >
-                              Fixer les objectifs
-                            </Button>
                           ) : (
-                            /* Cas 3 : Consulter fiche ou objectifs */
+                            /* Cas standard : Consulter la fiche d'évaluation */
                             <Button
                               variant="secondary"
                               size="sm"
@@ -534,12 +516,7 @@ export function DashboardManager() {
                                 if (fiche) {
                                   setSelectedFicheModal(fiche);
                                 } else {
-                                  setSelectedCollabForObjectifs({
-                                    id: member.id,
-                                    nom: fullName,
-                                    poste: member.poste || "",
-                                    readOnly: true,
-                                  });
+                                  window.location.href = "/dashboard/mon-equipe/evaluations";
                                 }
                               }}
                             >
