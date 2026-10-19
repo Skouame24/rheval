@@ -278,7 +278,7 @@ export function ModalDefinirObjectifs({
       await evaluationsApi.validateObjectifsN2(targetFicheId, { decision });
       setSuccessMessage(
         decision === 'APPROUVE'
-          ? "✓ Les objectifs ont été validés par la Direction ! Le responsable peut maintenant procéder directement à l'évaluation et à la notation."
+          ? "✓ Les objectifs ont été validés par la Direction ! Le collaborateur peut à présent les consulter et les confirmer dans son espace."
           : "✓ Une révision a été demandée au manager N+1."
       );
       if (onSaved) onSaved();
@@ -652,8 +652,8 @@ export function ModalDefinirObjectifs({
           </button>
 
           <div className="flex items-center gap-3">
-            {/* Cas 1 : Le salarié consulte ses objectifs et confirme son accord */}
-            {isSelf && (statut === "VALIDATION_OBJECTIFS_SALARIE" || !statut || statut === "FIXATION_OBJECTIFS") && (
+            {/* Cas 1 : Le salarié consulte ses objectifs et confirme son accord après validation N+2 */}
+            {isSelf && statut === "VALIDATION_OBJECTIFS_SALARIE" && (
               <button
                 type="button"
                 onClick={async () => {
@@ -689,6 +689,18 @@ export function ModalDefinirObjectifs({
                   </>
                 )}
               </button>
+            )}
+
+            {isSelf && statut === "VALIDATION_OBJECTIFS_N2" && (
+              <span className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-2">
+                <span>⏳ Vos objectifs ont été rédigés par votre responsable et sont en cours de validation par la Direction (N+2)</span>
+              </span>
+            )}
+
+            {isSelf && statut === "FIXATION_OBJECTIFS" && (
+              <span className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold inline-flex items-center gap-2">
+                <span>⏳ Objectifs en cours de définition par votre responsable</span>
+              </span>
             )}
 
             {/* Cas 2 : Objectifs en attente de validation N+2 */}
@@ -727,9 +739,14 @@ export function ModalDefinirObjectifs({
             )}
 
             {/* Cas 3 : Phase d'évaluation par le responsable N+1 */}
-            {!isSelf && (statut === "EVALUATION_N1" || statut === "AUTO_EVALUATION" || statut === "VALIDATION_OBJECTIFS_SALARIE") && (
+            {!isSelf && (statut === "EVALUATION_N1" || statut === "AUTO_EVALUATION") && (
               <span className="px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold inline-flex items-center gap-2">
                 <span>✓ Objectifs validés — Phase d'évaluation & notation Responsable ouverte</span>
+              </span>
+            )}
+            {!isSelf && statut === "VALIDATION_OBJECTIFS_SALARIE" && (
+              <span className="px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold inline-flex items-center gap-2">
+                <span>⏳ Objectifs validés par la Direction — En attente d'accord du salarié</span>
               </span>
             )}
 
