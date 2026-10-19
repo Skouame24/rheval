@@ -195,16 +195,15 @@ export function DashboardSalarie() {
   }
 
   const hasObjectifs = Boolean(objectifs && objectifs.length > 0);
-  const canAutoEval = hasObjectifs && statut === "AUTO_EVALUATION";
 
   return (
     <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full">
       <FicheEvaluationModal
         isOpen={isFicheModalOpen}
         onClose={() => setIsFicheModalOpen(false)}
-        isAutoEvaluationMode={true}
-        currentStep={3}
         role="SALARIE"
+        readOnly={true}
+        currentStep={3}
         evaluationId={evaluation?.id}
         dossier={user ? {
           id: user.id,
@@ -236,7 +235,7 @@ export function DashboardSalarie() {
       {/* Page Header */}
       <PageHeader
         title="Mon Bilan d'Évaluation"
-        subtitle="Suivi de vos objectifs annuels, consultation des retours du manager et auto-évaluation"
+        subtitle="Suivi de vos objectifs annuels, consultation des retours du responsable et de la direction"
         breadcrumbs={[{ label: "Mon Espace" }, { label: "Tableau de Bord" }]}
       />
 
@@ -271,28 +270,30 @@ export function DashboardSalarie() {
           </div>
         )}
 
-        {canAutoEval ? (
+        {hasObjectifs ? (
           <button
-            onClick={() => openFicheModal({ autoEval: true })}
-            className="p-4 bg-white border border-sky-200 hover:border-sky-400 text-sky-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
+            onClick={() => setIsFicheModalOpen(true)}
+            className="p-4 bg-white border border-purple-200 hover:border-purple-400 text-purple-900 rounded-none shadow-sm flex items-center gap-3 transition-all cursor-pointer text-left"
           >
-            <div className="w-10 h-10 bg-sky-50 text-sky-600 font-extrabold text-lg flex items-center justify-center border border-sky-200 shrink-0">
-              <PencilIcon size={18} className="text-sky-600" />
+            <div className="w-10 h-10 bg-purple-50 text-purple-600 font-extrabold text-lg flex items-center justify-center border border-purple-200 shrink-0">
+              <EyeIcon size={20} className="text-purple-600" />
             </div>
             <div>
-              <span className="text-[10px] font-black text-sky-600 uppercase tracking-wider block">Étape 02</span>
-              <span className="text-sm font-extrabold block">Faire mon Auto-évaluation</span>
+              <span className="text-[10px] font-black text-purple-600 uppercase tracking-wider block">Étape 02</span>
+              <span className="text-sm font-extrabold block">
+                Consulter mon Évaluation & Notations
+              </span>
             </div>
           </button>
         ) : (
           <div className="p-4 bg-slate-50 border border-slate-200 text-slate-400 rounded-none flex items-center gap-3 opacity-60 cursor-not-allowed text-left">
             <div className="w-10 h-10 bg-slate-100 text-slate-400 font-extrabold text-lg flex items-center justify-center border border-slate-200 shrink-0">
-              <PencilIcon size={18} className="text-slate-400" />
+              <EyeIcon size={20} className="text-slate-400" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Étape 02 · Verrouillée</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Étape 02 · En attente</span>
               <span className="text-sm font-bold text-slate-500 block">
-                {!hasObjectifs ? "Auto-évaluation (disponible après fixation des objectifs)" : "Auto-évaluation déjà transmise ou terminée"}
+                Évaluation disponible dès la fixation des objectifs par votre responsable
               </span>
             </div>
           </div>

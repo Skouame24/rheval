@@ -25,8 +25,10 @@ export const notificationsApi = {
    */
   getAll: async (): Promise<AppNotification[]> => {
     try {
-      const res = await client.get<AppNotification[]>("/notifications");
-      return Array.isArray(res) ? res : [];
+      const res = await client.get<any>("/notifications");
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.notifications)) return res.notifications;
+      return [];
     } catch (err) {
       console.error("[notificationsApi.getAll] Erreur:", err);
       return [];
@@ -39,8 +41,11 @@ export const notificationsApi = {
    */
   getUnreadCount: async (): Promise<number> => {
     try {
-      const res = await client.get<{ count: number }>("/notifications/unread-count");
-      return res?.count ?? 0;
+      const res = await client.get<any>("/notifications/unread-count");
+      if (typeof res?.count === "number") return res.count;
+      if (typeof res?.unreadCount === "number") return res.unreadCount;
+      if (typeof res === "number") return res;
+      return 0;
     } catch (err) {
       console.error("[notificationsApi.getUnreadCount] Erreur:", err);
       return 0;
@@ -66,7 +71,7 @@ export const notificationsApi = {
    */
   markAllAsRead: async (): Promise<number> => {
     try {
-      const res = await client.post<{ count: number }>("/notifications/read-all", {});
+      const res = await client.post<{ success: boolean; count?: number }>("/notifications/read-all", {});
       return res?.count ?? 0;
     } catch (err) {
       console.error("[notificationsApi.markAllAsRead] Erreur:", err);

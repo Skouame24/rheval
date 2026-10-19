@@ -118,7 +118,12 @@ export function DashboardManager() {
 
     const aNoter = directReports.filter(({ fiche }) => {
       if (!fiche) return false;
-      return fiche.statut === "EVALUATION_N1" || fiche.statut === "EN_ATTENTE_N1";
+      return (
+        fiche.statut === "EVALUATION_N1" ||
+        fiche.statut === "EN_ATTENTE_N1" ||
+        fiche.statut === "AUTO_EVALUATION" ||
+        fiche.statut === "VALIDATION_OBJECTIFS_SALARIE"
+      );
     }).length;
 
     const finalises = directReports.filter(({ fiche }) => {
@@ -126,6 +131,7 @@ export function DashboardManager() {
       return [
         "VALIDATION_N2",
         "EVALUATION_N2",
+        "VALIDATION_NOTES_N2",
         "VISA_SALARIE",
         "ACCORD_SALARIE",
         "VALIDE",
@@ -191,16 +197,23 @@ export function DashboardManager() {
         );
       }
       if (filterTab === "A_NOTER") {
-        return fiche?.statut === "EVALUATION_N1" || fiche?.statut === "EN_ATTENTE_N1";
+        return (
+          fiche?.statut === "EVALUATION_N1" ||
+          fiche?.statut === "EN_ATTENTE_N1" ||
+          fiche?.statut === "AUTO_EVALUATION" ||
+          fiche?.statut === "VALIDATION_OBJECTIFS_SALARIE"
+        );
       }
       if (filterTab === "EN_COURS") {
         return (
           fiche &&
           [
             "VALIDATION_OBJECTIFS_N2",
-            "VALIDATION_OBJECTIFS_SALARIE",
-            "AUTO_EVALUATION",
             "VALIDATION_N2",
+            "EVALUATION_N2",
+            "VALIDATION_NOTES_N2",
+            "VALIDATION_DRH",
+            "ARBITRAGE",
             "VISA_SALARIE",
             "VALIDE",
             "CLOTURE",
@@ -252,8 +265,12 @@ export function DashboardManager() {
           objectifs={selectedFicheModal.objectifs || []}
           role="N1"
           readOnly={
-            selectedFicheModal.statut !== "EVALUATION_N1" &&
-            selectedFicheModal.statut !== "EN_ATTENTE_N1"
+            selectedFicheModal.statut === "VALIDATION_N2" ||
+            selectedFicheModal.statut === "EVALUATION_N2" ||
+            selectedFicheModal.statut === "VALIDATION_NOTES_N2" ||
+            selectedFicheModal.statut === "VALIDATION_DRH" ||
+            selectedFicheModal.statut === "VALIDE" ||
+            selectedFicheModal.statut === "CLOTURE"
           }
         />
       )}
@@ -420,8 +437,12 @@ export function DashboardManager() {
                     (fiche && fiche.objectifs && fiche.objectifs.length > 0) ||
                     (fiche && fiche.statut && fiche.statut !== "FIXATION_OBJECTIFS")
                   );
+                  const isWaitingN2 = fiche?.statut === "VALIDATION_OBJECTIFS_N2";
                   const isReadyToNote =
-                    fiche?.statut === "EVALUATION_N1" || fiche?.statut === "EN_ATTENTE_N1";
+                    fiche?.statut === "EVALUATION_N1" ||
+                    fiche?.statut === "EN_ATTENTE_N1" ||
+                    fiche?.statut === "AUTO_EVALUATION" ||
+                    fiche?.statut === "VALIDATION_OBJECTIFS_SALARIE";
 
                   return (
                     <tr
@@ -469,8 +490,13 @@ export function DashboardManager() {
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center justify-end gap-2">
-                          {/* Cas 1 : À évaluer (Notes & Entretien) */}
-                          {isReadyToNote && fiche ? (
+                          {/* Cas 0 : En attente validation Direction (N+2) */}
+                          {isWaitingN2 ? (
+                            <span className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                              ⏳ En attente validation N+2
+                            </span>
+                          ) : isReadyToNote && fiche ? (
+                            /* Cas 1 : À évaluer (Notes & Entretien) */
                             <Button
                               variant="primary"
                               size="sm"

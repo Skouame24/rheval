@@ -22,6 +22,7 @@ interface ModalDefinirObjectifsProps {
   evaluationId?: string;
   statut?: StatutEvaluation;
   isN1Validated?: boolean;
+  isDirectReport?: boolean;
   objectifs?: any[];
   onSaved?: () => void;
   readOnly?: boolean;
@@ -56,6 +57,7 @@ export function ModalDefinirObjectifs({
   evaluationId,
   statut,
   isN1Validated = false,
+  isDirectReport = false,
   objectifs: initialObjectifs,
   onSaved,
   readOnly = false,
@@ -64,10 +66,11 @@ export function ModalDefinirObjectifs({
 
   // Droit d'édition :
   // Si c'est un collaborateur qui consulte ses propres objectifs -> lecture seule
-  // Si readOnly est explicitement passé (objectifs déjà fixés) -> lecture seule
-  // Si c'est un N+1, N+2, RH, DRH ou ADMIN configurant un collaborateur -> édition autorisée
+  // Si readOnly est explicitement passé -> lecture seule
+  // Si le statut n'est plus FIXATION_OBJECTIFS -> les objectifs ont été transmis, lecture seule pour le manager
   const isSelf = Boolean(user?.id && salariedId && user.id === salariedId);
-  const canEdit = !isSelf && !readOnly;
+  const isStatusAlreadySubmitted = Boolean(statut && statut !== "FIXATION_OBJECTIFS");
+  const canEdit = !isSelf && !readOnly && !isStatusAlreadySubmitted;
 
   const [objectifsState, setObjectifsState] = useState<ObjectifItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -249,7 +252,7 @@ export function ModalDefinirObjectifs({
       });
 
       setSuccessMessage(
-        `✓ Les ${objectifsState.length} objectifs ont été validés avec succès ! Le collaborateur peut désormais renseigner son auto-évaluation.`
+        `✓ Les ${objectifsState.length} objectifs ont été validés avec succès ! La phase d'évaluation par le responsable est désormais ouverte.`
       );
 
       if (onSaved) {
@@ -262,6 +265,28 @@ export function ModalDefinirObjectifs({
     } catch (err: any) {
       console.error("Erreur enregistrement objectifs:", err);
       setErrorMessage(err.message || "Erreur de communication avec le serveur.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleValidateN2 = async (decision: 'APPROUVE' | 'REJETE') => {
+    const targetFicheId = evaluationId || salariedId;
+    if (!targetFicheId) return;
+    try {
+      setIsSaving(true);
+      await evaluationsApi.validateObjectifsN2(targetFicheId, { decision });
+      setSuccessMessage(
+        decision === 'APPROUVE'
+          ? "✓ Les objectifs ont été validés par la Direction ! Le responsable peut maintenant procéder directement à l'évaluation et à la notation."
+          : "✓ Une révision a été demandée au manager N+1."
+      );
+      if (onSaved) onSaved();
+      setTimeout(() => {
+        onClose();
+      }, 1200);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Erreur lors de la validation des objectifs.");
     } finally {
       setIsSaving(false);
     }
@@ -627,7 +652,7 @@ export function ModalDefinirObjectifs({
           </button>
 
           <div className="flex items-center gap-3">
-            {/* Si le collaborateur consulte ses objectifs en attente de confirmation */}
+            {/* Cas 1 : Le salarié consulte ses objectifs et confirme son accord */}
             {isSelf && (statut === "VALIDATION_OBJECTIFS_SALARIE" || !statut || statut === "FIXATION_OBJECTIFS") && (
               <button
                 type="button"
@@ -637,7 +662,7 @@ export function ModalDefinirObjectifs({
                   try {
                     setIsSaving(true);
                     await evaluationsApi.validateObjectifsSalarie(targetFicheId, { accord: true });
-                    setSuccessMessage("✓ Vos objectifs ont été confirmés avec succès ! La phase d'auto-évaluation est maintenant ouverte.");
+                    setSuccessMessage("✓ Vos objectifs ont été confirmés avec succès ! La phase d'évaluation par votre responsable est maintenant ouverte.");
                     if (onSaved) onSaved();
                     setTimeout(() => {
                       onClose();
@@ -666,6 +691,49 @@ export function ModalDefinirObjectifs({
               </button>
             )}
 
+            {/* Cas 2 : Objectifs en attente de validation N+2 */}
+            {!isSelf && statut === "VALIDATION_OBJECTIFS_N2" && (
+              isDirectReport ? (
+                /* Le manager N+1 qui a fixé les objectifs doit attendre la validation */
+                <span className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-2">
+                  <span>⏳ Objectifs transmis — En attente de validation Direction (N+2)</span>
+                </span>
+              ) : (role === "N2" || role === "DRH") ? (
+                /* Le Directeur N+2 valide ou demande révision */
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleValidateN2('REJETE')}
+                    disabled={isSaving}
+                    className="px-4 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Demander révision
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleValidateN2('APPROUVE')}
+                    disabled={isSaving}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  >
+                    <CheckCircleIcon size={14} />
+                    <span>Valider les Objectifs (N+2)</span>
+                  </button>
+                </div>
+              ) : (
+                <span className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-2">
+                  <span>⏳ En attente de validation Direction N+2</span>
+                </span>
+              )
+            )}
+
+            {/* Cas 3 : Phase d'évaluation par le responsable N+1 */}
+            {!isSelf && (statut === "EVALUATION_N1" || statut === "AUTO_EVALUATION" || statut === "VALIDATION_OBJECTIFS_SALARIE") && (
+              <span className="px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold inline-flex items-center gap-2">
+                <span>✓ Objectifs validés — Phase d'évaluation & notation Responsable ouverte</span>
+              </span>
+            )}
+
+            {/* Cas 5 : Phase de fixation des objectifs par le N+1 (premier enregistrement) */}
             {canEdit && (
               <button
                 type="button"
@@ -682,7 +750,7 @@ export function ModalDefinirObjectifs({
                 ) : (
                   <>
                     <CheckCircleIcon size={14} />
-                    <span>Transmettre & Valider les Objectifs</span>
+                    <span>Transmettre les Objectifs</span>
                   </>
                 )}
               </button>

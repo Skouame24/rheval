@@ -72,7 +72,7 @@ export function FicheEvaluationModal({
   const auth = useAuth();
 
   const [objectifs, setObjectifs] = useState<ObjectifData[]>(INITIAL_OBJECTIFS);
-  const [activeTab, setActiveTab] = useState<"SALARIE" | "N1" | "N2" | "RH">("SALARIE");
+  const [activeTab, setActiveTab] = useState<"N1" | "N2" | "RH">("N1");
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -205,22 +205,35 @@ export function FicheEvaluationModal({
 
   // Initialisation de l'onglet actif selon le statut de la fiche et le profil connecté
   useEffect(() => {
-    if (isCollabHimself || isAutoEvaluationMode || propRole === "SALARIE") {
-      setActiveTab("SALARIE");
-    } else if (fetchedEval?.statut === "EVALUATION_N1" || fetchedEval?.statut === "EN_ATTENTE_N1") {
-      setActiveTab("N1");
-    } else if (fetchedEval?.statut === "VALIDATION_N2" || fetchedEval?.statut === "EVALUATION_N2") {
-      setActiveTab("N2");
-    } else if (effectiveRole === "N2") {
-      setActiveTab("N2");
-    } else if (effectiveRole === "RH" || effectiveRole === "DRH") {
-      setActiveTab("RH");
-    } else if (effectiveRole === "N1") {
+    if (propRole === "N1" || effectiveRole === "N1") {
       setActiveTab(isCollabManager ? "N2" : "N1");
+    } else if (
+      fetchedEval?.statut === "EVALUATION_N1" ||
+      fetchedEval?.statut === "EN_ATTENTE_N1" ||
+      fetchedEval?.statut === "AUTO_EVALUATION" ||
+      fetchedEval?.statut === "VALIDATION_OBJECTIFS_SALARIE"
+    ) {
+      setActiveTab("N1");
+    } else if (
+      fetchedEval?.statut === "VALIDATION_N2" ||
+      fetchedEval?.statut === "EVALUATION_N2" ||
+      propRole === "N2"
+    ) {
+      setActiveTab("N2");
+    } else if (
+      propRole === "RH" ||
+      fetchedEval?.statut === "VALIDATION_DRH" ||
+      fetchedEval?.statut === "ARBITRAGE"
+    ) {
+      setActiveTab("RH");
+    } else if (effectiveRole === "DRH" || effectiveRole === "RH") {
+      setActiveTab("N1");
+    } else if (effectiveRole === "N2") {
+      setActiveTab("N1");
     } else {
-      setActiveTab("SALARIE");
+      setActiveTab("N1");
     }
-  }, [effectiveRole, isOpen, isCollabHimself, isAutoEvaluationMode, propRole, isCollabManager, fetchedEval?.statut]);
+  }, [effectiveRole, isOpen, isCollabHimself, propRole, isCollabManager, fetchedEval?.statut]);
 
   // Initialisation des objectifs avec pondération et notes
   const apiObjectifsKey = effectiveObjectifs?.map((o: any) => o.id).join(",") ?? "";
@@ -334,22 +347,19 @@ export function FicheEvaluationModal({
   const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
   const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE";
 
-  // Droits de modification stricts selon l'étape du cycle (impossibilité de modifier après transmission ou clôture)
-  // 1. Salarié : ne peut s'auto-évaluer QUE si la campagne est en phase AUTO_EVALUATION (ou FIXATION_OBJECTIFS) et NON clôturée
-  const isAutoEvalOpen = !isFicheCloturee && (currentStatut === "AUTO_EVALUATION" || currentStatut === "FIXATION_OBJECTIFS" || currentStatut === "BROUILLON" || currentStatut === "CREE" || (!currentStatut && isAutoEvaluationMode));
-  const canEditSalarie = !readOnly && !isFicheCloturee && activeTab === "SALARIE" && isAutoEvalOpen && (
-    isCollabHimself ||
-    effectiveRole === "SALARIE" ||
-    isAutoEvaluationMode ||
-    (!effectiveRole.includes("N1") && !effectiveRole.includes("N2") && !effectiveRole.includes("RH") && !effectiveRole.includes("DRH"))
+  // Droits de modification selon l'étape du cycle
+  // 1. N+1 (Responsable) : évalue directement dès que les objectifs sont définis
+  const isN1EvalOpen = !isFicheCloturee && (
+    currentStatut === "EVALUATION_N1" ||
+    currentStatut === "EN_ATTENTE_N1" ||
+    currentStatut === "AUTO_EVALUATION" ||
+    currentStatut === "VALIDATION_OBJECTIFS_SALARIE" ||
+    currentStatut === "FIXATION_OBJECTIFS"
   );
+  const canEditN1 = !readOnly && !isFicheCloturee && activeTab === "N1" && isN1EvalOpen && !isCollabHimself;
 
-  // 2. N+1 : ne peut évaluer QUE si le statut est EVALUATION_N1 (ou EN_ATTENTE_N1) et NON clôturé
-  const isN1EvalOpen = !isFicheCloturee && (currentStatut === "EVALUATION_N1" || currentStatut === "EN_ATTENTE_N1");
-  const canEditN1 = !readOnly && !isFicheCloturee && activeTab === "N1" && isN1EvalOpen && !isCollabHimself && (effectiveRole === "N1" || effectiveRole === "ADMIN");
-
-  // 3. N+2 : ne peut évaluer QUE si le statut est EVALUATION_N2 (ou EN_ATTENTE_N2 / VALIDATION_N2 / VALIDATION_OBJECTIFS_N2) et NON clôturé
-  // Si le salarié est un manager N1 direct (ex: Marc AUBERT), dès qu'il a soumis son auto-évaluation, son N+2 Claire peut l'évaluer !
+  // 2. N+2 : ne peut évaluer QUE si le statut est EVALUATION_N2 (ou EN_ATTENTE_N2 / VALIDATION_N2 / VALIDATION_OBJECTIFS_N2) et NON clôturé
+  // Si le salarié est un manager N1 direct, son N+2 peut l'évaluer
   const isN2EvalOpen = !isFicheCloturee && (
     currentStatut === "VALIDATION_OBJECTIFS_N2" ||
     currentStatut === "EVALUATION_N2" ||
@@ -359,16 +369,12 @@ export function FicheEvaluationModal({
   );
   const canEditN2 = !readOnly && !isFicheCloturee && (activeTab === "N2" || effectiveRole === "N2") && isN2EvalOpen && !isCollabHimself && (effectiveRole === "N2" || effectiveRole === "ADMIN" || effectiveRole === "DRH");
 
-  // 4. RH : ne peut valider ou arbitrer QUE si le statut est VALIDATION_DRH ou ARBITRAGE (ou EN_ATTENTE_RH) et NON clôturé
+  // 3. RH : ne peut valider ou arbitrer QUE si le statut est VALIDATION_DRH ou ARBITRAGE (ou EN_ATTENTE_RH) et NON clôturé
   const isRHEvalOpen = !isFicheCloturee && (currentStatut === "VALIDATION_DRH" || currentStatut === "ARBITRAGE" || currentStatut === "EN_ATTENTE_RH");
   const canEditRH = !readOnly && !isFicheCloturee && (activeTab === "RH" || effectiveRole === "RH" || effectiveRole === "DRH") && isRHEvalOpen && (effectiveRole === "RH" || effectiveRole === "DRH" || effectiveRole === "ADMIN");
 
   // Calculs pondérés des moyennes
   const totalPond = objectifs.reduce((acc, o) => acc + (Number(o.ponderation) || 0), 0);
-
-  const noteGlobaleSalarie = totalPond > 0
-    ? objectifs.reduce((acc, obj) => acc + (Number(obj.noteSalarie || 0) * (Number(obj.ponderation || 0) / 100)), 0)
-    : (objectifs.length > 0 ? objectifs.reduce((acc, obj) => acc + Number(obj.noteSalarie || 0), 0) / objectifs.length : 0);
 
   const noteGlobaleN1 = totalPond > 0
     ? objectifs.reduce((acc, obj) => acc + (Number(obj.noteObtenue || 0) * (Number(obj.ponderation || 0) / 100)), 0)
@@ -379,9 +385,7 @@ export function FicheEvaluationModal({
     : (objectifs.length > 0 ? objectifs.reduce((acc, obj) => acc + Number(obj.noteN2 ?? obj.noteObtenue ?? 0), 0) / objectifs.length : 0);
 
   const noteAffichee =
-    activeTab === "SALARIE"
-      ? noteGlobaleSalarie
-      : activeTab === "N2"
+    activeTab === "N2"
       ? noteGlobaleN2
       : activeTab === "RH"
       ? (noteGlobaleN2 > 0 ? noteGlobaleN2 : noteGlobaleN1)
@@ -389,16 +393,21 @@ export function FicheEvaluationModal({
 
   const tauxGlobal = ((noteAffichee / 20) * 100).toFixed(1);
 
-  let dynamicStep: number = 4;
+  let dynamicStep: number = 3;
   if (isFicheCloturee) {
     dynamicStep = 6;
   } else if (currentStatut === "VALIDATION_DRH" || currentStatut === "EN_ATTENTE_RH" || currentStatut === "ARBITRAGE") {
     dynamicStep = 5;
-  } else if (currentStatut === "EVALUATION_N2" || currentStatut === "VALIDATION_N2" || currentStatut === "EN_ATTENTE_N2") {
+  } else if (currentStatut === "EVALUATION_N2" || currentStatut === "VALIDATION_N2" || currentStatut === "VALIDATION_NOTES_N2" || currentStatut === "EN_ATTENTE_N2") {
     dynamicStep = 4;
-  } else if (currentStatut === "EVALUATION_N1" || currentStatut === "EN_ATTENTE_N1") {
+  } else if (
+    currentStatut === "EVALUATION_N1" ||
+    currentStatut === "EN_ATTENTE_N1" ||
+    currentStatut === "AUTO_EVALUATION" ||
+    currentStatut === "VALIDATION_OBJECTIFS_SALARIE"
+  ) {
     dynamicStep = 3;
-  } else if (currentStatut === "AUTO_EVALUATION") {
+  } else if (currentStatut === "VALIDATION_OBJECTIFS_N2") {
     dynamicStep = 2;
   } else if (currentStatut === "FIXATION_OBJECTIFS" || currentStatut === "CREE" || currentStatut === "BROUILLON") {
     dynamicStep = 1;
@@ -408,18 +417,16 @@ export function FicheEvaluationModal({
 
   // Gestion des notes
   const handleSelectTranche = (objId: string, critere: { tranche: string; min: number; max: number; defaultNote: number }) => {
-    if (!canEditSalarie && !canEditN1 && !canEditN2) return;
+    if (!canEditN1 && !canEditN2) return;
 
     setObjectifs((prev) =>
       prev.map((o) => {
         if (o.id === objId) {
-          const currentNote = activeTab === "SALARIE" ? o.noteSalarie : activeTab === "N2" ? (o.noteN2 ?? o.noteObtenue) : o.noteObtenue;
+          const currentNote = activeTab === "N2" ? (o.noteN2 ?? o.noteObtenue) : o.noteObtenue;
           const isNoteInTier = currentNote >= critere.min && currentNote <= critere.max;
           const newNote = isNoteInTier && currentNote > 0 ? currentNote : critere.defaultNote;
 
-          if (activeTab === "SALARIE") {
-            return { ...o, noteSalarie: newNote, trancheSelectionnee: critere.tranche };
-          } else if (activeTab === "N2") {
+          if (activeTab === "N2") {
             return { ...o, noteN2: newNote, trancheSelectionnee: critere.tranche };
           } else {
             return { ...o, trancheSelectionnee: critere.tranche, noteObtenue: newNote };
@@ -431,7 +438,7 @@ export function FicheEvaluationModal({
   };
 
   const handleNoteChange = (objId: string, valStr: string) => {
-    if (!canEditSalarie && !canEditN1 && !canEditN2) return;
+    if (!canEditN1 && !canEditN2) return;
     const val = parseFloat(valStr) || 0;
     const clampedVal = Math.min(20, Math.max(0, val));
 
@@ -439,9 +446,7 @@ export function FicheEvaluationModal({
       prev.map((o) => {
         if (o.id === objId) {
           const matchedCritere = o.criteres.find((c) => clampedVal >= c.min && clampedVal <= c.max) || o.criteres[o.criteres.length - 1];
-          if (activeTab === "SALARIE") {
-            return { ...o, noteSalarie: clampedVal, trancheSelectionnee: matchedCritere?.tranche || "" };
-          } else if (activeTab === "N2") {
+          if (activeTab === "N2") {
             return { ...o, noteN2: clampedVal };
           } else {
             return { ...o, noteObtenue: clampedVal, trancheSelectionnee: matchedCritere?.tranche || "" };
@@ -456,7 +461,6 @@ export function FicheEvaluationModal({
     setObjectifs((prev) =>
       prev.map((o) => {
         if (o.id === objId) {
-          if (activeTab === "SALARIE") return { ...o, commentaireSalarie: text };
           if (activeTab === "N2") return { ...o, commentaireN2: text };
           return { ...o, commentaire: text };
         }
@@ -519,7 +523,7 @@ export function FicheEvaluationModal({
     }
   };
 
-  // Enregistrement Salarié ou N+1
+  // Enregistrement N+1
   const handleSaveEvaluation = async () => {
     if (!resolvedFicheId) {
       alert("Aucune fiche d'évaluation associée trouvée.");
@@ -528,45 +532,28 @@ export function FicheEvaluationModal({
     setIsSaving(true);
     setSaveSuccessMsg(null);
     try {
-      if (activeTab === "SALARIE") {
-        await evaluationsApi.submitAutoEvaluation(resolvedFicheId, {
-          notes: objectifs.map((o) => ({
-            objectifId: o.id,
-            note: o.noteSalarie,
-            commentaire: o.commentaireSalarie,
-          })),
-        });
-        const nextSt = isCollabManager ? "EVALUATION_N2" : "EVALUATION_N1";
-        setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
-        setSaveSuccessMsg("Votre auto-évaluation a été enregistrée avec succès.");
-        if (onSaved) onSaved();
-        setTimeout(() => {
-          onClose();
-        }, 1200);
-      } else {
-        await evaluationsApi.submitNotesN1(resolvedFicheId, {
-          evaluationCycleId: resolvedFicheId,
-          notes: objectifs.map((o) => ({
-            objectifId: o.id,
-            note: o.noteObtenue,
-            commentaire: o.commentaire,
-          })),
-          formations: formations.map((f) => ({
-            id: f.id,
-            intitule: f.intitule,
-            delai: f.delai,
-            priorite: f.priorite,
-            objectifVise: f.objectifVise,
-          })),
-          observations: "",
-        });
-        setFetchedEval((prev: any) => prev ? { ...prev, statut: "EVALUATION_N2" } : { statut: "EVALUATION_N2" });
-        setSaveSuccessMsg("L'évaluation du manager et le plan de formation ont été validés et transmis à la Direction.");
-        if (onSaved) onSaved();
-        setTimeout(() => {
-          onClose();
-        }, 1200);
-      }
+      await evaluationsApi.submitNotesN1(resolvedFicheId, {
+        evaluationCycleId: resolvedFicheId,
+        notes: objectifs.map((o) => ({
+          objectifId: o.id,
+          note: o.noteObtenue,
+          commentaire: o.commentaire,
+        })),
+        formations: formations.map((f) => ({
+          id: f.id,
+          intitule: f.intitule,
+          delai: f.delai,
+          priorite: f.priorite,
+          objectifVise: f.objectifVise,
+        })),
+        observations: "",
+      });
+      setFetchedEval((prev: any) => prev ? { ...prev, statut: "EVALUATION_N2" } : { statut: "EVALUATION_N2" });
+      setSaveSuccessMsg("L'évaluation du manager et le plan de formation ont été validés et transmis à la Direction.");
+      if (onSaved) onSaved();
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } catch (err: any) {
       console.error("[FicheEvaluationModal] Save error:", err);
       alert("Erreur lors de l'enregistrement : " + (err.message || "Erreur serveur"));
@@ -591,12 +578,12 @@ export function FicheEvaluationModal({
           observations: observationN2 || (finalDecision === "APPROUVE" ? "Objectifs validés par la Direction." : "Objectifs rejetés et renvoyés au manager."),
         });
 
-        const nextSt = finalDecision === "REJETE" ? "FIXATION_OBJECTIFS" : "VALIDATION_OBJECTIFS_SALARIE";
+        const nextSt = finalDecision === "REJETE" ? "FIXATION_OBJECTIFS" : "EVALUATION_N1";
         setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
         setSaveSuccessMsg(
           finalDecision === "REJETE"
             ? "Les objectifs ont été rejetés et renvoyés au manager."
-            : "Les objectifs ont été approuvés par la Direction et transmis au salarié pour confirmation."
+            : "Les objectifs ont été validés par la Direction ! Le responsable peut maintenant procéder à l'évaluation et à la notation."
         );
       } else {
         await evaluationsApi.validateNotesN2(resolvedFicheId, {
@@ -692,9 +679,7 @@ export function FicheEvaluationModal({
           height: 4,
           width: "100%",
           background:
-            activeTab === "SALARIE"
-              ? "#0284C7"
-              : activeTab === "N2"
+            activeTab === "N2"
               ? "#9333EA"
               : activeTab === "RH"
               ? "#059669"
@@ -791,24 +776,6 @@ export function FicheEvaluationModal({
           flexShrink: 0
         }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button
-              onClick={() => setActiveTab("SALARIE")}
-              style={{
-                padding: "6px 14px",
-                fontSize: 12,
-                fontWeight: 700,
-                border: activeTab === "SALARIE" ? "2px solid #0284C7" : "1px solid #CBD5E1",
-                background: activeTab === "SALARIE" ? "#F0F9FF" : "#FFFFFF",
-                color: activeTab === "SALARIE" ? "#0284C7" : "#475569",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6
-              }}
-            >
-              Auto-Évaluation ({noteGlobaleSalarie.toFixed(2)}/20)
-            </button>
-
             {/* Pour un manager N+1, il n'y a pas d'évaluateur N+1 intermédiaire : c'est directement le N+2 qui l'évalue */}
             {!isCollabManager && (
               <button
@@ -884,7 +851,7 @@ export function FicheEvaluationModal({
                 <div style={{
                   width: 44,
                   height: 44,
-                  background: activeTab === "SALARIE" ? "#0284C7" : activeTab === "N2" ? "#9333EA" : activeTab === "RH" ? "#059669" : "#F0822A",
+                  background: activeTab === "N2" ? "#9333EA" : activeTab === "RH" ? "#059669" : "#F0822A",
                   color: "#FFFFFF",
                   fontSize: 16,
                   fontWeight: 800,
@@ -913,25 +880,21 @@ export function FicheEvaluationModal({
 
             {/* Comparatif synthétique des notes */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, background: "#F8FAFC", padding: 12, border: "1px solid #E2E8F0" }}>
-              <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#0284C7", textTransform: "uppercase", display: "block" }}>1. Auto-Note Salarié</span>
-                <span style={{ fontSize: 15, fontWeight: 900, color: "#0369A1" }}>{noteGlobaleSalarie.toFixed(2)} / 20</span>
-              </div>
               {!isCollabManager && (
                 <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>2. Note Manager</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>1. Note Manager</span>
                   <span style={{ fontSize: 15, fontWeight: 900, color: "#F0822A" }}>{noteGlobaleN1.toFixed(2)} / 20</span>
                 </div>
               )}
               <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>
-                  {isCollabManager ? "2. Note Direction" : "3. Note Direction"}
+                  {isCollabManager ? "1. Note Direction" : "2. Note Direction"}
                 </span>
                 <span style={{ fontSize: 15, fontWeight: 900, color: "#9333EA" }}>{noteGlobaleN2.toFixed(2)} / 20</span>
               </div>
               <div style={{ textAlign: "center" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>
-                  {isCollabManager ? "3. Formations à Prévoir" : "4. Formations à Prévoir"}
+                  {isCollabManager ? "2. Formations à Prévoir" : "3. Formations à Prévoir"}
                 </span>
                 <span style={{ fontSize: 15, fontWeight: 900, color: "#059669" }}>{formations.length} module(s)</span>
               </div>
@@ -946,9 +909,7 @@ export function FicheEvaluationModal({
                   2. Grille des Objectifs & Barème de Notation — Vue {activeTab}
                 </h3>
                 <p style={{ fontSize: 11, color: "#64748B", margin: "2px 0 0 0" }}>
-                  {activeTab === "SALARIE"
-                    ? "Renseignez votre auto-évaluation sur chaque objectif opérationnel"
-                    : activeTab === "N1"
+                  {activeTab === "N1"
                     ? "Attribuez les notes de performance par tranche ou valeur directe"
                     : activeTab === "N2"
                     ? "Examinez les notes du manager et attribuez l'évaluation de la Direction"
@@ -963,9 +924,7 @@ export function FicheEvaluationModal({
 
             {objectifs.map((obj) => {
               const currentNote =
-                activeTab === "SALARIE"
-                  ? obj.noteSalarie
-                  : activeTab === "N2"
+                activeTab === "N2"
                   ? (obj.noteN2 ?? obj.noteObtenue)
                   : obj.noteObtenue;
 
@@ -988,10 +947,6 @@ export function FicheEvaluationModal({
                     </div>
 
                     <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                      <div style={{ background: "#F0F9FF", padding: "4px 10px", border: "1px solid #BAE6FD", textAlign: "right" }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: "#0284C7", textTransform: "uppercase", display: "block" }}>Auto-Note</span>
-                        <span style={{ fontSize: 13, fontWeight: 900, color: "#0369A1" }}>{obj.noteSalarie} / 20</span>
-                      </div>
                       {!isCollabManager && (
                         <div style={{ background: "#FFF7ED", padding: "4px 10px", border: "1px solid #FFEDD5", textAlign: "right" }}>
                           <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>Note Manager</span>
@@ -1022,7 +977,7 @@ export function FicheEvaluationModal({
                             display: "flex",
                             alignItems: "center",
                             gap: 12,
-                            cursor: (canEditSalarie || canEditN1) ? "pointer" : "default",
+                            cursor: (canEditN1 || canEditN2) ? "pointer" : "default",
                           }}
                         >
                           <span style={{
@@ -1055,7 +1010,7 @@ export function FicheEvaluationModal({
                           min="0"
                           max="20"
                           step="0.5"
-                          disabled={!canEditSalarie && !canEditN1}
+                          disabled={!canEditN1 && !canEditN2}
                           value={currentNote}
                           onChange={(e) => handleNoteChange(obj.id, e.target.value)}
                         style={{
@@ -1070,17 +1025,15 @@ export function FicheEvaluationModal({
                       />
                     </div>
 
-                    {/* Commentaire uniquement pour N+1 et N+2 — le salarié note seulement */}
-                    {activeTab !== "SALARIE" && (
-                      <div style={{ flex: 1, minWidth: 240 }}>
-                        <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
-                          Commentaire {activeTab === "N2" ? "Direction" : "Responsable"}
-                        </label>
-                        <input
-                          type="text"
-                          disabled={!canEditN1 && !canEditN2}
-                          value={activeTab === "N2" ? (obj.commentaireN2 || "") : obj.commentaire}
-                          onChange={(e) => handleCommentaireChange(obj.id, e.target.value)}
+                    <div style={{ flex: 1, minWidth: 240 }}>
+                      <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                        Commentaire {activeTab === "N2" ? "Direction" : "Responsable"}
+                      </label>
+                      <input
+                        type="text"
+                        disabled={!canEditN1 && !canEditN2}
+                        value={activeTab === "N2" ? (obj.commentaireN2 || "") : obj.commentaire}
+                        onChange={(e) => handleCommentaireChange(obj.id, e.target.value)}
                           placeholder="Commentaires, justifications opérationnelles..."
                           style={{
                             width: "100%",
@@ -1092,7 +1045,6 @@ export function FicheEvaluationModal({
                           }}
                         />
                       </div>
-                    )}
                   </div>
 
                 </div>
@@ -1457,7 +1409,7 @@ export function FicheEvaluationModal({
             </div>
             <div>
               <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", display: "block" }}>
-                Moyenne {activeTab === "SALARIE" ? "Auto-évaluation" : activeTab === "N1" ? "Responsable" : activeTab === "N2" ? "Direction" : "Direction RH"}
+                Moyenne {activeTab === "N1" ? "Responsable" : activeTab === "N2" ? "Direction" : "Direction RH"}
               </span>
               <p style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: 0 }}>
                 {noteAffichee.toFixed(2)} / 20
@@ -1486,28 +1438,6 @@ export function FicheEvaluationModal({
               <div style={{ padding: "8px 14px", background: "#ECFDF5", border: "1px solid #A7F3D0", color: "#065F46", fontWeight: 700, fontSize: 12 }}>
                 Dossier Clôturé (Lecture seule)
               </div>
-            ) : activeTab === "SALARIE" ? (
-              canEditSalarie ? (
-                <button
-                  onClick={handleSaveEvaluation}
-                  disabled={isSaving}
-                  style={{
-                    padding: "8px 18px",
-                    background: "#0F172A",
-                    color: "#FFFFFF",
-                    border: "none",
-                    fontWeight: 700,
-                    fontSize: 12,
-                    cursor: "pointer",
-                  }}
-                >
-                  {isSaving ? "Transmission..." : "Transmettre mon auto-évaluation"}
-                </button>
-              ) : (
-                <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                  Auto-évaluation déjà transmise
-                </div>
-              )
             ) : activeTab === "N1" ? (
               canEditN1 ? (
                 <button
@@ -1523,11 +1453,11 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Enregistrement..." : "Valider l'évaluation"}
+                  {isSaving ? "Transmission..." : "Valider & Transmettre l'Évaluation (N+1)"}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                  Évaluation validée
+                  {isFicheCloturee ? "Dossier clôturé" : "Évaluation N+1 transmise"}
                 </div>
               )
             ) : activeTab === "N2" ? (
@@ -1608,7 +1538,6 @@ export function FicheEvaluationModal({
                       delai: f.delai,
                     })),
                     observationN1: noteGlobaleN1 > 0 ? `Note N+1 : ${noteGlobaleN1.toFixed(2)}/20` : "",
-                    observationSalarie: noteGlobaleSalarie > 0 ? `Auto-évaluation : ${noteGlobaleSalarie.toFixed(2)}/20` : "",
                   });
                 });
               }}

@@ -111,7 +111,12 @@ export default function EvaluationsEquipePage() {
       } else {
         const matchStatut =
           filtreStatut === "TOUS" ||
-          (filtreStatut === "A_NOTER" && (item.statut === "EVALUATION_N1" || item.statut === "EN_ATTENTE_N1")) ||
+          (filtreStatut === "A_NOTER" && (
+            item.statut === "EVALUATION_N1" ||
+            item.statut === "EN_ATTENTE_N1" ||
+            item.statut === "AUTO_EVALUATION" ||
+            item.statut === "VALIDATION_OBJECTIFS_SALARIE"
+          )) ||
           (filtreStatut === "A_VALIDER" && (item.statut === "EVALUATION_N2" || item.statut === "VALIDATION_N2")) ||
           (filtreStatut === "CLOTURES" && (item.statut === "VALIDE" || item.statut === "CLOTURE"));
         return matchSearch && matchStatut;
@@ -132,6 +137,8 @@ export default function EvaluationsEquipePage() {
       return fichesEvaluations.filter((e) =>
         e.statut === "EVALUATION_N1" ||
         e.statut === "EN_ATTENTE_N1" ||
+        e.statut === "AUTO_EVALUATION" ||
+        e.statut === "VALIDATION_OBJECTIFS_SALARIE" ||
         e.statut === "EVALUATION_N2" ||
         e.statut === "VALIDATION_N2"
       ).length;
@@ -197,6 +204,7 @@ export default function EvaluationsEquipePage() {
             salariedName={`${selectedFicheForObjectifs.salarie?.prenom || ""} ${selectedFicheForObjectifs.salarie?.nom || ""}`.trim() || "Collaborateur"}
             salariedPoste={selectedFicheForObjectifs.salarie?.poste}
             statut={selectedFicheForObjectifs.statut}
+            isDirectReport={(selectedFicheForObjectifs.salarie as any)?.managerId === user?.id}
             objectifs={selectedFicheForObjectifs.objectifs}
             readOnly={false}
             onSaved={() => {
@@ -457,7 +465,7 @@ export default function EvaluationsEquipePage() {
                             )}
 
                             {item.statut === "VALIDATION_OBJECTIFS_N2" && (
-                              isN2 ? (
+                              isN2 && !isDirectReport ? (
                                 <button
                                   onClick={() => setSelectedFicheForObjectifs(item)}
                                   className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
@@ -467,7 +475,7 @@ export default function EvaluationsEquipePage() {
                                 </button>
                               ) : (
                                 <span className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 inline-flex items-center gap-1.5 cursor-not-allowed">
-                                  ⏳ Transmis à la Direction N+2
+                                  ⏳ En attente de validation Direction N+2
                                 </span>
                               )
                             )}
@@ -509,7 +517,12 @@ export default function EvaluationsEquipePage() {
                               </div>
                             )}
 
-                            {(item.statut === "EVALUATION_N1" || item.statut === "EN_ATTENTE_N1") ? (
+                            {(
+                              item.statut === "EVALUATION_N1" ||
+                              item.statut === "EN_ATTENTE_N1" ||
+                              item.statut === "AUTO_EVALUATION" ||
+                              item.statut === "VALIDATION_OBJECTIFS_SALARIE"
+                            ) ? (
                               <Button
                                 variant="primary"
                                 size="sm"

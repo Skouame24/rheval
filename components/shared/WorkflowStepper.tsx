@@ -18,10 +18,10 @@ export interface WorkflowStep {
 }
 
 export const WORKFLOW_STEPS: WorkflowStep[] = [
-  { id: 1, label: "Fixation Objectifs", actor: "Responsable / Direction", description: "Définition des objectifs et pondérations" },
-  { id: 2, label: "Auto-évaluation", actor: "Collaborateur", description: "Saisie des notes d'auto-évaluation sur 20" },
-  { id: 3, label: "Évaluation Manager", actor: "Responsable", description: "Notation, observations et plan de formation" },
-  { id: 4, label: "Évaluation Direction", actor: "Direction", description: "Revue hiérarchique et validation" },
+  { id: 1, label: "Fixation Objectifs", actor: "Responsable (N+1)", description: "Définition des objectifs et pondérations" },
+  { id: 2, label: "Validation Direction", actor: "Direction (N+2)", description: "Validation des objectifs fixés" },
+  { id: 3, label: "Évaluation Manager", actor: "Responsable (N+1)", description: "Notation, observations et plan de formation" },
+  { id: 4, label: "Évaluation Direction", actor: "Direction (N+2)", description: "Revue hiérarchique et validation" },
   { id: 5, label: "Validation RH", actor: "Direction RH", description: "Validation officielle ou arbitrage RH" },
   { id: 6, label: "Clôture", actor: "Direction RH", description: "Dossier archivé et validé définitivement" },
 ];

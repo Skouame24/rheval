@@ -141,6 +141,7 @@ export function DashboardN2() {
           salariedName={`${selectedFicheForObjectifs.salarie?.prenom || ""} ${selectedFicheForObjectifs.salarie?.nom || ""}`.trim() || "Collaborateur"}
           salariedPoste={selectedFicheForObjectifs.salarie?.poste}
           statut={selectedFicheForObjectifs.statut}
+          isDirectReport={selectedFicheForObjectifs.salarie?.managerId === user?.id}
           objectifs={selectedFicheForObjectifs.objectifs}
           readOnly={false}
           onSaved={() => {
@@ -280,13 +281,19 @@ export function DashboardN2() {
 
                       <div className="flex items-center gap-2">
                         {ev.statut === "VALIDATION_OBJECTIFS_N2" ? (
-                          <button
-                            onClick={() => setSelectedFicheForObjectifs(ev)}
-                            className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          >
-                            <CheckCircleIcon size={13} />
-                            Valider les objectifs
-                          </button>
+                          ev.salarie?.managerId === user?.id ? (
+                            <span className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                              ⏳ En attente validation N+2
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setSelectedFicheForObjectifs(ev)}
+                              className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <CheckCircleIcon size={13} />
+                              Valider les objectifs
+                            </button>
+                          )
                         ) : (
                           <button
                             onClick={() => setSelectedFicheModal(ev)}
@@ -368,14 +375,20 @@ export function DashboardN2() {
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {ev.statut === "VALIDATION_OBJECTIFS_N2" && (
-                            <button
-                              onClick={() => setSelectedFicheForObjectifs(ev)}
-                              className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors inline-flex items-center gap-1 cursor-pointer shadow-2xs"
-                              title="Valider les objectifs soumis par le manager"
-                            >
-                              <CheckCircleIcon size={12} />
-                              Valider objectifs
-                            </button>
+                            ev.salarie?.managerId === user?.id ? (
+                              <span className="px-2 py-0.5 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 inline-flex items-center gap-1">
+                                ⏳ Attente N+2
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setSelectedFicheForObjectifs(ev)}
+                                className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                                title="Valider les objectifs soumis par le manager"
+                              >
+                                <CheckCircleIcon size={12} />
+                                Valider objectifs
+                              </button>
+                            )
                           )}
                           <button
                             onClick={() => setSelectedFicheModal(ev)}
