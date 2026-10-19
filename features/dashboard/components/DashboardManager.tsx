@@ -317,9 +317,9 @@ export function DashboardManager() {
             formations: selectedFicheModal.formations || [],
           }}
           objectifs={selectedFicheModal.objectifs || []}
-          role={isPdg ? "N2" : "N1"}
+          role={(isPdg || user?.role === "N2") ? "N2" : "N1"}
           readOnly={
-            !isPdg && (
+            !(isPdg || user?.role === "N2") && (
               selectedFicheModal.statut === "VALIDATION_N2" ||
               selectedFicheModal.statut === "EVALUATION_N2" ||
               selectedFicheModal.statut === "VALIDATION_NOTES_N2" ||

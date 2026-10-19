@@ -124,7 +124,12 @@ export default function EvaluationsEquipePage() {
             item.statut === "AUTO_EVALUATION" ||
             item.statut === "VALIDATION_OBJECTIFS_SALARIE"
           )) ||
-          (filtreStatut === "A_VALIDER" && (item.statut === "EVALUATION_N2" || item.statut === "VALIDATION_N2")) ||
+          (filtreStatut === "A_VALIDER" && (
+            item.statut === "EVALUATION_N2" ||
+            item.statut === "VALIDATION_N2" ||
+            item.statut === "VALIDATION_NOTES_N2" ||
+            item.statut === "EN_ATTENTE_N2"
+          )) ||
           (filtreStatut === "CLOTURES" && (item.statut === "VALIDE" || item.statut === "CLOTURE"));
         return matchSearch && matchStatut;
       }
@@ -147,7 +152,9 @@ export default function EvaluationsEquipePage() {
         e.statut === "AUTO_EVALUATION" ||
         e.statut === "VALIDATION_OBJECTIFS_SALARIE" ||
         e.statut === "EVALUATION_N2" ||
-        e.statut === "VALIDATION_N2"
+        e.statut === "VALIDATION_N2" ||
+        e.statut === "VALIDATION_NOTES_N2" ||
+        e.statut === "EN_ATTENTE_N2"
       ).length;
     }
   }, [phaseTab, fichesObjectifs, fichesEvaluations]);
@@ -190,6 +197,7 @@ export default function EvaluationsEquipePage() {
           <FicheEvaluationModal
             isOpen={true}
             evaluationId={selectedFicheId}
+            role={isN2 ? "N2" : "N1"}
             onClose={() => {
               setSelectedFicheId(null);
               loadData();
@@ -364,7 +372,7 @@ export default function EvaluationsEquipePage() {
                         : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
-                    À valider Direction ({fichesEvaluations.filter((f) => f.statut === "EVALUATION_N2" || f.statut === "VALIDATION_N2").length})
+                    À valider Direction ({fichesEvaluations.filter((f) => f.statut === "EVALUATION_N2" || f.statut === "VALIDATION_N2" || f.statut === "VALIDATION_NOTES_N2" || f.statut === "EN_ATTENTE_N2").length})
                   </button>
                   <button
                     onClick={() => setFiltreStatut("CLOTURES")}
@@ -548,7 +556,12 @@ export default function EvaluationsEquipePage() {
                               >
                                 Évaluer & Noter
                               </Button>
-                            ) : (item.statut === "EVALUATION_N2" || item.statut === "VALIDATION_N2" || item.statut === "EN_ATTENTE_N2") ? (
+                            ) : (
+                              item.statut === "EVALUATION_N2" ||
+                              item.statut === "VALIDATION_N2" ||
+                              item.statut === "VALIDATION_NOTES_N2" ||
+                              item.statut === "EN_ATTENTE_N2"
+                            ) ? (
                               <Button
                                 variant="primary"
                                 size="sm"

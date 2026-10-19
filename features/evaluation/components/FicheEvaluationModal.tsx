@@ -181,18 +181,21 @@ export function FicheEvaluationModal({
     direction: (fetchedEval.salarie as any)?.direction || (fetchedEval.salarie as any)?.departement,
   } : null);
 
+  // On n'est restreint en collaborateur "soi-même" (lecture seule) QUE si on est explicitement
+  // en auto-évaluation (isAutoEvaluationMode) ou en propRole SALARIE sans rôle hiérarchique actif
   const isCollabHimself = Boolean(
     isAutoEvaluationMode ||
-    propRole === "SALARIE" ||
-    (auth.user?.id && (
-      effectiveDossier?.id === auth.user.id ||
-      (effectiveDossier as any)?.salarieId === auth.user.id ||
-      fetchedEval?.salarieId === auth.user.id ||
-      fetchedEval?.salarie?.id === auth.user.id
-    )) ||
-    (auth.user?.email && (
-      (effectiveDossier as any)?.email === auth.user.email ||
-      fetchedEval?.salarie?.email === auth.user.email
+    (propRole === "SALARIE" && (
+      (auth.user?.id && (
+        effectiveDossier?.id === auth.user.id ||
+        (effectiveDossier as any)?.salarieId === auth.user.id ||
+        fetchedEval?.salarieId === auth.user.id ||
+        fetchedEval?.salarie?.id === auth.user.id
+      )) ||
+      (auth.user?.email && (
+        (effectiveDossier as any)?.email === auth.user.email ||
+        fetchedEval?.salarie?.email === auth.user.email
+      ))
     ))
   );
 
@@ -209,31 +212,24 @@ export function FicheEvaluationModal({
 
   // Initialisation de l'onglet actif selon le statut de la fiche et le profil connecté
   useEffect(() => {
-    if (propRole === "N1" || effectiveRole === "N1") {
+    if (propRole === "N2" || effectiveRole === "N2") {
+      setActiveTab("N2");
+    } else if (propRole === "RH" || effectiveRole === "RH" || effectiveRole === "DRH") {
+      if (fetchedEval?.statut === "VALIDATION_DRH" || fetchedEval?.statut === "ARBITRAGE") {
+        setActiveTab("RH");
+      } else {
+        setActiveTab("N1");
+      }
+    } else if (propRole === "N1" || effectiveRole === "N1") {
       setActiveTab(isCollabManager ? "N2" : "N1");
     } else if (
-      fetchedEval?.statut === "EVALUATION_N1" ||
-      fetchedEval?.statut === "EN_ATTENTE_N1" ||
-      fetchedEval?.statut === "AUTO_EVALUATION" ||
-      fetchedEval?.statut === "VALIDATION_OBJECTIFS_SALARIE"
-    ) {
-      setActiveTab("N1");
-    } else if (
       fetchedEval?.statut === "VALIDATION_N2" ||
+      fetchedEval?.statut === "VALIDATION_NOTES_N2" ||
       fetchedEval?.statut === "EVALUATION_N2" ||
-      propRole === "N2"
+      fetchedEval?.statut === "VALIDATION_OBJECTIFS_N2" ||
+      fetchedEval?.statut === "EN_ATTENTE_N2"
     ) {
       setActiveTab("N2");
-    } else if (
-      propRole === "RH" ||
-      fetchedEval?.statut === "VALIDATION_DRH" ||
-      fetchedEval?.statut === "ARBITRAGE"
-    ) {
-      setActiveTab("RH");
-    } else if (effectiveRole === "DRH" || effectiveRole === "RH") {
-      setActiveTab("N1");
-    } else if (effectiveRole === "N2") {
-      setActiveTab("N1");
     } else {
       setActiveTab("N1");
     }
@@ -362,16 +358,25 @@ export function FicheEvaluationModal({
   );
   const canEditN1 = !readOnly && !isFicheCloturee && activeTab === "N1" && isN1EvalOpen && !isCollabHimself;
 
-  // 2. N+2 : ne peut évaluer QUE si le statut est EVALUATION_N2 (ou EN_ATTENTE_N2 / VALIDATION_N2 / VALIDATION_OBJECTIFS_N2) et NON clôturé
-  // Si le salarié est un manager N1 direct, son N+2 peut l'évaluer
+  // 2. N+2 : peut valider et évaluer dès lors que la fiche n'est pas clôturée
   const isN2EvalOpen = !isFicheCloturee && (
     currentStatut === "VALIDATION_OBJECTIFS_N2" ||
+    currentStatut === "VALIDATION_NOTES_N2" ||
     currentStatut === "EVALUATION_N2" ||
     currentStatut === "VALIDATION_N2" ||
     currentStatut === "EN_ATTENTE_N2" ||
-    (isCollabManager && (currentStatut === "EVALUATION_N1" || currentStatut === "AUTO_EVALUATION_SOUMISE" || currentStatut === "EN_ATTENTE_N1"))
+    currentStatut === "EVALUATION_N1" ||
+    currentStatut === "AUTO_EVALUATION_SOUMISE" ||
+    currentStatut === "EN_ATTENTE_N1" ||
+    currentStatut === "FIXATION_OBJECTIFS" ||
+    isCollabManager
   );
-  const canEditN2 = !readOnly && !isFicheCloturee && (activeTab === "N2" || effectiveRole === "N2") && isN2EvalOpen && !isCollabHimself && (effectiveRole === "N2" || effectiveRole === "ADMIN" || effectiveRole === "DRH");
+  const canEditN2 = !readOnly && !isFicheCloturee && isN2EvalOpen && !isCollabHimself && (
+    effectiveRole === "N2" ||
+    effectiveRole === "ADMIN" ||
+    effectiveRole === "DRH" ||
+    propRole === "N2"
+  );
 
   // 3. RH : ne peut valider ou arbitrer QUE si le statut est VALIDATION_DRH ou ARBITRAGE (ou EN_ATTENTE_RH) et NON clôturé
   const isRHEvalOpen = !isFicheCloturee && (currentStatut === "VALIDATION_DRH" || currentStatut === "ARBITRAGE" || currentStatut === "EN_ATTENTE_RH");
@@ -593,6 +598,11 @@ export function FicheEvaluationModal({
         await evaluationsApi.validateNotesN2(resolvedFicheId, {
           decision: finalDecision,
           observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation validée sans réserve." : "Notes rejetées et renvoyées au manager."),
+          notes: objectifs.map((o) => ({
+            objectifId: o.id,
+            note: Number(o.noteN2 ?? o.noteObtenue ?? 0),
+            commentaire: o.commentaireN2 || o.commentaire,
+          })),
         });
 
         const nextSt = finalDecision === "REJETE" ? "EVALUATION_N1" : "ACCORD_SALARIE";
@@ -1530,8 +1540,27 @@ export function FicheEvaluationModal({
                   {isSaving ? "Transmission..." : "Valider & Transmettre l'Évaluation (N+1)"}
                 </button>
               ) : (
-                <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                  {isFicheCloturee ? "Dossier clôturé" : "Évaluation N+1 transmise"}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
+                    {isFicheCloturee ? "Dossier clôturé" : "Évaluation N+1 transmise"}
+                  </div>
+                  {canEditN2 && !isFicheCloturee && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("N2")}
+                      style={{
+                        padding: "8px 16px",
+                        background: "#9333EA",
+                        color: "#FFFFFF",
+                        border: "none",
+                        fontWeight: 800,
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Valider en tant que Direction (N+2) →
+                    </button>
+                  )}
                 </div>
               )
             ) : activeTab === "N2" ? (

@@ -185,7 +185,7 @@ export const evaluationsApi = {
    */
   validateNotesN2: async (
     id: string,
-    dto: { decision: "APPROUVE" | "REJETE"; observations?: string }
+    dto: { decision: "APPROUVE" | "REJETE"; observations?: string; notes?: any[] }
   ): Promise<EvaluationCycle> => {
     try {
       return await client.put<EvaluationCycle>(`/n2/evaluations/${id}`, dto);
