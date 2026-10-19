@@ -42,6 +42,10 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
   const detected = detectRoleFromPoste(user?.poste, user?.email);
+  const isPdg =
+    detected.displayRole === "PDG" ||
+    (user?.poste || "").toLowerCase().includes("pdg") ||
+    (user?.email || "").toLowerCase().includes("christian.bamba");
   const displayLabel =
     user?.poste?.toLowerCase().includes("assistante")
       ? "Assistante RH"
@@ -182,20 +186,28 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
         )}
 
         {currentRole === "N2" && (
-          pathname?.startsWith("/dashboard/mon-equipe") ? (
-            <Link
-              href="/dashboard/mon-espace"
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
-            >
-              <span>👤 Mon Espace Salarié</span>
-            </Link>
+          isPdg ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/40 rounded-none shadow-2xs">
+                <span>👑 Direction Générale · Vue d'Ensemble</span>
+              </span>
+            </div>
           ) : (
-            <Link
-              href="/dashboard/mon-equipe"
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
-            >
-              <span>👔 Tableau de bord Direction</span>
-            </Link>
+            pathname?.startsWith("/dashboard/mon-equipe") ? (
+              <Link
+                href="/dashboard/mon-espace"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
+              >
+                <span>👤 Mon Espace Salarié</span>
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard/mon-equipe"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[#FFF7ED] text-[#F0822A] hover:bg-orange-100 border border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
+              >
+                <span>👔 Tableau de bord Direction</span>
+              </Link>
+            )
           )
         )}
 

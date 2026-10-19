@@ -28,6 +28,7 @@ import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEval
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { useAuth } from "@/contexts/AuthContext";
+import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
 import type { EvaluationCycle, StatutEvaluation } from "@/types";
 
@@ -39,6 +40,12 @@ const STATUTS_PHASE_OBJECTIFS = [
 
 export default function EvaluationsEquipePage() {
   const { user } = useAuth();
+  const detected = detectRoleFromPoste(user?.poste, user?.email);
+  const isPdg =
+    detected.displayRole === "PDG" ||
+    (user?.poste || "").toLowerCase().includes("pdg") ||
+    (user?.email || "").toLowerCase().includes("christian.bamba");
+
   const [evaluations, setEvaluations] = useState<EvaluationCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -215,8 +222,18 @@ export default function EvaluationsEquipePage() {
         )}
 
         <PageHeader
-          title={isN2 ? "Campagne d'Évaluation de la Direction" : "Campagne d'Évaluation de l'Équipe"}
-          subtitle="Suivez distinctement la fixation des objectifs de début d'année et l'évaluation des performances"
+          title={
+            isPdg
+              ? "Supervision des Évaluations — Direction Générale"
+              : isN2
+              ? "Campagne d'Évaluation de la Direction"
+              : "Campagne d'Évaluation de l'Équipe"
+          }
+          subtitle={
+            isPdg
+              ? "Vue d'ensemble et supervision de toutes les fiches de fixation d'objectifs et de notation de l'entreprise Agilly"
+              : "Suivez distinctement la fixation des objectifs de début d'année et l'évaluation des performances"
+          }
           breadcrumbs={[
             { label: "Tableau de bord", href: "/dashboard/mon-equipe" },
             { label: phaseTab === "OBJECTIFS" ? "Fixation des Objectifs" : "Évaluations & Notations" },

@@ -5,6 +5,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Card, CardHeader, Button, PageHeaderSkeleton, StatCardSkeleton, Skeleton } from "@/components/ui";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -119,6 +120,44 @@ export function DashboardSalarie() {
     setVisaMode(!!options?.visa);
     setIsFicheModalOpen(true);
   };
+
+  const isPdg =
+    (user?.poste || "").toLowerCase().includes("pdg") ||
+    (user?.email || "").toLowerCase().includes("christian.bamba");
+
+  if (isPdg) {
+    return (
+      <div className="flex flex-col gap-6 pb-10 max-w-7xl mx-auto w-full animate-fade-in">
+        <PageHeader
+          title="Direction Générale & Présidence"
+          subtitle="En tant que PDG, vous n'êtes pas assujetti aux évaluations de performance subordonnées."
+          breadcrumbs={[{ label: "Direction Générale" }, { label: "Vue Exécutive" }]}
+        />
+        <Card padding="lg" className="border-l-4 border-l-[#F0822A] bg-white">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 text-xs font-extrabold bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/30">
+                <span>👑 DIRIGEANT ULTIME — NON ÉVALUÉ</span>
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900">
+                Vous disposez d'une vue d'ensemble sur toute l'entreprise Agilly
+              </h3>
+              <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+                Le PDG évalue les membres du Comité de Direction (Directeur Technique, Directrice RH, Directeurs opérationnels) et supervise l'ensemble des fiches d'évaluation de tous les départements.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/mon-equipe"
+              className="inline-flex items-center gap-2 px-5 py-3 text-sm font-bold bg-[#F0822A] text-white hover:bg-[#D96B16] transition-all shadow-sm shrink-0"
+            >
+              <span>Accéder à la Vue d'Ensemble</span>
+              <span>→</span>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

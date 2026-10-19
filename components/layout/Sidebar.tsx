@@ -7,6 +7,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { employeesApi } from "@/lib/api/employees.api";
 
@@ -144,48 +146,70 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     }
   }, [normalizedRole]);
 
+  const { user } = useAuth();
+  const detected = detectRoleFromPoste(user?.poste, user?.email || userEmail);
+  const isPdg =
+    detected.displayRole === "PDG" ||
+    (user?.poste || "").toLowerCase().includes("pdg") ||
+    (userEmail || "").toLowerCase().includes("christian.bamba") ||
+    (userName || "").toLowerCase().includes("christian bamba") ||
+    normalizedRole === "PDG";
+
   const sections: NavSection[] = [];
 
   // 1. ESPACES DE GESTION & SUPERVISION (SELON LE RÔLE)
 
-  // PILOTAGE RH (POUR RH & DRH)
-  if (normalizedRole === "RH" || normalizedRole === "DRH") {
+  // DIRECTION GÉNÉRALE (POUR LE PDG — SOMMET DE L'ENTREPRISE, VUE D'ENSEMBLE SUR TOUT)
+  if (isPdg) {
     sections.push({
-      title: "PILOTAGE RH",
+      title: "DIRECTION GÉNÉRALE",
       items: [
-        { label: "Vue globale RH", href: "/dashboard/pilotage-rh", iconSvg: NAV_ICONS.dashboard },
+        { label: "Vue d'ensemble", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
+        { label: "Toutes les évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
         { label: "Base du personnel", href: "/dashboard/personnel", iconSvg: NAV_ICONS.team },
-        { label: "Cycles d'évaluation", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
-        { label: "Toutes les évaluations", href: "/dashboard/pilotage-rh/evaluations", iconSvg: NAV_ICONS.evaluations, badge: rhPendingCount },
-        { label: "Arbitrages RH", href: "/dashboard/pilotage-rh/arbitrages", iconSvg: NAV_ICONS.arbitrage, badge: arbitrageCount },
+        { label: "Cycles & Campagnes", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
       ]
     });
+  } else {
+    // PILOTAGE RH (POUR RH & DRH)
+    if (normalizedRole === "RH" || normalizedRole === "DRH") {
+      sections.push({
+        title: "PILOTAGE RH",
+        items: [
+          { label: "Vue globale RH", href: "/dashboard/pilotage-rh", iconSvg: NAV_ICONS.dashboard },
+          { label: "Base du personnel", href: "/dashboard/personnel", iconSvg: NAV_ICONS.team },
+          { label: "Cycles d'évaluation", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
+          { label: "Toutes les évaluations", href: "/dashboard/pilotage-rh/evaluations", iconSvg: NAV_ICONS.evaluations, badge: rhPendingCount },
+          { label: "Arbitrages RH", href: "/dashboard/pilotage-rh/arbitrages", iconSvg: NAV_ICONS.arbitrage, badge: arbitrageCount },
+        ]
+      });
+    }
+
+    // DIRECTION (POUR DIRECTEUR / DIRECTRICE / N2)
+    if (normalizedRole === "N2" || hasN2Scope) {
+      sections.push({
+        title: "ESPACE DIRECTION",
+        items: [
+          { label: "Tableau de bord", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
+          { label: "Évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        ]
+      });
+    }
+
+    // MON ÉQUIPE (POUR LES MANAGERS N1, LA DRH OU TOUT ENCADRANT AYANT DES COLLABORATEURS DIRECTS)
+    if (normalizedRole === "N1" || normalizedRole === "DRH" || (normalizedRole !== "N2" && hasTeam)) {
+      sections.push({
+        title: normalizedRole === "DRH" ? "MON ÉQUIPE (DIRECTION RH)" : "MON ÉQUIPE",
+        items: [
+          { label: "Tableau de bord", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
+          { label: "Évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        ]
+      });
+    }
   }
 
-  // DIRECTION (POUR DIRECTEUR / DIRECTRICE / N2)
-  if (normalizedRole === "N2" || hasN2Scope) {
-    sections.push({
-      title: "ESPACE DIRECTION",
-      items: [
-        { label: "Tableau de bord", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
-        { label: "Évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
-      ]
-    });
-  }
-
-  // MON ÉQUIPE (POUR LES MANAGERS N1, LA DRH OU TOUT ENCADRANT AYANT DES COLLABORATEURS DIRECTS)
-  if (normalizedRole === "N1" || normalizedRole === "DRH" || (normalizedRole !== "N2" && hasTeam)) {
-    sections.push({
-      title: normalizedRole === "DRH" ? "MON ÉQUIPE (DIRECTION RH)" : "MON ÉQUIPE",
-      items: [
-        { label: "Tableau de bord", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
-        { label: "Évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
-      ]
-    });
-  }
-
-  // 2. ESPACE PERSONNEL (POUR TOUS LES COLLABORATEURS : SALARIÉ, N1, N2, RH, DRH)
-  if (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "RH" || normalizedRole === "DRH") {
+  // 2. ESPACE PERSONNEL (POUR TOUS LES COLLABORATEURS : SALARIÉ, N1, N2, RH, DRH — HORS PDG CAR IL N'EST PAS ÉVALUÉ)
+  if (!isPdg && (normalizedRole === "SALARIE" || normalizedRole === "N1" || normalizedRole === "N2" || normalizedRole === "RH" || normalizedRole === "DRH")) {
     sections.push({
       title: "MON ESPACE PERSONNEL",
       items: [
