@@ -1,407 +1,518 @@
 // ============================================================
 // app/absences/page.tsx
-// Application Officielle AGILLY ABSENCES & CONGÉS (Portail SSO)
-// Refonte Visuelle Propre, Moderne & Structurée — Clean Design
+// Tableau de bord officiel Agilly Absences & Missions
+// Respect strict du Design System IBM Carbon x Agilly Corporate
 // ============================================================
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  MOCK_PERSONAS,
-  INITIAL_DEMANDES,
-  MOCK_SOLDE_CONGES,
-  PersonaUser,
-} from "@/lib/mock/absences.mock";
-import { DemandeRHItem } from "@/types/absences.types";
-import { AbsencesHeader } from "@/features/absences/components/AbsencesHeader";
-import { StatistiquesAbsencesCharts } from "@/features/absences/components/StatistiquesAbsencesCharts";
-import { SoldesCongesCard } from "@/features/absences/components/SoldesCongesCard";
-import { DemandesListTable } from "@/features/absences/components/DemandesListTable";
-import { NouvelleDemandeModal } from "@/features/absences/components/NouvelleDemandeModal";
-import { ValidationModal } from "@/features/absences/components/ValidationModal";
-import { PermissionViewerModal } from "@/features/absences/components/PermissionViewerModal";
-import { PlanningEquipeView } from "@/features/absences/components/PlanningEquipeView";
-import { ArchivesGedView } from "@/features/absences/components/ArchivesGedView";
+import React from "react";
+import Link from "next/link";
+import { useAbsences } from "@/features/absences/context/AbsencesContext";
+import { AbsencesTrendAreaChart } from "@/features/absences/components/charts/AbsencesTrendAreaChart";
+import { AbsencesTypeDonutChart } from "@/features/absences/components/charts/AbsencesTypeDonutChart";
+import { StatutDemandeRH } from "@/types/absences.types";
 
-export default function AbsencesPage() {
-  const { user } = useAuth();
+export default function AbsencesDashboardPage() {
+  const {
+    currentPersona,
+    demandes,
+    soldeConges,
+    kpis,
+    pendingValidationsCount,
+    pendingForCurrentRoleDemandes,
+  } = useAbsences();
 
-  // ── ÉTAT DU PERSONA CONNECTÉ ──
-  const [currentPersona, setCurrentPersona] = useState<PersonaUser>(MOCK_PERSONAS[0]);
-
-  // Synchronisation avec la session utilisateur
-  useEffect(() => {
-    if (user) {
-      setCurrentPersona((prev) => ({
-        ...prev,
-        nom: user.nom || prev.nom,
-        prenom: user.prenom || prev.prenom,
-        email: user.email || prev.email,
-        poste: user.poste || prev.poste,
-        departement: user.departement || prev.departement,
-      }));
+  // 4 étapes du circuit de validation séquentiel
+  const getWorkflowStep = (statut: StatutDemandeRH) => {
+    switch (statut) {
+      case "SOUMISE":
+      case "EN_VALIDATION_N1":
+        return 1;
+      case "EN_VALIDATION_DRH":
+        return 2;
+      case "EN_VALIDATION_DG":
+        return 3;
+      case "APPROUVEE":
+      case "PERMISSION_EDITEE":
+      case "ARCHIVEE":
+        return 4;
+      default:
+        return 1;
     }
-  }, [user]);
-
-  // ── LISTE RÉACTIVE DES DEMANDES RH ──
-  const [demandes, setDemandes] = useState<DemandeRHItem[]>(INITIAL_DEMANDES);
-
-  // ── ONGLETS DE NAVIGATION DANS L'APPLICATION ──
-  const [mainNav, setMainNav] = useState<"DASHBOARD" | "DEMANDES" | "SOLDES" | "PLANNING" | "GED">("DASHBOARD");
-
-  // ── MODALES ACTIVES ──
-  const [isNewDemandeOpen, setIsNewDemandeOpen] = useState(false);
-  const [selectedDemandeForDetail, setSelectedDemandeForDetail] = useState<DemandeRHItem | null>(null);
-  const [selectedDemandeForValidation, setSelectedDemandeForValidation] = useState<DemandeRHItem | null>(null);
-  const [selectedDemandeForPermission, setSelectedDemandeForPermission] = useState<DemandeRHItem | null>(null);
-
-  // Compteur des demandes attendant l'action du rôle connecté
-  const pendingCountForCurrentRole = demandes.filter((d) => {
-    if (currentPersona.role === "SUPERIEUR_N1" && d.statut === "EN_VALIDATION_N1") return true;
-    if (currentPersona.role === "DRH" && d.statut === "EN_VALIDATION_DRH") return true;
-    if (currentPersona.role === "DIRECTION_DG" && d.statut === "EN_VALIDATION_DG") return true;
-    if (currentPersona.role === "AGENT_DRH" && d.statut === "APPROUVEE") return true;
-    return false;
-  }).length;
-
-  // ── ACTIONS SUR LE WORKFLOW ──
-
-  const handleCreateDemande = (nouvelle: DemandeRHItem) => {
-    setDemandes((prev) => [nouvelle, ...prev]);
-    setMainNav("DEMANDES");
   };
 
-  const handleApproveDemande = (demandeId: string, observation?: string) => {
-    setDemandes((prev) =>
-      prev.map((d) => {
-        if (d.id !== demandeId) return d;
-
-        let nextStatut = d.statut;
-        let nextEtape = d.etapeCourante;
-
-        if (d.statut === "EN_VALIDATION_N1") {
-          nextStatut = "EN_VALIDATION_DRH";
-          nextEtape = "DRH";
-        } else if (d.statut === "EN_VALIDATION_DRH") {
-          if (d.typeDemande === "PERMISSION_EXCEPTIONNELLE" && d.nombreJoursOuvres <= 2) {
-            nextStatut = "APPROUVEE";
-            nextEtape = "AGENT_DRH";
-          } else {
-            nextStatut = "EN_VALIDATION_DG";
-            nextEtape = "DIRECTION_DG";
-          }
-        } else if (d.statut === "EN_VALIDATION_DG") {
-          nextStatut = "APPROUVEE";
-          nextEtape = "AGENT_DRH";
-        }
-
-        const newHisto = {
-          id: `hist-${Date.now()}`,
-          etape: d.etapeCourante,
-          libelleEtape: `Validation Accordée (${currentPersona.labelRole})`,
-          acteurNom: `${currentPersona.prenom} ${currentPersona.nom}`,
-          acteurPoste: currentPersona.poste,
-          acteurRole: currentPersona.role,
-          decision: "VALIDE" as const,
-          motif: observation || "Demande approuvée sans réserve.",
-          dateAction: new Date().toISOString(),
-        };
-
-        return {
-          ...d,
-          statut: nextStatut,
-          etapeCourante: nextEtape,
-          historique: [...d.historique, newHisto],
-          dateDerniereAction: new Date().toISOString(),
-        };
-      })
-    );
+  const getStatusBadge = (statut: StatutDemandeRH) => {
+    switch (statut) {
+      case "EN_VALIDATION_N1":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 border border-amber-200">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+            Attente N+1
+          </span>
+        );
+      case "EN_VALIDATION_DRH":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 border border-amber-200">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+            Contrôle DRH
+          </span>
+        );
+      case "EN_VALIDATION_DG":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 border border-purple-200">
+            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+            Arbitrage DG
+          </span>
+        );
+      case "APPROUVEE":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 border border-emerald-200">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+            Approuvée
+          </span>
+        );
+      case "PERMISSION_EDITEE":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#F0822A] bg-[#FFF4EB] px-2 py-0.5 border border-[#FDE3CC]">
+            <span className="w-1.5 h-1.5 bg-[#F0822A] rounded-full" />
+            Permission émise
+          </span>
+        );
+      case "ARCHIVEE":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-slate-100 px-2 py-0.5 border border-slate-200">
+            <span className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
+            Archivée GED
+          </span>
+        );
+      case "RETOURNEE_EMPLOYE":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 border border-red-200">
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+            À réviser
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-50 px-2 py-0.5 border border-slate-200">
+            {statut}
+          </span>
+        );
+    }
   };
 
-  const handleRejectReturn = (demandeId: string, motifObligatoire: string) => {
-    setDemandes((prev) =>
-      prev.map((d) => {
-        if (d.id !== demandeId) return d;
+  // Liste des demandes à afficher en priorité
+  const prioritizedDemandes =
+    pendingForCurrentRoleDemandes.length > 0
+      ? pendingForCurrentRoleDemandes.slice(0, 4)
+      : demandes.slice(0, 4);
 
-        let nextStatut = d.statut;
-        let nextEtape = d.etapeCourante;
-
-        if (d.statut === "EN_VALIDATION_DG") {
-          nextStatut = "EN_VALIDATION_DRH";
-          nextEtape = "DRH";
-        } else if (d.statut === "EN_VALIDATION_DRH") {
-          nextStatut = "EN_VALIDATION_N1";
-          nextEtape = "SUPERIEUR_N1";
-        } else if (d.statut === "EN_VALIDATION_N1") {
-          nextStatut = "RETOURNEE_EMPLOYE";
-          nextEtape = "SUPERIEUR_N1";
-        }
-
-        const newHisto = {
-          id: `hist-${Date.now()}`,
-          etape: d.etapeCourante,
-          libelleEtape: `Refus avec retour (${currentPersona.labelRole})`,
-          acteurNom: `${currentPersona.prenom} ${currentPersona.nom}`,
-          acteurPoste: currentPersona.poste,
-          acteurRole: currentPersona.role,
-          decision: "REFUSE_RETOUR" as const,
-          motif: motifObligatoire,
-          dateAction: new Date().toISOString(),
-        };
-
-        return {
-          ...d,
-          statut: nextStatut,
-          etapeCourante: nextEtape,
-          cycleRetoursCount: d.cycleRetoursCount + 1,
-          historique: [...d.historique, newHisto],
-          dateDerniereAction: new Date().toISOString(),
-        };
-      })
-    );
-  };
-
-  const handleRejectDefinitif = (demandeId: string, motif: string) => {
-    setDemandes((prev) =>
-      prev.map((d) => {
-        if (d.id !== demandeId) return d;
-        return {
-          ...d,
-          statut: "REFUSEE_DEFINITIVEMENT",
-          cycleRetoursCount: d.cycleRetoursCount + 1,
-          historique: [
-            ...d.historique,
-            {
-              id: `hist-${Date.now()}`,
-              etape: d.etapeCourante,
-              libelleEtape: "Refus Définitif Clôturé",
-              acteurNom: `${currentPersona.prenom} ${currentPersona.nom}`,
-              acteurPoste: currentPersona.poste,
-              acteurRole: currentPersona.role,
-              decision: "REFUSE_DEFINITIF" as const,
-              motif: motif || "Plafond d'allers-retours atteint. Demande refusée définitivement.",
-              dateAction: new Date().toISOString(),
-            },
-          ],
-        };
-      })
-    );
-  };
-
-  const handleGeneratePermission = (demande: DemandeRHItem) => {
-    const numGenere = `AGY-PERM-2026-${Math.floor(10000 + Math.random() * 90000)}`;
-
-    const updatedDoc = {
-      numeroUnique: numGenere,
-      qrCodeUrl: `https://portal.agilly.com/verify/perm/${numGenere}`,
-      tokenVerification: `tok-${Date.now()}`,
-      dateEmission: new Date().toISOString(),
-      emetteurAgentNom: `${currentPersona.prenom} ${currentPersona.nom}`,
-      emetteurAgentMatricule: currentPersona.matricule,
-      cachetOfficiel: true,
-      signatureElectronique: true,
-      hashSha256: "b4c2e817a992d4f8901235ecba99234851abcf18992384aedfc09812",
-      dureeConservationAnnees: 5,
-      balanceCongesPayesSolde: 14.5,
-    };
-
-    setDemandes((prev) =>
-      prev.map((d) => {
-        if (d.id !== demande.id) return d;
-        return {
-          ...d,
-          statut: "ARCHIVEE",
-          etapeCourante: "CLOTURE",
-          documentPermission: updatedDoc,
-          historique: [
-            ...d.historique,
-            {
-              id: `hist-${Date.now()}`,
-              etape: "AGENT_DRH",
-              libelleEtape: "Édition Permission & Archivage GED",
-              acteurNom: `${currentPersona.prenom} ${currentPersona.nom}`,
-              acteurPoste: currentPersona.poste,
-              acteurRole: "AGENT_DRH" as const,
-              decision: "ARCHIVE" as const,
-              motif: `Permission générée sous la référence [${numGenere}] et scellée dans la GED.`,
-              dateAction: new Date().toISOString(),
-            },
-          ],
-        };
-      })
-    );
-
-    setSelectedDemandeForPermission({
-      ...demande,
-      statut: "ARCHIVEE",
-      documentPermission: updatedDoc,
-    });
-  };
+  // Prochaines absences au sein de l'équipe (données de synthèse)
+  const upcomingTeamAbsences = [
+    {
+      nom: "KOUAME Ebenezer Samuel",
+      poste: "DSI / Resp. Applicatif",
+      dates: "03 Nov - 06 Nov 2026",
+      type: "Congés Annuels",
+      jours: "4 j",
+    },
+    {
+      nom: "KOUASSI Marc",
+      poste: "Ingénieur Cloud & DevOps",
+      dates: "28 Oct - 30 Oct 2026",
+      type: "Mission Déplacement",
+      jours: "3 j",
+    },
+    {
+      nom: "KONE Aminata",
+      poste: "Analyste Fonctionnelle",
+      dates: "12 Nov - 13 Nov 2026",
+      type: "Permission Exceptionnelle",
+      jours: "2 j",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900 flex flex-col">
-      
-      {/* ── EN-TÊTE ÉPURÉ ── */}
-      <AbsencesHeader
-        currentPersona={currentPersona}
-        onSelectPersona={setCurrentPersona}
-        pendingCountForCurrentRole={pendingCountForCurrentRole}
-        onOpenNewDemande={() => setIsNewDemandeOpen(true)}
-      />
-
-      {/* ── BARRE DE NAVIGATION MODULAIRE SOIGNÉE ── */}
-      <nav className="bg-white border-b border-slate-200/80 sticky top-16 z-20">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1 overflow-x-auto h-12">
-            {[
-              { id: "DASHBOARD", label: "Vue d'ensemble" },
-              { id: "DEMANDES", label: "Demandes RH", count: demandes.length },
-              { id: "SOLDES", label: "Soldes de congés" },
-              { id: "PLANNING", label: "Planning d'équipe" },
-              { id: "GED", label: "Archives GED", count: demandes.filter((d) => d.documentPermission).length },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setMainNav(item.id as any)}
-                className={`flex items-center gap-2 h-full px-4 text-xs font-semibold transition-all border-b-2 cursor-pointer ${
-                  mainNav === item.id
-                    ? "border-[#F0822A] text-[#F0822A]"
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <span>{item.label}</span>
-                {item.count !== undefined && (
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                      mainNav === item.id
-                        ? "bg-orange-50 text-[#F0822A]"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            ))}
+    <div className="flex flex-col gap-6">
+      {/* ── 1. EN-TÊTE CADRE DU TABLEAU DE BORD ── */}
+      <div className="bg-white border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Bonjour, {currentPersona.prenom} {currentPersona.nom}
+            </h1>
+            <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200">
+              {currentPersona.labelRole}
+            </span>
           </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Mardi 20 octobre 2026 • Département {currentPersona.departement} • Pôle{" "}
+            {currentPersona.service}
+          </p>
         </div>
-      </nav>
 
-      {/* ── CONTENU PRINCIPAL PAR ONGLET ── */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1440px] w-full mx-auto space-y-6">
-        
-        {/* ONGLET 1 : TABLEAU DE BORD & KPIS */}
-        {mainNav === "DASHBOARD" && (
-          <div className="space-y-6">
-            <StatistiquesAbsencesCharts
-              totalDemandesEnCours={demandes.filter((d) => d.statut.startsWith("EN_VALIDATION")).length}
-              totalApprouvees={demandes.filter((d) => ["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(d.statut)).length}
-              totalArchives={demandes.filter((d) => d.documentPermission).length}
-            />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/absences/soldes"
+            className="px-3.5 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 transition-colors"
+          >
+            Consulter mes soldes
+          </Link>
+          <Link
+            href="/absences/nouvelle"
+            className="px-3.5 py-2 text-xs font-semibold text-white bg-[#F0822A] hover:bg-[#D96F1D] shadow-xs transition-colors flex items-center gap-1.5"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Nouvelle demande</span>
+          </Link>
+        </div>
+      </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-800 m-0">
-                  Dernières demandes en cours
-                </h3>
-                <button
-                  onClick={() => setMainNav("DEMANDES")}
-                  className="text-xs font-semibold text-[#F0822A] hover:underline"
-                >
-                  Voir toutes les demandes →
-                </button>
-              </div>
-              <DemandesListTable
-                demandes={demandes.slice(0, 4)}
-                currentPersona={currentPersona}
-                onSelectDemande={setSelectedDemandeForDetail}
-                onOpenPermission={setSelectedDemandeForPermission}
-                onValidateDirect={setSelectedDemandeForValidation}
+      {/* ── 2. BANDEAU DE 4 INDICATEURS EN BANDE (STYLE IBM CARBON) ── */}
+      <div className="bg-white border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
+        {/* KPI 1 : Solde Congés Payés */}
+        <div className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Solde Congés Payés
+            </span>
+            <span className="text-[11px] font-mono font-medium text-slate-400">
+              Sur {soldeConges.joursAcquis} j acquis
+            </span>
+          </div>
+          <div className="my-3">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight tabular-nums">
+                {soldeConges.joursRestants}
+              </span>
+              <span className="text-xs font-bold text-slate-500">jours restants</span>
+            </div>
+            {/* Jauge fine segmentée */}
+            <div className="w-full h-1.5 bg-slate-100 mt-2.5 flex overflow-hidden">
+              <div
+                className="bg-slate-400 h-full"
+                style={{ width: `${(soldeConges.joursPris / soldeConges.joursAcquis) * 100}%` }}
+                title={`${soldeConges.joursPris} j pris`}
+              />
+              <div
+                className="bg-[#F0822A] h-full"
+                style={{
+                  width: `${(soldeConges.joursEnAttente / soldeConges.joursAcquis) * 100}%`,
+                }}
+                title={`${soldeConges.joursEnAttente} j en attente`}
               />
             </div>
           </div>
-        )}
-
-        {/* ONGLET 2 : DEMANDES */}
-        {mainNav === "DEMANDES" && (
-          <div className="space-y-6">
-            <DemandesListTable
-              demandes={demandes}
-              currentPersona={currentPersona}
-              onSelectDemande={setSelectedDemandeForDetail}
-              onOpenPermission={setSelectedDemandeForPermission}
-              onValidateDirect={setSelectedDemandeForValidation}
-            />
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+            <span>{soldeConges.joursPris} j consommés</span>
+            <span className="text-[#F0822A] font-medium">{soldeConges.joursEnAttente} j posés</span>
           </div>
-        )}
+        </div>
 
-        {/* ONGLET 3 : SOLDES DE CONGÉS */}
-        {mainNav === "SOLDES" && (
-          <div className="space-y-6">
-            <SoldesCongesCard
-              solde={MOCK_SOLDE_CONGES}
-              collaborateurNom={`${currentPersona.prenom} ${currentPersona.nom}`}
-            />
+        {/* KPI 2 : Demandes en cours pour le collaborateur */}
+        <div className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Mes demandes actives
+            </span>
+            <span className="text-[11px] font-medium text-slate-400">Circuit en direct</span>
           </div>
-        )}
-
-        {/* ONGLET 4 : PLANNING D'ÉQUIPE */}
-        {mainNav === "PLANNING" && (
-          <div className="space-y-6">
-            <PlanningEquipeView />
+          <div className="my-3">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight tabular-nums">
+                2
+              </span>
+              <span className="text-xs font-bold text-slate-500">en validation</span>
+            </div>
+            <p className="text-xs text-slate-600 mt-2">
+              Prochaine décision attendue :{" "}
+              <span className="font-semibold text-slate-900">Supérieur N+1</span>
+            </p>
           </div>
-        )}
-
-        {/* ONGLET 5 : ARCHIVES GED */}
-        {mainNav === "GED" && (
-          <div className="space-y-6">
-            <ArchivesGedView
-              demandes={demandes}
-              onOpenPermission={setSelectedDemandeForPermission}
-            />
+          <div className="flex items-center text-[11px] text-slate-500 pt-1">
+            <span className="text-emerald-700 font-medium">1 demande déjà approuvée ce mois</span>
           </div>
-        )}
+        </div>
 
-      </main>
+        {/* KPI 3 : File d'attente d'arbitrage (Adaptée au rôle) */}
+        <div className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              À valider (Mon rôle)
+            </span>
+            <span className="text-[11px] font-mono text-slate-400">SLA 48h</span>
+          </div>
+          <div className="my-3">
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={`text-2xl font-extrabold font-mono tracking-tight tabular-nums ${
+                  pendingValidationsCount > 0 ? "text-[#F0822A]" : "text-slate-900"
+                }`}
+              >
+                {pendingValidationsCount}
+              </span>
+              <span className="text-xs font-bold text-slate-500">dossiers en attente</span>
+            </div>
+            <p className="text-xs text-slate-600 mt-2">
+              Délai moyen de réponse :{" "}
+              <span className="font-semibold text-slate-900 font-mono">{kpis.delaiMoyenHeures}h</span>
+            </p>
+          </div>
+          <div className="flex items-center justify-between text-[11px] pt-1">
+            <span className="text-slate-500">Taux de refus : {kpis.tauxRefusPourcent}%</span>
+            {pendingValidationsCount > 0 && (
+              <Link href="/absences/validations" className="text-[#F0822A] font-bold hover:underline">
+                Traiter &rarr;
+              </Link>
+            )}
+          </div>
+        </div>
 
-      {/* ── MODALES INTERACTIVES ── */}
+        {/* KPI 4 : Taux de présence & Quorum de service (RG-04) */}
+        <div className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Présence Pôle DSI
+            </span>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 border border-emerald-200">
+              Quorum OK (&gt;50%)
+            </span>
+          </div>
+          <div className="my-3">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight tabular-nums">
+                85.7%
+              </span>
+              <span className="text-xs font-bold text-slate-500">présents aujourd&apos;hui</span>
+            </div>
+            <p className="text-xs text-slate-600 mt-2">
+              12 présents sur un effectif de{" "}
+              <span className="font-semibold text-slate-900">14 collaborateurs</span>
+            </p>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+            <span>2 personnes en congé / mission</span>
+            <Link href="/absences/planning" className="text-slate-700 font-medium hover:text-slate-900">
+              Voir Gantt &rarr;
+            </Link>
+          </div>
+        </div>
+      </div>
 
-      {/* 1. Modal Nouvelle Demande */}
-      <NouvelleDemandeModal
-        isOpen={isNewDemandeOpen}
-        onClose={() => setIsNewDemandeOpen(false)}
-        currentPersona={currentPersona}
-        onSubmit={handleCreateDemande}
-      />
+      {/* ── 3. VISUALISATIONS GRAPHIQUES (COURBE D'AIRE 12 MOIS + DONUT PAR TYPE) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Courbe d'aire sur 12 mois (Exercice N vs N-1) */}
+        <div className="lg:col-span-8 bg-white border border-slate-200 p-6 flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                Consommation mensuelle des absences (Jours ouvrés)
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Comparaison sur 12 mois glissants : Exercice 2026 (orange) vs Exercice 2025 (pointillés)
+              </p>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-2 bg-[#F0822A]" />
+                <span className="text-slate-700 font-medium">2026</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-0.5 border-t border-dashed border-slate-400" />
+                <span className="text-slate-500">2025</span>
+              </div>
+            </div>
+          </div>
 
-      {/* 2. Modal Validation & Examen */}
-      <ValidationModal
-        isOpen={selectedDemandeForValidation !== null || selectedDemandeForDetail !== null}
-        onClose={() => {
-          setSelectedDemandeForValidation(null);
-          setSelectedDemandeForDetail(null);
-        }}
-        demande={selectedDemandeForValidation || selectedDemandeForDetail}
-        currentPersona={currentPersona}
-        onApprove={handleApproveDemande}
-        onRejectReturn={handleRejectReturn}
-        onRejectDefinitif={handleRejectDefinitif}
-        onGeneratePermission={handleGeneratePermission}
-      />
+          <AbsencesTrendAreaChart />
 
-      {/* 3. Modal Permission Officielle */}
-      <PermissionViewerModal
-        isOpen={selectedDemandeForPermission !== null}
-        onClose={() => setSelectedDemandeForPermission(null)}
-        demande={selectedDemandeForPermission}
-      />
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Pic annuel constaté en Août (période de congés groupés d&apos;été).</span>
+            <span className="font-mono font-medium text-slate-700">Total cumulé 2026 : 38,0 j</span>
+          </div>
+        </div>
 
-      {/* ── PIED DE PAGE DISCRET ── */}
-      <footer className="py-6 px-8 text-center text-xs text-slate-400 mt-auto border-t border-slate-200/60 bg-white">
-        AGILLY GROUP © {new Date().getFullYear()} — Module Absences & Congés
-      </footer>
+        {/* Répartition par nature d'absence (Donut Recharts) */}
+        <div className="lg:col-span-4 bg-white border border-slate-200 p-6 flex flex-col justify-between">
+          <div className="mb-3 pb-3 border-b border-slate-100">
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+              Répartition par nature
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              48 demandes enregistrées sur l&apos;exercice
+            </p>
+          </div>
+
+          <AbsencesTypeDonutChart />
+
+          <div className="mt-3 pt-2 text-[11px] text-slate-400 text-center">
+            Les congés annuels représentent la majorité des volumes traités (50%).
+          </div>
+        </div>
+      </div>
+
+      {/* ── 4. ACTIONS REQUISES ET PLANNING IMMÉDIAT ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Colonne gauche : Demandes prioritaires & suivi du circuit */}
+        <div className="lg:col-span-8 bg-white border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                {pendingForCurrentRoleDemandes.length > 0
+                  ? "Dossiers nécessitant votre décision"
+                  : "Dernières demandes du service"}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Circuit à 3 niveaux : N+1 &rarr; DRH &rarr; Direction Générale &rarr; GED
+              </p>
+            </div>
+            <Link
+              href={pendingForCurrentRoleDemandes.length > 0 ? "/absences/validations" : "/absences/demandes"}
+              className="text-xs font-semibold text-[#F0822A] hover:underline"
+            >
+              Voir la liste complète &rarr;
+            </Link>
+          </div>
+
+          {/* Tableau dense d'arbitrage */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Référence & Collaborateur</th>
+                  <th className="py-2.5 px-3">Type</th>
+                  <th className="py-2.5 px-3">Période</th>
+                  <th className="py-2.5 px-3">Progression Circuit</th>
+                  <th className="py-2.5 px-3 text-right">Statut</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {prioritizedDemandes.map((item) => {
+                  const step = getWorkflowStep(item.statut);
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-3">
+                        <div className="flex flex-col">
+                          <span className="font-mono font-bold text-slate-900">
+                            {item.codeReference}
+                          </span>
+                          <span className="text-slate-600 font-medium">
+                            {item.demandeur.prenom} {item.demandeur.nom}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            Matr. {item.demandeur.matricule} • {item.demandeur.departement}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="font-medium text-slate-800">{item.libelleType}</span>
+                        {item.destination && (
+                          <span className="block text-[10px] text-slate-500">
+                            Destination : {item.destination}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex flex-col">
+                          <span className="font-mono text-slate-900 font-medium">
+                            {item.nombreJoursOuvres} j ouvrés
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            Du {item.dateDebut.split("-").reverse().join("/")} au{" "}
+                            {item.dateFin.split("-").reverse().join("/")}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        {/* Mini frise de progression à 4 points */}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            {[1, 2, 3, 4].map((s) => (
+                              <div
+                                key={s}
+                                className={`h-1.5 flex-1 ${
+                                  s < step
+                                    ? "bg-slate-700"
+                                    : s === step
+                                    ? "bg-[#F0822A]"
+                                    : "bg-slate-200"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-slate-500">
+                            {step === 1 && "Étape 1/4 : Supérieur N+1"}
+                            {step === 2 && "Étape 2/4 : Contrôle DRH"}
+                            {step === 3 && "Étape 3/4 : Direction Générale"}
+                            {step === 4 && "Étape 4/4 : Document prêt / Archivé"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        {getStatusBadge(item.statut)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Colonne droite : Absences à venir dans les 7 jours */}
+        <div className="lg:col-span-4 bg-white border border-slate-200 p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Absences à venir (7 jours)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Pôle DSI & Infrastructure</p>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
+                Semaine 43
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {upcomingTeamAbsences.map((abs, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 border border-slate-100 bg-slate-50/50 flex flex-col gap-1.5"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">{abs.nom}</p>
+                      <p className="text-[10px] text-slate-500">{abs.poste}</p>
+                    </div>
+                    <span className="text-[11px] font-bold font-mono text-slate-900 bg-white px-1.5 py-0.5 border border-slate-200">
+                      {abs.jours}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1 border-t border-slate-200/50">
+                    <span className="text-[#F0822A] font-medium">{abs.type}</span>
+                    <span className="font-mono text-slate-500">{abs.dates}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-xs text-slate-500">Besoin d&apos;anticiper les plannings ?</span>
+            <Link
+              href="/absences/planning"
+              className="text-xs font-semibold text-slate-900 hover:text-[#F0822A] transition-colors"
+            >
+              Consulter le Gantt &rarr;
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
