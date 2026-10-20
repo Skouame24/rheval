@@ -1,7 +1,8 @@
 // ============================================================
 // features/absences/components/AbsencesSidebar.tsx
-// Barre latérale gauche — Filtrée strictement selon le rôle actif
-// Salarié ne voit QUE ses outils personnels (Mes demandes, Soldes)
+// Barre latérale gauche — Adaptée au rôle & Calendrier universel
+// Tout le monde a accès à l'Agenda des présences
+// Chaque rôle a son tableau de bord spécifique
 // ============================================================
 
 "use client";
@@ -10,6 +11,18 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  badge?: number;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
 
 export function AbsencesSidebar() {
   const pathname = usePathname();
@@ -26,10 +39,13 @@ export function AbsencesSidebar() {
   const isManagerOrAbove = ["SUPERIEUR_N1", "DRH", "DIRECTION_DG", "ADMIN"].includes(role);
   const isRhOrAdmin = ["DRH", "AGENT_DRH", "ADMIN"].includes(role);
 
-  // Sections filtrées dynamiquement selon les responsabilités réelles de l'acteur (Section 2 du CDC)
-  const navSections = [
+  // Sections adaptées aux exigences utilisateur précises :
+  // 1. MON ESPACE (Accessible à tous les employés : mes demandes, soldes, et AGENDA d'équipe universel)
+  // 2. WORKFLOW & VALIDATION (Accessible dès que valideur N+1, DRH, DG)
+  // 3. PILOTAGE & GED (Accessible DRH et DG)
+  const navSections: NavSection[] = [
     {
-      title: "MON ESPACE",
+      title: "MON ESPACE PERSONNEL",
       items: [
         {
           label: "Mes demandes",
@@ -53,13 +69,24 @@ export function AbsencesSidebar() {
             </svg>
           ),
         },
+        {
+          label: "Agenda des présences",
+          href: "/absences/planning",
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          ),
+        },
       ],
     },
-    // Section visible uniquement pour les valideurs hiérarchiques (N+1, DRH, DG)
     ...(isManagerOrAbove
       ? [
           {
-            title: "VALIDATION",
+            title: "VALIDATION & WORKFLOW",
             items: [
               {
                 label: "Boîte d'arbitrage",
@@ -72,40 +99,31 @@ export function AbsencesSidebar() {
                   </svg>
                 ),
               },
-              {
-                label: "Planning d'équipe",
-                href: "/absences/planning",
-                icon: (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                ),
-              },
             ],
           },
         ]
       : []),
-    // Section visible uniquement pour les fonctions RH & Direction
-    ...(isRhOrAdmin
+    ...(isRhOrAdmin || role === "DIRECTION_DG"
       ? [
           {
-            title: "GESTION RH",
+            title: "PILOTAGE RH & GED",
             items: [
+              ...(isRhOrAdmin
+                ? [
+                    {
+                      label: "Registre & GED",
+                      href: "/absences/registre",
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
+                      ),
+                    },
+                  ]
+                : []),
               {
-                label: "Registre & GED",
-                href: "/absences/registre",
-                icon: (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                  </svg>
-                ),
-              },
-              {
-                label: "Rapports & Pilotage",
+                label: "Tableau de bord & SLA",
                 href: "/absences/rapports",
                 icon: (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -141,7 +159,7 @@ export function AbsencesSidebar() {
           </Link>
         </div>
 
-        {/* ── NAVIGATION RÔLE-SPÉCIFIQUE SANS ENCOMBREMENT ── */}
+        {/* ── NAVIGATION RÔLE-SPÉCIFIQUE AVEC AGENDA POUR TOUS ── */}
         <nav className="p-3 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] mt-2">
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="flex flex-col gap-1">
@@ -216,7 +234,7 @@ export function AbsencesSidebar() {
           onClick={() => setIsDemoDrawerOpen(true)}
           className="w-full flex items-center justify-center gap-1.5 py-1 px-2 text-[10px] text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 border border-slate-200 transition-colors cursor-pointer"
         >
-          <span>Changer de rôle (Mode démo)</span>
+          <span>Changer d&apos;acteur (Mode démo)</span>
         </button>
       </div>
     </aside>

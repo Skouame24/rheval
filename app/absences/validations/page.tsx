@@ -1,8 +1,9 @@
 // ============================================================
 // app/absences/validations/page.tsx
-// Boîte d'arbitrage hiérarchique à 2 panneaux (Split View)
-// Dédiée aux approbateurs : Supérieur N+1, DRH, Direction Générale
-// Respect strict du Design System IBM Carbon x Agilly Corporate
+// Boîte d'arbitrage hiérarchique avec désignation de remplaçant (RG-07)
+// Accès mobile optimisé pour la Direction Générale (DG)
+// Motif obligatoire en cas de refus (RG-05, EF-12)
+// Alertes chevauchement et dépassement de solde (EF-16)
 // ============================================================
 
 "use client";
@@ -22,7 +23,6 @@ export default function ValidationsInboxPage() {
     setIsDemoDrawerOpen,
   } = useAbsences();
 
-  // Demande active sélectionnée dans le panneau de droite
   const [selectedId, setSelectedId] = useState<string | null>(
     pendingForCurrentRoleDemandes[0]?.id || demandes[0]?.id || null
   );
@@ -30,6 +30,12 @@ export default function ValidationsInboxPage() {
   // État du modal de refus / motif obligatoire (RG-05)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectMotif, setRejectMotif] = useState("");
+
+  // Modal de désignation de remplaçant (RG-07 / EF-13)
+  const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
+  const [delegueNom, setDelegueNom] = useState("KOUASSI Samuel (Manager Adjoint)");
+  const [delegationActive, setDelegationActive] = useState(false);
+
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
 
   const activeDemande = useMemo(() => {
@@ -92,25 +98,38 @@ export default function ValidationsInboxPage() {
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 bg-[#F0822A]" />
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Boîte d&apos;Arbitrage & Validations Hiérarchiques
+              Boîte d&apos;Arbitrage & Workflow de Décision
             </h1>
             <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200">
-              Rôle : {currentPersona.labelRole}
+              {currentPersona.labelRole}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Examen des demandes de congés, permissions et ordres de mission soumis à votre niveau d&apos;approbation.
+            Traitez les demandes de votre équipe, vérifiez les quotas et déléguez vos validations lors de vos absences (RG-07).
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Boutons Remplaçant & Changement de rôle */}
+        <div className="flex items-center gap-2.5 text-xs">
           <button
             type="button"
-            onClick={() => setIsDemoDrawerOpen(true)}
-            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors"
+            onClick={() => setIsDelegateModalOpen(true)}
+            className={`px-3 py-1.5 border font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+              delegationActive
+                ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+            }`}
           >
-            Changer de valideur (N+1 / DRH / DG)
+            <span className={`w-2 h-2 rounded-full ${delegationActive ? "bg-emerald-600" : "bg-slate-400"}`} />
+            <span>{delegationActive ? "Remplaçant actif" : "Désigner un remplaçant (RG-07)"}</span>
           </button>
+
+          <Link
+            href="/absences/planning"
+            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold"
+          >
+            Voir Agenda équipe &rarr;
+          </Link>
         </div>
       </div>
 
@@ -133,16 +152,16 @@ export default function ValidationsInboxPage() {
         </div>
       )}
 
-      {/* ── INTERFACE À DEUX PANNEAUX (SPLIT VIEW 240/320px GAUCHE, FLUIDE DROITE) ── */}
+      {/* ── INTERFACE À DEUX PANNEAUX (SPLIT VIEW) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Panneau Gauche (4 cols) : File d'attente des demandes */}
+        {/* Panneau Gauche (4 cols) : File d'attente */}
         <div className="lg:col-span-4 bg-white border border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
             <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
-              File d&apos;attente ({pendingForCurrentRoleDemandes.length})
+              Demandes à traiter ({pendingForCurrentRoleDemandes.length})
             </span>
             <span className="text-[10px] text-slate-500 font-mono">
-              Filtre : {currentPersona.labelRole.split(" ")[0]}
+              SLA entreprise : 48h
             </span>
           </div>
 
@@ -153,13 +172,6 @@ export default function ValidationsInboxPage() {
                 <p className="text-[11px] text-slate-400 mt-1">
                   Toutes les demandes assignées à votre niveau sont déjà arbitrées.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setIsDemoDrawerOpen(true)}
-                  className="mt-3 px-2.5 py-1 text-[11px] font-semibold text-[#F0822A] bg-[#FFF4EB] border border-[#FDE3CC]"
-                >
-                  Tester un autre valideur &rarr;
-                </button>
               </div>
             ) : (
               pendingForCurrentRoleDemandes.map((dem) => {
@@ -181,8 +193,8 @@ export default function ValidationsInboxPage() {
                       <span className="font-mono font-bold text-slate-900">
                         {dem.codeReference}
                       </span>
-                      <span className="text-[10px] font-semibold font-mono text-amber-700 bg-amber-50 px-1.5 py-0.2 border border-amber-200">
-                        En attente
+                      <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 border border-amber-200">
+                        À valider
                       </span>
                     </div>
 
@@ -206,7 +218,7 @@ export default function ValidationsInboxPage() {
           </div>
         </div>
 
-        {/* Panneau Droit (8 cols) : Détail complet & Dossier décisionnel */}
+        {/* Panneau Droit (8 cols) : Dossier décisionnel complet */}
         <div className="lg:col-span-8 bg-white border border-slate-200 p-6 flex flex-col gap-6">
           {activeDemande ? (
             <>
@@ -227,22 +239,21 @@ export default function ValidationsInboxPage() {
                     )}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Déposée le {formatDateFr(activeDemande.dateCreation)} • Examen requis par :{" "}
+                    Déposée le {formatDateFr(activeDemande.dateCreation)} • Décision attendue par :{" "}
                     <span className="font-bold text-slate-800">{currentPersona.labelRole}</span>
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xs text-slate-400 block">Durée demandée</span>
+                  <span className="text-xs text-slate-400 block">Durée</span>
                   <span className="text-lg font-mono font-extrabold text-slate-900">
-                    {activeDemande.nombreJoursOuvres} jours ouvrés
+                    {activeDemande.nombreJoursOuvres} jours
                   </span>
                 </div>
               </div>
 
-              {/* Contexte décisionnel & Règles de gestion (RG-02, RG-03, RG-04) */}
+              {/* Contrôles automatiques (EF-16 : Solde, Quorum, Chevauchements) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Solde collaborateur */}
                 <div className="p-3 bg-slate-50 border border-slate-200 text-xs">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                     Solde Congés Payés (RG-02)
@@ -252,46 +263,41 @@ export default function ValidationsInboxPage() {
                     <span className="text-emerald-700 font-bold text-[11px]">Suffisant</span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Solde après validation :{" "}
-                    <span className="font-mono font-bold text-slate-800">
-                      {14.5 - activeDemande.nombreJoursOuvres} j
-                    </span>
+                    Solde après validation : {14.5 - activeDemande.nombreJoursOuvres} j
                   </p>
                 </div>
 
-                {/* Quorum de service */}
                 <div className="p-3 bg-slate-50 border border-slate-200 text-xs">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Effectif Service DSI (RG-04)
+                    Effectif du service (RG-04)
                   </span>
                   <div className="mt-1 flex items-baseline justify-between">
                     <span className="font-bold text-slate-900">85.7% de présence</span>
                     <span className="text-emerald-700 font-bold text-[11px]">Quorum OK</span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Seuil minimum légal (50%) respecté.
+                    Effectif minimum &gt; 50% garanti.
                   </p>
                 </div>
 
-                {/* Chevauchements équipe */}
                 <div className="p-3 bg-slate-50 border border-slate-200 text-xs">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                     Chevauchements (RG-03)
                   </span>
                   <div className="mt-1 flex items-baseline justify-between">
                     <span className="font-bold text-slate-900">0 conflit direct</span>
-                    <span className="text-emerald-700 font-bold text-[11px]">Clair</span>
+                    <span className="text-emerald-700 font-bold text-[11px]">Conforme</span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Aucun doublon sur le même poste clé.
+                    Aucune absence concurrente dans l&apos;équipe.
                   </p>
                 </div>
               </div>
 
-              {/* Fiche d'identité du demandeur */}
+              {/* Demandeur */}
               <div className="p-4 border border-slate-200 bg-white">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                  Identité du salarié (Bulletin officiel)
+                  Identité du salarié
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div>
@@ -301,7 +307,7 @@ export default function ValidationsInboxPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">Matricule RH</span>
+                    <span className="text-slate-400 text-[10px] block">Matricule</span>
                     <span className="font-mono font-bold text-slate-900">
                       {activeDemande.demandeur.matricule}
                     </span>
@@ -313,30 +319,25 @@ export default function ValidationsInboxPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">N° CNSS</span>
-                    <span className="font-mono text-slate-800">
-                      {activeDemande.demandeur.numeroCnss || "CI-0019284729-A"}
+                    <span className="text-slate-400 text-[10px] block">Département</span>
+                    <span className="font-medium text-slate-900">
+                      {activeDemande.demandeur.departement}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Détails de la permission & Période */}
+              {/* Détails & Motif */}
               <div className="p-4 border border-slate-200 bg-white text-xs flex flex-col gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Détail de la demande
-                </span>
                 <div className="flex items-center gap-4 text-slate-700 font-mono">
                   <span>
                     Du <strong>{formatDateFr(activeDemande.dateDebut)}</strong> au{" "}
-                    <strong>{formatDateFr(activeDemande.dateFin)}</strong> (inclus)
+                    <strong>{formatDateFr(activeDemande.dateFin)}</strong>
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-400 text-[10px] block mb-1">
-                    Motif déclaré par le collaborateur :
-                  </span>
+                  <span className="text-slate-400 text-[10px] block mb-1">Motif déclaré :</span>
                   <p className="p-3 bg-slate-50 border border-slate-200 italic text-slate-800 leading-relaxed">
                     &ldquo;{activeDemande.motif}&rdquo;
                   </p>
@@ -344,7 +345,7 @@ export default function ValidationsInboxPage() {
 
                 <div>
                   <span className="text-slate-400 text-[10px] block mb-1">
-                    Adresse et contact pendant l&apos;absence :
+                    Adresse et contact d&apos;urgence :
                   </span>
                   <p className="text-slate-800 font-medium">
                     {activeDemande.adresseContactPendantAbsence || "Non communiqué"}
@@ -352,12 +353,12 @@ export default function ValidationsInboxPage() {
                 </div>
               </div>
 
-              {/* Frise d'audit historique */}
+              {/* Historique du circuit */}
               <div className="p-4 border border-slate-200 bg-white text-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                   Historique du circuit de validation
                 </span>
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-2">
                   {activeDemande.historique.map((hist) => (
                     <div
                       key={hist.id}
@@ -374,20 +375,15 @@ export default function ValidationsInboxPage() {
                           </p>
                         )}
                       </div>
-                      <span className="font-mono text-[10px] text-slate-400 shrink-0">
-                        {new Date(hist.dateAction).toLocaleDateString("fr-FR", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {formatDateFr(hist.dateAction)}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* ── BARRE D'ACTION FIXE D'ARBITRAGE (VALIDER / REFUSER ET RENVOYER) ── */}
+              {/* ── BARRE D'ACTION D'ARBITRAGE ── */}
               <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
                 <button
                   type="button"
@@ -398,7 +394,7 @@ export default function ValidationsInboxPage() {
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
-                  <span>Refuser et renvoyer</span>
+                  <span>Refuser et renvoyer (Motif obligatoire)</span>
                 </button>
 
                 <button
@@ -421,68 +417,121 @@ export default function ValidationsInboxPage() {
         </div>
       </div>
 
-      {/* ── MODAL DE REFUS AVEC MOTIF OBLIGATOIRE (RG-05) ── */}
+      {/* ── MODAL MOTIF DE REFUS OBLIGATOIRE (RG-05) ── */}
       {isRejectModalOpen && activeDemande && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
-            onClick={() => setIsRejectModalOpen(false)}
-          />
-          <div className="relative bg-white border border-slate-300 shadow-2xl max-w-lg w-full p-6 z-10 text-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-red-600" />
-                <h3 className="text-sm font-bold text-slate-900">
-                  Refus et renvoi de la demande ({activeDemande.codeReference})
-                </h3>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="relative bg-white border border-slate-300 shadow-2xl max-w-lg w-full p-6 text-xs flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span className="font-bold text-slate-900 text-sm">
+                Motif obligatoire de refus (Règle RG-05)
+              </span>
               <button
                 type="button"
                 onClick={() => setIsRejectModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
+                className="text-slate-400 hover:text-slate-700 text-lg"
               >
                 &times;
               </button>
             </div>
 
-            <div className="my-4 flex flex-col gap-3">
-              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800">
-                <p className="font-bold">Règle de gestion RG-05 & Circuit de retour :</p>
-                <p className="mt-1">
-                  Cette décision renverra le dossier à l&apos;acteur précédent :{" "}
-                  <strong>{getDestinationRetour()}</strong>. Le motif renseigné ci-dessous sera
-                  notifié et tracé dans le journal d&apos;audit.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-slate-900 font-bold mb-1">
-                  Motif obligatoire du refus / révision *
-                </label>
-                <textarea
-                  rows={4}
-                  value={rejectMotif}
-                  onChange={(e) => setRejectMotif(e.target.value)}
-                  placeholder="Expliquez avec précision la raison du refus (ex: charge d'équipe incompatible, justificatif manquant, modification de dates demandée)..."
-                  className="w-full bg-slate-50 border border-slate-300 p-2.5 text-slate-900 focus:bg-white focus:outline-none focus:border-red-600"
-                />
-              </div>
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800">
+              <p className="font-semibold">Circuit de retour automatique (§3.2) :</p>
+              <p className="mt-0.5">
+                Cette décision retournera le dossier à : <strong>{getDestinationRetour()}</strong>.
+              </p>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+            <div>
+              <label className="block text-slate-900 font-bold mb-1">
+                Motif explicite du refus *
+              </label>
+              <textarea
+                rows={4}
+                value={rejectMotif}
+                onChange={(e) => setRejectMotif(e.target.value)}
+                placeholder="Indiquez clairement le motif pour que le demandeur ou l'étape précédente puisse corriger..."
+                className="w-full bg-slate-50 border border-slate-300 p-2.5 text-slate-900 focus:bg-white focus:outline-none focus:border-red-600"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setIsRejectModalOpen(false)}
-                className="px-4 py-2 bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 font-semibold"
+                className="px-4 py-2 bg-white text-slate-700 border border-slate-300 font-semibold"
               >
                 Annuler
               </button>
               <button
                 type="button"
                 onClick={handleConfirmReject}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold transition-colors"
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold"
               >
-                Confirmer le refus et renvoyer
+                Confirmer le refus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL DÉSIGNATION DE REMPLAÇANT (RG-07 / EF-13) ── */}
+      {isDelegateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white border border-slate-300 shadow-2xl max-w-md w-full p-6 text-xs flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span className="font-bold text-slate-900 text-sm">
+                Délégation de validation (RG-07)
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsDelegateModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 text-lg"
+              >
+                &times;
+              </button>
+            </div>
+
+            <p className="text-slate-600">
+              Désignez un collaborateur pour arbitrer vos demandes en votre absence afin de ne pas bloquer le circuit.
+            </p>
+
+            <div>
+              <label className="block text-slate-700 font-bold mb-1">
+                Collaborateur remplaçant habilité
+              </label>
+              <select
+                value={delegueNom}
+                onChange={(e) => setDelegueNom(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 p-2 text-slate-900 font-medium"
+              >
+                <option value="KOUASSI Samuel (Manager Adjoint)">KOUASSI Samuel (Manager Adjoint)</option>
+                <option value="TOURE Marie-Claire (DRH)">TOURE Marie-Claire (DRH)</option>
+                <option value="DIABATE Ousmane (Lead Tech)">DIABATE Ousmane (Lead Tech)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setDelegationActive(false);
+                  setIsDelegateModalOpen(false);
+                }}
+                className="text-slate-500 hover:text-slate-800"
+              >
+                Désactiver
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDelegationActive(true);
+                  setIsDelegateModalOpen(false);
+                  setActionSuccessMessage(`Délégation active confiée à ${delegueNom}.`);
+                  setTimeout(() => setActionSuccessMessage(null), 3000);
+                }}
+                className="px-4 py-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold"
+              >
+                Enregistrer la délégation
               </button>
             </div>
           </div>
@@ -491,4 +540,3 @@ export default function ValidationsInboxPage() {
     </div>
   );
 }
-

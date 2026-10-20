@@ -1,31 +1,73 @@
 // ============================================================
 // app/absences/planning/page.tsx
-// Planning d'équipe — Diagramme de Gantt & Histogramme de Quorum
-// Contrôle de présence et quorum de service (RG-04)
+// Agenda universel des absences & présences
+// Code couleur net par type de permission (Congé, Permission, Mission, Intervention)
+// Vue accessible à TOUT collaborateur pour savoir qui est présent/absent
 // Respect strict du Design System IBM Carbon x Agilly Corporate
 // ============================================================
 
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
-// Équipe du Pôle DSI (14 collaborateurs)
+// Équipe avec postes et départements
 const TEAM_MEMBERS = [
-  { id: "tm-1", nom: "KOUAME Ebenezer Samuel", poste: "Directeur des SI", departement: "DSI" },
-  { id: "tm-2", nom: "KOUASSI Samuel", poste: "Resp. Infrastructure", departement: "DSI" },
-  { id: "tm-3", nom: "KONE Aminata", poste: "Analyste Fonctionnelle", departement: "DSI" },
-  { id: "tm-4", nom: "DIABATE Ousmane", poste: "Ingénieur Cloud DevOps", departement: "DSI" },
+  { id: "tm-1", nom: "KOUAME Ebenezer Samuel", poste: "Directeur des Systèmes d'Information", departement: "DSI" },
+  { id: "tm-2", nom: "KOUASSI Samuel", poste: "Responsable Infrastructure & DevOps", departement: "DSI" },
+  { id: "tm-3", nom: "KONE Aminata", poste: "Analyste Fonctionnelle Applicatif", departement: "DSI" },
+  { id: "tm-4", nom: "DIABATE Ousmane", poste: "Ingénieur Systèmes & Cloud", departement: "DSI" },
   { id: "tm-5", nom: "YAO Kouassi Jean", poste: "Développeur Fullstack", departement: "DSI" },
-  { id: "tm-6", nom: "TRAORE Fanta", poste: "Administratrice BDD", departement: "DSI" },
-  { id: "tm-7", nom: "CISSE Ibrahim", poste: "Support & Réseau", departement: "DSI" },
+  { id: "tm-6", nom: "TRAORE Fanta", poste: "Administratrice Bases de Données", departement: "DSI" },
+  { id: "tm-7", nom: "CISSE Ibrahim", poste: "Technicien Réseaux & Support", departement: "DSI" },
+  { id: "tm-8", nom: "TOURE Marie-Claire", poste: "Directrice des Ressources Humaines", departement: "DRH" },
+  { id: "tm-9", nom: "BAMBA Christian", poste: "Président Directeur Général (Gérant)", departement: "Direction" },
 ];
 
-// Jours du mois de Novembre 2026 (du 1er au 20)
-const DAYS_OF_MONTH = Array.from({ length: 20 }, (_, i) => {
+// Légende et couleurs précises par nature de permission
+const COULEURS_NATURE: Record<string, { libelle: string; bg: string; border: string; text: string }> = {
+  CONGES_ANNUELS: {
+    libelle: "Congés Annuels",
+    bg: "bg-blue-600",
+    border: "border-blue-700",
+    text: "text-white",
+  },
+  PERMISSION_EXCEPTIONNELLE: {
+    libelle: "Permission Exceptionnelle",
+    bg: "bg-[#F0822A]",
+    border: "border-[#D96F1D]",
+    text: "text-white",
+  },
+  MISSION_DEPLACEMENT: {
+    libelle: "Mission / Déplacement",
+    bg: "bg-purple-600",
+    border: "border-purple-700",
+    text: "text-white",
+  },
+  INTERVENTION_TERRAIN: {
+    libelle: "Intervention Terrain",
+    bg: "bg-amber-600",
+    border: "border-amber-700",
+    text: "text-white",
+  },
+  CONGES_MALADIE: {
+    libelle: "Congé Maladie",
+    bg: "bg-emerald-600",
+    border: "border-emerald-700",
+    text: "text-white",
+  },
+  RECUPERATION: {
+    libelle: "Récupération",
+    bg: "bg-slate-700",
+    border: "border-slate-800",
+    text: "text-white",
+  },
+};
+
+// Jours du mois de Novembre 2026 (du 1er au 21)
+const DAYS_OF_MONTH = Array.from({ length: 21 }, (_, i) => {
   const dayNum = i + 1;
-  const dateObj = new Date(2026, 10, dayNum); // Novembre 2026
+  const dateObj = new Date(2026, 10, dayNum);
   const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
   const dayName = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][dateObj.getDay()];
   return {
@@ -36,81 +78,77 @@ const DAYS_OF_MONTH = Array.from({ length: 20 }, (_, i) => {
   };
 });
 
-// Congés posés par collaborateur pour le diagramme de Gantt
-const GANTT_LEAVES: Record<
+// Événements d'absences dans l'agenda
+const CALENDAR_EVENTS: Record<
   string,
-  { start: number; end: number; type: string; bg: string; statut: string }[]
+  { start: number; end: number; typeKey: string; motif: string; statut: string }[]
 > = {
   "tm-1": [
-    { start: 3, end: 6, type: "Congés Annuels", bg: "bg-[#F0822A]", statut: "EN_ATTENTE" },
+    { start: 3, end: 6, typeKey: "CONGES_ANNUELS", motif: "Congé annuel de détente", statut: "En validation N+1" },
   ],
   "tm-3": [
-    { start: 12, end: 13, type: "Permission Exceptionnelle", bg: "bg-amber-600", statut: "VALIDE" },
+    { start: 12, end: 13, typeKey: "PERMISSION_EXCEPTIONNELLE", motif: "Événement familial", statut: "Approuvée" },
   ],
   "tm-4": [
-    { start: 9, end: 11, type: "Mission / Déplacement", bg: "bg-purple-600", statut: "VALIDE" },
+    { start: 9, end: 11, typeKey: "MISSION_DEPLACEMENT", motif: "Mission technique San Pedro", statut: "Approuvée" },
+  ],
+  "tm-5": [
+    { start: 17, end: 18, typeKey: "INTERVENTION_TERRAIN", motif: "Intervention Datacenter client", statut: "Approuvée" },
   ],
   "tm-6": [
-    { start: 16, end: 18, type: "Congé Maladie", bg: "bg-emerald-600", statut: "VALIDE" },
+    { start: 16, end: 18, typeKey: "CONGES_MALADIE", motif: "Arrêt médical", statut: "Approuvée" },
+  ],
+  "tm-7": [
+    { start: 4, end: 5, typeKey: "RECUPERATION", motif: "Récupération astreinte weekend", statut: "Approuvée" },
   ],
 };
 
-export default function PlanningEquipePage() {
+export default function AgendaPresencesPage() {
   const { currentPersona } = useAbsences();
-  const [selectedService, setSelectedService] = useState("DSI");
+  const [filterDepartement, setFilterDepartement] = useState<string>("TOUS");
+  const [selectedEvent, setSelectedEvent] = useState<{
+    collaborateur: string;
+    poste: string;
+    type: string;
+    dates: string;
+    motif: string;
+    statut: string;
+  } | null>(null);
 
-  // Calcul du taux de présence quotidien pour l'histogramme de quorum
-  const dailyQuorumStats = DAYS_OF_MONTH.map((d) => {
-    if (d.isWeekend) return { ...d, presents: 0, total: 7, percent: 100, isUnderThreshold: false };
-    // Compter combien sont absents ce jour-là
-    let absentCount = 0;
-    Object.values(GANTT_LEAVES).forEach((leaves) => {
-      leaves.forEach((l) => {
-        if (d.dayNum >= l.start && d.dayNum <= l.end) {
-          absentCount++;
-        }
-      });
-    });
-    const presents = 7 - absentCount;
-    const percent = Math.round((presents / 7) * 100);
-    return {
-      ...d,
-      presents,
-      total: 7,
-      percent,
-      isUnderThreshold: percent < 50, // Seuil légal RG-04
-    };
+  const filteredMembers = TEAM_MEMBERS.filter((m) => {
+    if (filterDepartement === "TOUS") return true;
+    return m.departement === filterDepartement;
   });
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── EN-TÊTE DU PLANNING ── */}
+      {/* ── EN-TÊTE DE L'AGENDA UNIVERSEL ── */}
       <div className="bg-white border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 bg-[#F0822A]" />
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Planning d&apos;Équipe & Diagramme de Gantt
+              Agenda des Absences & Présences de l&apos;Équipe
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Supervision des présences, chevauchements et respect de l&apos;effectif minimum de service (RG-04).
+            Consultez les disponibilités de vos collègues, anticipez les chevauchements et vérifiez qui est en congé, mission ou intervention.
           </p>
         </div>
 
-        {/* Filtre service & mois */}
+        {/* Filtre département & mois */}
         <div className="flex items-center gap-3 text-xs">
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5">
-            <span className="text-slate-400 font-medium">Service :</span>
+            <span className="text-slate-400 font-medium">Département :</span>
             <select
-              value={selectedService}
-              onChange={(e) => setSelectedService(e.target.value)}
+              value={filterDepartement}
+              onChange={(e) => setFilterDepartement(e.target.value)}
               className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
             >
+              <option value="TOUS">Toute l&apos;entreprise</option>
               <option value="DSI">Pôle DSI (Systèmes d&apos;Information)</option>
-              <option value="PROJET">Projets & Intégration</option>
-              <option value="FINANCE">Finance & Comptabilité</option>
-              <option value="RH">Ressources Humaines</option>
+              <option value="DRH">Direction Ressources Humaines</option>
+              <option value="Direction">Direction Générale</option>
             </select>
           </div>
 
@@ -120,97 +158,34 @@ export default function PlanningEquipePage() {
         </div>
       </div>
 
-      {/* ── 1. HISTOGRAMME DE PRÉSENCE QUOTIDIENNE (AVEC SEUIL QUORUM 50% RG-04) ── */}
-      <div className="bg-white border border-slate-200 p-6 flex flex-col gap-3">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-              Taux de présence journalier (Règle RG-04 — Quorum minimum 50%)
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Les barres en ambre/rouge signalent un risque de sous-effectif critique pour le service.
-            </p>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-emerald-600" />
-              <span className="text-slate-600">&gt; 70% Présence optimale</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-0.5 border-t border-dashed border-red-500" />
-              <span className="text-red-700 font-bold">Ligne de seuil (50%)</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Mini Barres de présence */}
-        <div className="grid grid-cols-20 gap-1 items-end h-24 pt-4 border-b border-slate-200 relative">
-          {/* Ligne repère 50% */}
-          <div className="absolute left-0 right-0 top-12 border-b border-dashed border-red-400 pointer-events-none" />
-
-          {dailyQuorumStats.map((item) => (
-            <div key={item.dayNum} className="flex flex-col items-center gap-1 h-full justify-end group">
-              {!item.isWeekend ? (
-                <>
-                  <span className="text-[9px] font-mono font-bold text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {item.percent}%
-                  </span>
-                  <div
-                    className={`w-full transition-all ${
-                      item.isUnderThreshold
-                        ? "bg-red-500"
-                        : item.percent < 70
-                        ? "bg-amber-500"
-                        : "bg-emerald-600"
-                    }`}
-                    style={{ height: `${item.percent * 0.7}%` }}
-                    title={`Jour ${item.dayNum} : ${item.presents}/${item.total} présents (${item.percent}%)`}
-                  />
-                </>
-              ) : (
-                <div className="w-full h-full bg-slate-100/60" title="Week-end" />
-              )}
-              <span className="text-[9px] font-mono text-slate-400 mt-0.5">
-                {item.dayNum}
-              </span>
+      {/* ── LÉGENDE DES COULEURS PAR TYPE DE PERMISSION (INGÉNIEUX & LISIBLE) ── */}
+      <div className="bg-white border border-slate-200 p-4">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
+          Code couleur par nature d&apos;absence
+        </span>
+        <div className="flex flex-wrap gap-4 text-xs">
+          {Object.entries(COULEURS_NATURE).map(([key, config]) => (
+            <div key={key} className="flex items-center gap-2">
+              <span className={`w-3.5 h-3.5 ${config.bg} shadow-xs shrink-0`} />
+              <span className="text-slate-700 font-medium">{config.libelle}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── 2. DIAGRAMME DE GANTT DES ABSENCES ── */}
+      {/* ── CALENDRIER GANTT INTERACTIF DES PRÉSENCES ── */}
       <div className="bg-white border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-            Diagramme de Gantt — Pôle DSI (Novembre 2026)
-          </span>
-          <div className="flex items-center gap-3 text-[11px] text-slate-600">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-[#F0822A]" />
-              Congés Annuels
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-purple-600" />
-              Mission Déplacement
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-amber-600" />
-              Permission
-            </span>
-          </div>
-        </div>
-
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase">
-                <th className="py-2.5 px-4 w-60 border-r border-slate-200 bg-slate-50/50">
-                  Collaborateur
+                <th className="py-2.5 px-4 w-64 border-r border-slate-200 bg-slate-50/70">
+                  Collaborateur ({filteredMembers.length})
                 </th>
                 {DAYS_OF_MONTH.map((d) => (
                   <th
                     key={d.dayNum}
-                    className={`py-2 px-1 text-center font-mono border-r border-slate-100 ${
+                    className={`py-2 px-1 text-center font-mono border-r border-slate-100 min-w-[34px] ${
                       d.isWeekend ? "bg-slate-100 text-slate-400" : "bg-white text-slate-700"
                     }`}
                   >
@@ -221,22 +196,22 @@ export default function PlanningEquipePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
-              {TEAM_MEMBERS.map((member) => {
-                const leaves = GANTT_LEAVES[member.id] || [];
+              {filteredMembers.map((member) => {
+                const events = CALENDAR_EVENTS[member.id] || [];
                 return (
                   <tr key={member.id} className="hover:bg-slate-50/50">
                     {/* Colonne collaborateur */}
                     <td className="py-3 px-4 border-r border-slate-200 bg-white">
                       <p className="font-bold text-slate-900 text-xs truncate">{member.nom}</p>
-                      <p className="text-[10px] text-slate-500 truncate">{member.poste}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{member.poste}</p>
                     </td>
 
-                    {/* Cellules des jours du mois */}
+                    {/* Cellules des jours du calendrier */}
                     {DAYS_OF_MONTH.map((d) => {
-                      // Vérifier si une absence couvre ce jour
-                      const activeLeave = leaves.find(
-                        (l) => d.dayNum >= l.start && d.dayNum <= l.end
+                      const activeEvt = events.find(
+                        (e) => d.dayNum >= e.start && d.dayNum <= e.end
                       );
+                      const colorCfg = activeEvt ? COULEURS_NATURE[activeEvt.typeKey] : null;
 
                       return (
                         <td
@@ -245,23 +220,28 @@ export default function PlanningEquipePage() {
                             d.isWeekend ? "bg-slate-100/50" : ""
                           }`}
                         >
-                          {activeLeave && (
-                            <div
-                              className={`h-6 flex items-center justify-center text-[10px] font-semibold text-white px-1 shadow-2xs ${
-                                activeLeave.bg
-                              } ${
-                                d.dayNum === activeLeave.start ? "border-l-2 border-white" : ""
-                              } ${
-                                d.dayNum === activeLeave.end ? "border-r-2 border-white" : ""
-                              }`}
-                              title={`${activeLeave.type} (${activeLeave.statut})`}
+                          {activeEvt && colorCfg && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedEvent({
+                                  collaborateur: member.nom,
+                                  poste: member.poste,
+                                  type: colorCfg.libelle,
+                                  dates: `Du ${activeEvt.start} au ${activeEvt.end} Novembre 2026`,
+                                  motif: activeEvt.motif,
+                                  statut: activeEvt.statut,
+                                })
+                              }
+                              className={`w-full h-7 flex items-center justify-center text-[10px] font-bold ${colorCfg.text} ${colorCfg.bg} cursor-pointer hover:opacity-90 transition-opacity`}
+                              title={`${member.nom} : ${colorCfg.libelle} (${activeEvt.motif})`}
                             >
-                              {d.dayNum === activeLeave.start && (
-                                <span className="truncate max-w-[80px]">
-                                  {activeLeave.type.split(" ")[0]}
+                              {d.dayNum === activeEvt.start && (
+                                <span className="truncate max-w-[90px] px-1">
+                                  {colorCfg.libelle.split(" ")[0]}
                                 </span>
                               )}
-                            </div>
+                            </button>
                           )}
                         </td>
                       );
@@ -273,7 +253,58 @@ export default function PlanningEquipePage() {
           </table>
         </div>
       </div>
+
+      {/* ── TIROIR D'INFORMATION AU CLIC SUR UN ÉVÉNEMENT DU CALENDRIER ── */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 shadow-xl max-w-md w-full p-6 text-xs flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span className="font-bold text-slate-900 text-sm">Détail de l&apos;absence</span>
+              <button
+                type="button"
+                onClick={() => setSelectedEvent(null)}
+                className="text-slate-400 hover:text-slate-800 text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Collaborateur</span>
+                <span className="font-bold text-slate-900 text-sm">{selectedEvent.collaborateur}</span>
+                <span className="text-slate-500 text-[11px] block">{selectedEvent.poste}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 flex flex-col gap-1">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Nature & Dates</span>
+                <span className="font-bold text-[#F0822A]">{selectedEvent.type}</span>
+                <span className="font-mono text-slate-700">{selectedEvent.dates}</span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Motif</span>
+                <p className="p-2.5 bg-slate-50 border border-slate-200 italic text-slate-800">
+                  &ldquo;{selectedEvent.motif}&rdquo;
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <span className="text-slate-500">Statut circuit :</span>
+                <span className="font-bold text-slate-900">{selectedEvent.statut}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedEvent(null)}
+              className="mt-2 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold cursor-pointer"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
