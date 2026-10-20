@@ -38,18 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSimulated, setIsSimulated] = useState(false);
 
-  // Synchronisation dynamique avec la session Microsoft Entra ID ou le profil simulé
+  // Synchronisation dynamique avec la session Microsoft Entra ID
   useEffect(() => {
-    // 1. Si un profil de test simulé est sélectionné par l'utilisateur, il a la priorité absolue
-    const simulated = typeof window !== "undefined" ? localStorage.getItem("agilly_simulated_user") : null;
-    if (simulated) {
-      try {
-        const parsed = JSON.parse(simulated);
-        setUser(parsed);
-        setIsSimulated(true);
-        setIsLoading(false);
-        return;
-      } catch {}
+    // Nettoyage proactif de tout profil simulé résiduel en localStorage
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("agilly_simulated_user");
     }
 
     if (status === "loading") {

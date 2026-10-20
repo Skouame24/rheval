@@ -47,8 +47,7 @@ function getHeaders(includeBody = false): HeadersInit {
     const token = localStorage.getItem("agilly_token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    const simulated = localStorage.getItem("agilly_simulated_user");
-    const savedUserStr = simulated || localStorage.getItem("agilly_user");
+    const savedUserStr = localStorage.getItem("agilly_user");
     if (savedUserStr) {
       try {
         const u = JSON.parse(savedUserStr);

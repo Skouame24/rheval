@@ -37,7 +37,7 @@ interface HeaderProps {
 
 export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 0 }: HeaderProps) {
   const router = useRouter();
-  const { user, logout, switchProfile, resetToSsoUser, isSimulated } = useAuth();
+  const { user, logout } = useAuth();
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
@@ -403,66 +403,6 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                   Rôle actuel : {displayLabel}
                 </div>
               </div>
-
-              {/* Sélecteur rapide de profil de test pour démo */}
-              <div className="px-3 py-2 border-b border-slate-200 bg-orange-50/40">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5">
-                  🔄 Changer de profil de test :
-                </p>
-                <div className="flex flex-col gap-1">
-                  {[
-                    { label: "👑 PDG (Christian BAMBA)", email: "christian.bamba@agilly.net", role: "N2", poste: "PDG & Directeur Général", id: "aaf364d4-b002-4ae1-943d-d7ab5ec90a9a", prenom: "Christian", nom: "BAMBA", dept: "Direction Générale" },
-                    { label: "👔 Directeur N+2 (Marc KOFFI)", email: "directeur.n2@agilly.net", role: "N2", poste: "Directeur Technique & Opérations", id: "dir-n2-7777-4a48-bed2-72b525325c81", prenom: "Marc", nom: "KOFFI", dept: "Technique & Digital" },
-                    { label: "💼 DRH (Germaine YAO)", email: "germaine.yao@agilly.net", role: "DRH", poste: "Directrice des Ressources Humaines", id: "c970e84d-5fd5-4cb9-8c4e-7cccc14ad269", prenom: "Germaine", nom: "YAO", dept: "Direction des Ressources Humaines" },
-                    { label: "📋 Assistante RH (Fatou DIOP)", email: "assistante.rh@agilly.net", role: "RH", poste: "Assistante Ressources Humaines", id: "asst-rh-1144-4a48-bed2-72b525325c81", prenom: "Fatou", nom: "DIOP", dept: "Direction des Ressources Humaines" },
-                    { label: "👔 Manager N+1 (Sevan AKOUMIA)", email: "sevan.akoumia@agilly.net", role: "N1", poste: "Responsable Technique Digital", id: "abe87afa-a80b-4a48-bed2-72b525325c81", prenom: "Sevan", nom: "AKOUMIA", dept: "Technique & Digital" },
-                    { label: "👤 Salarié (Ebenezer KOUAME)", email: "ebenezer.kouame@agilly.net", role: "SALARIE", poste: "Développeur Fullstack", id: "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb", prenom: "Ebenezer Samuel", nom: "KOUAME", dept: "Technique & Digital" },
-                  ].map((p) => {
-                    const isCurrent = user?.email?.toLowerCase() === p.email.toLowerCase();
-                    return (
-                      <button
-                        key={p.email}
-                        type="button"
-                        onClick={() => {
-                          const targetUser: any = {
-                            id: p.id,
-                            nom: p.nom,
-                            prenom: p.prenom,
-                            email: p.email,
-                            role: p.role,
-                            poste: p.poste,
-                            departement: p.dept,
-                            telephone: "",
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
-                          };
-                          switchProfile?.(targetUser);
-                        }}
-                        className={`text-left text-xs px-2 py-1 transition-all flex items-center justify-between cursor-pointer ${
-                          isCurrent
-                            ? "bg-[#F0822A] text-white font-black"
-                            : "bg-white text-slate-700 hover:bg-orange-100 font-semibold border border-slate-200"
-                        }`}
-                      >
-                        <span className="truncate">{p.label}</span>
-                        {isCurrent && <span className="text-[10px]">✓</span>}
-                      </button>
-                    );
-                  })}
-                  {isSimulated && (
-                    <button
-                      type="button"
-                      onClick={() => resetToSsoUser?.()}
-                      className="text-center text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 py-1 mt-1 transition-colors cursor-pointer"
-                    >
-                      ↩ Revenir à mon compte réel SSO
-                    </button>
-                  )}
-                </div>
-              </div>
-
-
-
 
               <div className="py-1 border-b border-slate-100">
                 {(currentRole === "RH" || currentRole === "DRH") && (
