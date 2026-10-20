@@ -1,14 +1,14 @@
 // ============================================================
 // features/absences/components/AbsencesSidebar.tsx
-// Barre latérale gauche — Adaptée au rôle & Calendrier universel
-// Tout le monde a accès à l'Agenda des présences
-// Chaque rôle a son tableau de bord spécifique
+// Barre latérale gauche — Logo Agilly officiel, suppression doublons
+// Respect strict du Design System IBM Carbon x Agilly Corporate
 // ============================================================
 
 "use client";
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
@@ -39,14 +39,22 @@ export function AbsencesSidebar() {
   const isManagerOrAbove = ["SUPERIEUR_N1", "DRH", "DIRECTION_DG", "ADMIN"].includes(role);
   const isRhOrAdmin = ["DRH", "AGENT_DRH", "ADMIN"].includes(role);
 
-  // Sections adaptées aux exigences utilisateur précises :
-  // 1. MON ESPACE (Accessible à tous les employés : mes demandes, soldes, et AGENDA d'équipe universel)
-  // 2. WORKFLOW & VALIDATION (Accessible dès que valideur N+1, DRH, DG)
-  // 3. PILOTAGE & GED (Accessible DRH et DG)
   const navSections: NavSection[] = [
     {
-      title: "MON ESPACE PERSONNEL",
+      title: "Mon espace personnel",
       items: [
+        {
+          label: "Tableau de bord",
+          href: "/absences",
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+          ),
+        },
         {
           label: "Mes demandes",
           href: "/absences/demandes",
@@ -60,7 +68,7 @@ export function AbsencesSidebar() {
           ),
         },
         {
-          label: "Soldes & Droits",
+          label: "Soldes & droits",
           href: "/absences/soldes",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,7 +94,7 @@ export function AbsencesSidebar() {
     ...(isManagerOrAbove
       ? [
           {
-            title: "VALIDATION & WORKFLOW",
+            title: "Validation & arbitrage",
             items: [
               {
                 label: "Boîte d'arbitrage",
@@ -106,7 +114,7 @@ export function AbsencesSidebar() {
     ...(isRhOrAdmin || role === "DIRECTION_DG"
       ? [
           {
-            title: "PILOTAGE RH & GED",
+            title: "Pilotage RH & GED",
             items: [
               ...(isRhOrAdmin
                 ? [
@@ -141,29 +149,36 @@ export function AbsencesSidebar() {
 
   return (
     <aside className="w-60 bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col justify-between shrink-0 select-none z-30">
-      {/* ── EN-TÊTE MARQUE ÉPURÉ ── */}
+      {/* ── EN-TÊTE AVEC LE VRAI LOGO AGILLY ── */}
       <div className="flex flex-col">
-        <div className="h-14 px-5 border-b border-slate-200 flex items-center justify-between">
-          <Link href="/absences/demandes" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-[#F0822A] flex items-center justify-center font-bold text-white text-sm">
-              A
+        <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between">
+          <Link href="/absences" className="flex items-center gap-2.5">
+            <div className="relative w-8 h-8 flex items-center justify-center">
+              <Image
+                src="/logo.png"
+                alt="Logo Agilly"
+                width={30}
+                height={30}
+                className="object-contain"
+                priority
+              />
             </div>
             <div className="flex flex-col">
               <span className="text-slate-900 font-extrabold text-sm tracking-tight leading-none">
                 AGILLY
               </span>
-              <span className="text-[10px] text-slate-400 font-medium mt-0.5">
-                Absences & Congés
+              <span className="text-[10px] text-slate-500 font-medium mt-0.5">
+                Absences & Permissions
               </span>
             </div>
           </Link>
         </div>
 
-        {/* ── NAVIGATION RÔLE-SPÉCIFIQUE AVEC AGENDA POUR TOUS ── */}
-        <nav className="p-3 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] mt-2">
+        {/* ── NAVIGATION ADAPTÉE AU RÔLE ── */}
+        <nav className="p-3 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-160px)] mt-2">
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="flex flex-col gap-1">
-              <span className="px-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+              <span className="px-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
                 {section.title}
               </span>
               {section.items.map((item) => {
@@ -176,20 +191,20 @@ export function AbsencesSidebar() {
                       flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-colors
                       ${
                         active
-                          ? "bg-[#FFF4EB] text-[#F0822A] font-semibold border-l-2 border-[#F0822A]"
+                          ? "bg-orange-50/80 text-[#B95914] font-bold border-l-2 border-[#D96F1D]"
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-l-2 border-transparent"
                       }
                     `}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className={active ? "text-[#F0822A]" : "text-slate-400"}>
+                      <span className={active ? "text-[#D96F1D]" : "text-slate-500"}>
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
                     </div>
 
                     {item.badge !== undefined && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#F0822A] text-white leading-tight">
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#D96F1D] text-white leading-tight">
                         {item.badge}
                       </span>
                     )}
@@ -201,41 +216,28 @@ export function AbsencesSidebar() {
         </nav>
       </div>
 
-      {/* ── BAS : IDENTITÉ COLLABORATEUR ET COMMUTATEUR DÉMO DISCRET ── */}
-      <div className="border-t border-slate-200 bg-slate-50/60 p-3 flex flex-col gap-2">
+      {/* ── BAS : RETOUR PORTAIL SANS DOUBLON D'IDENTITÉ ── */}
+      <div className="border-t border-slate-200 bg-slate-50/70 p-3 flex flex-col gap-2">
         <Link
           href="/portail"
-          className="flex items-center gap-2 px-2 py-1 text-[11px] text-slate-500 hover:text-slate-900 transition-colors"
+          className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15 18 9 12 15 6" />
           </svg>
-          <span>Portail Agilly</span>
+          <span>Retour au Portail</span>
         </Link>
 
-        {/* Profil salarié connecté */}
-        <div className="bg-white border border-slate-200 p-2.5 flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
-            {currentPersona.prenom.charAt(0)}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-slate-900 truncate leading-tight">
-              {currentPersona.prenom.split(" ")[0]} {currentPersona.nom}
-            </span>
-            <span className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">
-              {currentPersona.labelRole}
-            </span>
-          </div>
-        </div>
-
-        {/* Bouton de simulation de profil */}
-        <button
-          type="button"
-          onClick={() => setIsDemoDrawerOpen(true)}
-          className="w-full flex items-center justify-center gap-1.5 py-1 px-2 text-[10px] text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 border border-slate-200 transition-colors cursor-pointer"
-        >
-          <span>Changer d&apos;acteur (Mode démo)</span>
-        </button>
+        {/* Bouton de simulation démo uniquement en développement */}
+        {process.env.NODE_ENV !== "production" && (
+          <button
+            type="button"
+            onClick={() => setIsDemoDrawerOpen(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-1 px-2 text-[10px] text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 border border-slate-200 transition-colors cursor-pointer"
+          >
+            <span>Simuler un rôle (Démo)</span>
+          </button>
+        )}
       </div>
     </aside>
   );

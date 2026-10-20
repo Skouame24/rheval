@@ -1,6 +1,6 @@
 // ============================================================
 // lib/mock/absences.mock.ts
-// Données fictives conformes au formulaire officiel "BULLETIN INDIVIDUEL"
+// Données fictives conformes au cahier des charges et au formulaire officiel Agilly
 // ============================================================
 
 import {
@@ -100,17 +100,17 @@ export const MOCK_PERSONAS: PersonaUser[] = [
   },
 ];
 
-// ── SOLDE DE CONGES DU DEMANDEUR ──
+// ── SOLDE DE CONGÉS DU DEMANDEUR (Cohérence stricte : 26 j acquis = 8 consommés + 4 en attente + 14 disponibles) ──
 export const MOCK_SOLDE_CONGES: SoldeCongesInfo = {
   annee: 2026,
   joursAcquis: 26.0,
   joursPris: 8.0,
-  joursEnAttente: 3.5,
-  joursRestants: 14.5,
+  joursEnAttente: 4.0, // Exactement 4.0 jours pour correspondre à la demande DEM-2026-00142 en attente
+  joursRestants: 14.0,
   repartition: {
-    congesPayes: { acquis: 22.0, pris: 6.0, solde: 12.5 },
+    congesPayes: { acquis: 22.0, pris: 6.0, solde: 12.0 },
     permissionsAnnuelles: { quotaTotal: 10.0, prises: 2.0, solde: 8.0 },
-    recuperations: { acquises: 4.0, prises: 2.0, solde: 2.0 },
+    recuperations: { acquises: 4.0, prises: 2.0, solde: 2.0 }, // Solde spécifique de Récupération
   },
 };
 
@@ -137,14 +137,14 @@ export const MOCK_REPARTITION_TYPES = [
   { type: "Congés Annuels", count: 24, pourcentage: 50, color: "bg-blue-500", hex: "#3B82F6" },
   { type: "Permission Exceptionnelle", count: 10, pourcentage: 20.8, color: "bg-[#F0822A]", hex: "#F0822A" },
   { type: "Mission / Déplacement", count: 6, pourcentage: 12.5, color: "bg-purple-600", hex: "#9333EA" },
+  { type: "Intervention Terrain", count: 4, pourcentage: 8.3, color: "bg-amber-600", hex: "#D97706" },
   { type: "Congés Maladie", count: 4, pourcentage: 8.3, color: "bg-emerald-500", hex: "#10B981" },
-  { type: "Récupération", count: 3, pourcentage: 6.2, color: "bg-amber-500", hex: "#F59E0B" },
-  { type: "Absence autorisée non payée", count: 1, pourcentage: 2.1, color: "bg-slate-500", hex: "#64748B" },
+  { type: "Récupération", count: 3, pourcentage: 6.2, color: "bg-slate-700", hex: "#334155" },
 ];
 
-// ── DEMANDES FICTIVES CONFORMES AU FORMULAIRE OFFICIEL ──
+// ── DEMANDES FICTIVES CONFORMES AU CAHIER DES CHARGES ──
 export const INITIAL_DEMANDES: DemandeRHItem[] = [
-  // 1. Demande en attente N+1
+  // 1. Demande de congés en attente Supérieur (4 jours ouvrés : du 03 au 06 Nov)
   {
     id: "dem-001",
     codeReference: "DEM-2026-00142",
@@ -158,13 +158,13 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       nom: "KOUAME",
       prenom: "Ebenezer Samuel",
       email: "ebenezer.kouame@agilly.net",
-      poste: "Directeur des Systemes d'information",
+      poste: "Directeur des Systèmes d'information",
       departement: "DSI",
       service: "Développement Applicatif",
       telephone: "+225 07 48 92 11 00",
       numeroCnss: "CI-0019284729-A",
-      managerNom: "Christian BAMBA",
-      managerEmail: "christian.bamba@agilly.com",
+      managerNom: "Samuel KOUAME",
+      managerEmail: "samuel.kouame@agilly.com",
     },
     dateDebut: "2026-11-03",
     dateFin: "2026-11-06",
@@ -181,12 +181,12 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       {
         id: "hist-001-1",
         etape: "SUPERIEUR_N1",
-        libelleEtape: "Dépôt du Formulaire",
+        libelleEtape: "Dépôt de la demande",
         acteurNom: "Ebenezer Samuel KOUAME",
         acteurPoste: "DSI",
         acteurRole: "SALARIE",
         decision: "VALIDE",
-        motif: "Formulaire de demande de permission renseigné et signé.",
+        motif: "Formulaire de demande de permission renseigné et soumis au circuit.",
         dateAction: "2026-10-18T14:22:00Z",
       },
     ],
@@ -194,12 +194,12 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
     dateDerniereAction: "2026-10-18T14:22:00Z",
   },
 
-  // 2. Demande en attente DRH (Mission)
+  // 2. Demande Mission en attente DRH (5 jours ouvrés : du 10 au 14 Nov)
   {
     id: "dem-002",
     codeReference: "DEM-2026-00139",
     typeDemande: "MISSION_DEPLACEMENT",
-    libelleType: "Ordre de Mission",
+    libelleType: "Mission / Déplacement",
     statut: "EN_VALIDATION_DRH",
     etapeCourante: "DRH",
     demandeur: {
@@ -239,12 +239,12 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       {
         id: "hist-002-1",
         etape: "SUPERIEUR_N1",
-        libelleEtape: "Validation Responsable",
+        libelleEtape: "Avis Supérieur hiérarchique",
         acteurNom: "Samuel KOUAME",
         acteurPoste: "Responsable Infrastructure",
         acteurRole: "SUPERIEUR_N1",
         decision: "VALIDE",
-        motif: "Mission stratégique validée, planning couvert.",
+        motif: "Mission stratégique validée, continuité assurée.",
         dateAction: "2026-10-16T10:45:00Z",
       },
     ],
@@ -252,7 +252,8 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
     dateDerniereAction: "2026-10-16T10:45:00Z",
   },
 
-  // 3. Demande Approuvée - En attente d'Édition du Bulletin Officiel par l'Agent DRH
+  // 3. Demande Permission 1.5 j (Circuit court RG-01 : Supérieur + DRH uniquement, SANS Direction Générale)
+  // Dates : Vendredi 23 Octobre (jour entier = 1 j) au Samedi 24 Octobre matin (demi-journée ouvrable = 0.5 j) = 1.5 j
   {
     id: "dem-003",
     codeReference: "DEM-2026-00130",
@@ -266,7 +267,7 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       nom: "KOUAME",
       prenom: "Ebenezer Samuel",
       email: "ebenezer.kouame@agilly.net",
-      poste: "Directeur des Systemes d'information",
+      poste: "Directeur des Systèmes d'information",
       departement: "DSI",
       service: "Développement Applicatif",
       telephone: "+225 07 48 92 11 00",
@@ -274,9 +275,11 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
     },
     dateDebut: "2026-10-23",
     dateFin: "2026-10-24",
+    estDemiJourneeDebut: false,
+    estDemiJourneeFin: true,
     nombreJoursOuvres: 1.5,
     nombreJoursCalendaires: 2,
-    motif: "Événement familial légal (baptême et démarches administratives).",
+    motif: "Événement familial légal (mariage civil et formalités).",
     adresseContactPendantAbsence: "Yamoussoukro Quartier Morofé, Contact: +225 07 48 92 11 00",
     cycleRetoursCount: 0,
     piecesJointes: [],
@@ -284,23 +287,23 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       {
         id: "hist-003-1",
         etape: "SUPERIEUR_N1",
-        libelleEtape: "Visa Responsable N+1",
+        libelleEtape: "Avis Supérieur hiérarchique",
         acteurNom: "Samuel KOUAME",
         acteurPoste: "Responsable",
         acteurRole: "SUPERIEUR_N1",
         decision: "VALIDE",
-        motif: "Accordé.",
+        motif: "Avis favorable accordé.",
         dateAction: "2026-10-12T14:00:00Z",
       },
       {
         id: "hist-003-2",
         etape: "DRH",
-        libelleEtape: "Visa DRH (Circuit court)",
+        libelleEtape: "Contrôle & Validation finale DRH (Circuit court RG-01 <= 2j)",
         acteurNom: "Marie-Claire TOURE",
         acteurPoste: "DRH",
         acteurRole: "DRH",
         decision: "VALIDE",
-        motif: "Quota de permission déductible vérifié et conforme.",
+        motif: "Durée <= 2 jours : validée par la DRH conformément à la règle RG-01 (sans saisine DG).",
         dateAction: "2026-10-13T11:15:00Z",
       },
     ],
@@ -308,7 +311,7 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
     dateDerniereAction: "2026-10-13T11:15:00Z",
   },
 
-  // 4. Demande Éditée & Scellée dans la GED
+  // 4. Demande Archivée dans la GED
   {
     id: "dem-004",
     codeReference: "DEM-2026-00124",
@@ -353,29 +356,29 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       {
         id: "hist-004-1",
         etape: "SUPERIEUR_N1",
-        libelleEtape: "Visa Responsable N+1",
+        libelleEtape: "Avis Supérieur hiérarchique",
         acteurNom: "Samuel KOUAME",
         acteurPoste: "Responsable",
         acteurRole: "SUPERIEUR_N1",
         decision: "VALIDE",
-        motif: "Accord accordé.",
+        motif: "Avis favorable accordé.",
         dateAction: "2026-08-20T10:00:00Z",
       },
       {
         id: "hist-004-2",
         etape: "DRH",
-        libelleEtape: "Visa DRH (Balance de congés payés)",
+        libelleEtape: "Contrôle DRH",
         acteurNom: "Marie-Claire TOURE",
         acteurPoste: "DRH",
         acteurRole: "DRH",
         decision: "VALIDE",
-        motif: "Balance de congés payés déduite : 10 jours prélevés sur solde 2026.",
+        motif: "Balance de congés payés vérifiée : 10 jours déduits sur solde 2026.",
         dateAction: "2026-08-22T09:30:00Z",
       },
       {
         id: "hist-004-3",
         etape: "DIRECTION_DG",
-        libelleEtape: "Validation Gérant",
+        libelleEtape: "Validation Direction Générale",
         acteurNom: "Christian BAMBA",
         acteurPoste: "Gérant / PDG",
         acteurRole: "DIRECTION_DG",
@@ -386,7 +389,7 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       {
         id: "hist-004-4",
         etape: "AGENT_DRH",
-        libelleEtape: "Édition Bulletin & Archivage GED",
+        libelleEtape: "Édition de la permission & Archivage GED",
         acteurNom: "Aïcha DIARRA",
         acteurPoste: "Chargée RH",
         acteurRole: "AGENT_DRH",
@@ -399,7 +402,7 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
     dateDerniereAction: "2026-08-25T16:30:00Z",
   },
 
-  // 5. Demande retournée avec motif
+  // 5. Demande retournée à l'employé avec motif de révision (§3.2)
   {
     id: "dem-005",
     codeReference: "DEM-2026-00141",
@@ -413,11 +416,12 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       nom: "KOUAME",
       prenom: "Ebenezer Samuel",
       email: "ebenezer.kouame@agilly.net",
-      poste: "Directeur des Systemes d'information",
+      poste: "Directeur des Systèmes d'information",
       departement: "DSI",
       service: "Développement Applicatif",
       telephone: "+225 07 48 92 11 00",
       numeroCnss: "CI-0019284729-A",
+      managerNom: "Samuel KOUAME",
     },
     dateDebut: "2026-10-28",
     dateFin: "2026-10-29",
@@ -431,9 +435,9 @@ export const INITIAL_DEMANDES: DemandeRHItem[] = [
       {
         id: "hist-005-1",
         etape: "SUPERIEUR_N1",
-        libelleEtape: "Rejet avec motif",
+        libelleEtape: "Demande de révision du Supérieur",
         acteurNom: "Samuel KOUAME",
-        acteurPoste: "Responsable",
+        acteurPoste: "Responsable Infrastructure",
         acteurRole: "SUPERIEUR_N1",
         decision: "REFUSE_RETOUR",
         motif: "Merci de joindre la feuille d'astreinte signée attestant des heures de nuit travaillées.",
