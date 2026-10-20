@@ -1,10 +1,6 @@
 // ============================================================
 // app/absences/demandes/page.tsx
-// Tableau de bord récapitulatif du salarié & Liste simplifiée
-// - 4 cartes de synthèse en haut (Solde, En cours, Validées, À corriger)
-// - Filtres simples en <select> (Type, Statut, Période)
-// - Tableau clair et lisible
-// - Tiroir d'inspection épuré
+// Écran "Mes Demandes" dédié : Tableau complet et filtres en <select>
 // ============================================================
 
 "use client";
@@ -16,31 +12,12 @@ import { DemandeRHItem, StatutDemandeRH } from "@/types/absences.types";
 import { DemandeWorkflowStepper } from "@/features/absences/components/DemandeWorkflowStepper";
 
 export default function MesDemandesPage() {
-  const { currentPersona, myDemandes, annulerDemande, soldeConges } = useAbsences();
+  const { myDemandes, annulerDemande } = useAbsences();
 
   // Filtres simples sous forme de <select>
   const [filterStatut, setFilterStatut] = useState<string>("TOUS");
   const [filterType, setFilterType] = useState<string>("TOUS");
   const [selectedDemande, setSelectedDemande] = useState<DemandeRHItem | null>(null);
-
-  // Compteurs pour les cartes du tableau de bord
-  const countEnCours = useMemo(() => {
-    return myDemandes.filter((d) =>
-      ["EN_VALIDATION_N1", "EN_VALIDATION_DRH", "EN_VALIDATION_DG"].includes(d.statut)
-    ).length;
-  }, [myDemandes]);
-
-  const countValidees = useMemo(() => {
-    return myDemandes.filter((d) =>
-      ["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(d.statut)
-    ).length;
-  }, [myDemandes]);
-
-  const countRetours = useMemo(() => {
-    return myDemandes.filter((d) =>
-      ["RETOURNEE_EMPLOYE", "REFUSEE_DEFINITIVEMENT"].includes(d.statut)
-    ).length;
-  }, [myDemandes]);
 
   // Filtrage combiné simple
   const filteredDemandes = useMemo(() => {
@@ -131,125 +108,34 @@ export default function MesDemandesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── 1. EN-TÊTE ÉPURÉ AVEC ACTION PRINCIPALE ── */}
+      {/* ── EN-TÊTE DE LA PAGE MES DEMANDES ── */}
       <div className="bg-white border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Tableau de Bord & Mes Demandes
+            Historique & Suivi de Mes Demandes
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Récapitulatif de vos congés, permissions, missions et interventions en cours.
+            Consultez toutes vos demandes d&apos;absences, le workflow associé et téléchargez vos permissions validées.
           </p>
         </div>
 
-        <Link
-          href="/absences/nouvelle"
-          className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-semibold text-xs py-2.5 px-4 shadow-xs transition-colors cursor-pointer self-start sm:self-auto"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          <span>Nouvelle demande</span>
-        </Link>
-      </div>
-
-      {/* ── 2. TABLEAU DE BORD RÉCAPITULATIF (4 CARTES SIMPLES) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Solde Congés Disponibles */}
-        <div className="bg-white border border-slate-200 p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">
-              Solde Congés Payés
-            </span>
-            <span className="font-mono text-slate-400 text-[11px]">{soldeConges.joursAcquis} j acquis</span>
-          </div>
-          <div className="my-2 flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold font-mono text-slate-900">
-              {soldeConges.joursRestants}
-            </span>
-            <span className="text-xs font-semibold text-slate-500">jours disponibles</span>
-          </div>
-          <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
-            <span>{soldeConges.joursPris} j consommés</span>
-            <span className="text-[#F0822A] font-medium">{soldeConges.joursEnAttente} j posés</span>
-          </div>
-        </div>
-
-        {/* Demandes en validation */}
-        <div
-          onClick={() => setFilterStatut("EN_COURS")}
-          className={`bg-white border p-4 flex flex-col justify-between cursor-pointer transition-all ${
-            filterStatut === "EN_COURS" ? "border-[#F0822A] ring-1 ring-[#F0822A]" : "border-slate-200 hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">
-              En cours de validation
-            </span>
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-          </div>
-          <div className="my-2 flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold font-mono text-amber-700">
-              {countEnCours}
-            </span>
-            <span className="text-xs font-semibold text-slate-500">dossiers</span>
-          </div>
-          <span className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-            En attente de signature N+1 / DRH
-          </span>
-        </div>
-
-        {/* Demandes approuvées */}
-        <div
-          onClick={() => setFilterStatut("APPROUVEE")}
-          className={`bg-white border p-4 flex flex-col justify-between cursor-pointer transition-all ${
-            filterStatut === "APPROUVEE" ? "border-emerald-600 ring-1 ring-emerald-600" : "border-slate-200 hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">
-              Validées & Émises
-            </span>
-            <span className="w-2 h-2 rounded-full bg-emerald-600" />
-          </div>
-          <div className="my-2 flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold font-mono text-emerald-700">
-              {countValidees}
-            </span>
-            <span className="text-xs font-semibold text-slate-500">permissions prêtes</span>
-          </div>
-          <span className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-            Signées par la Direction Générale
-          </span>
-        </div>
-
-        {/* Demandes à corriger / refus */}
-        <div
-          onClick={() => setFilterStatut("RETOUR")}
-          className={`bg-white border p-4 flex flex-col justify-between cursor-pointer transition-all ${
-            filterStatut === "RETOUR" ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-500 text-xs">
-            <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">
-              À corriger
-            </span>
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-          </div>
-          <div className="my-2 flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold font-mono text-red-700">
-              {countRetours}
-            </span>
-            <span className="text-xs font-semibold text-slate-500">à réviser</span>
-          </div>
-          <span className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-            {countRetours > 0 ? "Motif à consulter pour révision" : "Aucun dossier à corriger"}
-          </span>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/absences"
+            className="text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 px-3 py-1.5 bg-white"
+          >
+            &larr; Tableau de bord
+          </Link>
+          <Link
+            href="/absences/nouvelle"
+            className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-semibold text-xs py-2 px-3.5 transition-colors shadow-xs"
+          >
+            <span>+ Nouvelle demande</span>
+          </Link>
         </div>
       </div>
 
-      {/* ── 3. BARRE DE SÉLECTION & FILTRES SIMPLES (AVEC DES <select>) ── */}
+      {/* ── BARRE DE SÉLECTION & FILTRES SIMPLES (AVEC DES <select>) ── */}
       <div className="bg-white border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-3">
           {/* Select Statut */}
@@ -261,9 +147,9 @@ export default function MesDemandesPage() {
               className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
             >
               <option value="TOUS">Tous les statuts ({myDemandes.length})</option>
-              <option value="EN_COURS">En cours de validation ({countEnCours})</option>
-              <option value="APPROUVEE">Approuvées ({countValidees})</option>
-              <option value="RETOUR">À corriger ({countRetours})</option>
+              <option value="EN_COURS">En cours de validation</option>
+              <option value="APPROUVEE">Approuvées / Émises</option>
+              <option value="RETOUR">À corriger</option>
             </select>
           </div>
 
@@ -287,7 +173,6 @@ export default function MesDemandesPage() {
           </div>
         </div>
 
-        {/* Bouton de réinitialisation si filtre actif */}
         {(filterStatut !== "TOUS" || filterType !== "TOUS") && (
           <button
             type="button"
@@ -302,13 +187,13 @@ export default function MesDemandesPage() {
         )}
       </div>
 
-      {/* ── 4. TABLEAU SIMPLIFIÉ ET LISIBLE ── */}
+      {/* ── TABLEAU COMPLET DES DEMANDES ── */}
       <div className="bg-white border border-slate-200 overflow-hidden">
         {filteredDemandes.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500">
             <p className="font-bold text-slate-800 text-sm">Aucune demande trouvée</p>
             <p className="text-slate-400 mt-1">
-              Modifiez votre sélection ci-dessus pour afficher vos autres demandes.
+              Modifiez votre sélection de filtre pour afficher les autres demandes.
             </p>
           </div>
         ) : (
@@ -320,10 +205,10 @@ export default function MesDemandesPage() {
                   <th className="py-3 px-4">Nature</th>
                   <th className="py-3 px-4">Période (Du / Au)</th>
                   <th className="py-3 px-4">Durée</th>
-                  <th className="py-3 px-4">Étape en cours</th>
+                  <th className="py-3 px-4">Étape du circuit</th>
                   <th className="py-3 px-4">Progression</th>
                   <th className="py-3 px-4">Statut</th>
-                  <th className="py-3 px-4 text-right">Consulter</th>
+                  <th className="py-3 px-4 text-right">Détails</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -353,16 +238,12 @@ export default function MesDemandesPage() {
                       {dem.etapeCourante === "CLOTURE" && "Terminé ✓"}
                     </td>
                     <td className="py-3.5 px-4 min-w-[120px]">
-                      {/* Mini Stepper 4 segments */}
                       <div className="flex items-center gap-1">
-                        <div className={`h-1.5 flex-1 ${["SOUMISE", "EN_VALIDATION_N1", "EN_VALIDATION_DRH", "EN_VALIDATION_DG", "APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-[#F0822A]" : "bg-slate-200"}`} title="Dépôt Salarié" />
-                        <div className={`h-1.5 flex-1 ${["EN_VALIDATION_DRH", "EN_VALIDATION_DG", "APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-[#F0822A]" : dem.statut === "EN_VALIDATION_N1" ? "bg-amber-400 animate-pulse" : "bg-slate-200"}`} title="Avis N+1" />
-                        <div className={`h-1.5 flex-1 ${["EN_VALIDATION_DG", "APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-[#F0822A]" : dem.statut === "EN_VALIDATION_DRH" ? "bg-amber-400 animate-pulse" : "bg-slate-200"}`} title="Contrôle DRH" />
-                        <div className={`h-1.5 flex-1 ${["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-emerald-600" : dem.statut === "EN_VALIDATION_DG" ? "bg-amber-400 animate-pulse" : "bg-slate-200"}`} title="Accord DG" />
+                        <div className={`h-1.5 flex-1 ${["SOUMISE", "EN_VALIDATION_N1", "EN_VALIDATION_DRH", "EN_VALIDATION_DG", "APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-[#F0822A]" : "bg-slate-200"}`} />
+                        <div className={`h-1.5 flex-1 ${["EN_VALIDATION_DRH", "EN_VALIDATION_DG", "APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-[#F0822A]" : dem.statut === "EN_VALIDATION_N1" ? "bg-amber-400 animate-pulse" : "bg-slate-200"}`} />
+                        <div className={`h-1.5 flex-1 ${["EN_VALIDATION_DG", "APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-[#F0822A]" : dem.statut === "EN_VALIDATION_DRH" ? "bg-amber-400 animate-pulse" : "bg-slate-200"}`} />
+                        <div className={`h-1.5 flex-1 ${["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) ? "bg-emerald-600" : dem.statut === "EN_VALIDATION_DG" ? "bg-amber-400 animate-pulse" : "bg-slate-200"}`} />
                       </div>
-                      <span className="text-[10px] text-slate-400 block mt-1">
-                        {dem.statut === "APPROUVEE" || dem.statut === "PERMISSION_EDITEE" || dem.statut === "ARCHIVEE" ? "Validé 100%" : "En cours..."}
-                      </span>
                     </td>
                     <td className="py-3.5 px-4">{getStatusBadge(dem.statut)}</td>
                     <td className="py-3.5 px-4 text-right">
@@ -374,7 +255,7 @@ export default function MesDemandesPage() {
                         }}
                         className="px-2.5 py-1 text-[11px] font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300"
                       >
-                        Voir &rarr;
+                        Consulter &rarr;
                       </button>
                     </td>
                   </tr>
@@ -385,7 +266,7 @@ export default function MesDemandesPage() {
         )}
       </div>
 
-      {/* ── 5. TIROIR D'INSPECTION DÉTAILLÉ DE LA DEMANDE ── */}
+      {/* ── TIROIR D'INSPECTION AVEC LE STEPPER COMPLET ── */}
       {selectedDemande && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
@@ -412,7 +293,7 @@ export default function MesDemandesPage() {
             </div>
 
             <div className="p-5 flex-1 overflow-y-auto flex flex-col gap-4">
-              {/* Stepper visuel du circuit hiérarchique */}
+              {/* Stepper graphique */}
               <DemandeWorkflowStepper demande={selectedDemande} />
 
               <div>
@@ -424,14 +305,13 @@ export default function MesDemandesPage() {
 
               <div className="p-3 bg-slate-50 border border-slate-200 flex flex-col gap-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Dates retenues
+                  Période demandée
                 </span>
                 <p className="font-mono font-bold text-slate-900 text-sm">
                   Du {formatDateFr(selectedDemande.dateDebut)} au {formatDateFr(selectedDemande.dateFin)}
                 </p>
                 <p className="text-slate-600 font-medium">
-                  {selectedDemande.nombreJoursOuvres} jours ouvrés (
-                  {selectedDemande.nombreJoursCalendaires || selectedDemande.nombreJoursOuvres} calendaires)
+                  {selectedDemande.nombreJoursOuvres} jours ouvrés ({selectedDemande.nombreJoursCalendaires || selectedDemande.nombreJoursOuvres} calendaires)
                 </p>
               </div>
 
@@ -446,7 +326,7 @@ export default function MesDemandesPage() {
 
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                  Contact pendant l&apos;absence
+                  Contact d&apos;urgence
                 </span>
                 <p className="font-medium text-slate-800">
                   {selectedDemande.adresseContactPendantAbsence || "Non renseigné"}
@@ -455,7 +335,7 @@ export default function MesDemandesPage() {
 
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                  Historique du circuit
+                  Historique des validations
                 </span>
                 <div className="flex flex-col gap-2">
                   {selectedDemande.historique.map((h) => (

@@ -220,35 +220,31 @@ export default function NouvelleDemandePage() {
         </Link>
       </div>
 
-      {/* ── BARRE DE SÉLECTION RAPIDE DE LA NATURE DE PERMISSION ── */}
-      <div className="bg-white border border-slate-200 p-3">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 px-1">
-          Choisir le type de demande (Chaque type adapte son formulaire ci-dessous)
-        </span>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {TYPES_CONFIG.map((t) => {
-            const isSelected = typeDemande === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTypeDemande(t.id)}
-                className={`
-                  p-2.5 text-left text-xs font-semibold border transition-all cursor-pointer flex items-center justify-between
-                  ${
-                    isSelected
-                      ? "bg-[#FFF4EB] text-slate-900 border-[#F0822A] ring-1 ring-[#F0822A]"
-                      : "bg-slate-50/70 text-slate-600 border-slate-200 hover:bg-white hover:text-slate-900"
-                  }
-                `}
-                style={{ borderLeftWidth: "3px", borderLeftColor: t.colorHex }}
-              >
-                <span className="truncate">{t.titre}</span>
-                {isSelected && <span className="text-[#F0822A] font-bold">✓</span>}
-              </button>
-            );
-          })}
+      {/* ── SÉLECTION DU TYPE DE DEMANDE (CHAMP SELECT CLAIR ET ÉPURÉ) ── */}
+      <div className="bg-white border border-slate-200 p-5">
+        <label htmlFor="select-type-demande" className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-2">
+          Type de demande / permission <span className="text-[#F0822A]">*</span>
+        </label>
+        <div className="relative max-w-xl">
+          <select
+            id="select-type-demande"
+            value={typeDemande}
+            onChange={(e) => setTypeDemande(e.target.value as TypeDemandeRH)}
+            className="w-full h-11 px-3.5 pr-10 text-sm font-semibold text-slate-900 bg-white border-2 border-slate-300 focus:border-[#F0822A] focus:outline-none transition-colors cursor-pointer appearance-none"
+          >
+            {TYPES_CONFIG.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.titre} — {t.sousTitre}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-500 font-bold">
+            ▼
+          </div>
         </div>
+        <p className="text-[11px] text-slate-500 mt-2">
+          Le formulaire ci-dessous s&apos;ajuste automatiquement selon la nature sélectionnée (dates, motifs, pièces ou informations de mission).
+        </p>
       </div>
 
       {/* ── CORPS DU FORMULAIRE EN 2 COLONNES (8 COLS FORMULAIRE / 4 COLS CONTRÔLES) ── */}
