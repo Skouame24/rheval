@@ -1,7 +1,6 @@
 // ============================================================
 // features/absences/components/ArchivesGedView.tsx
-// Module de gestion électronique des documents (GED) pour les permissions
-// Recherche multicritère, consultation et vérification des hash SHA-256
+// Module de gestion électronique des documents (GED) — Clean Design
 // ============================================================
 
 "use client";
@@ -32,17 +31,16 @@ export function ArchivesGedView({ demandes, onOpenPermission }: ArchivesGedViewP
   });
 
   return (
-    <div className="bg-white border border-slate-200 p-6 shadow-xs select-none">
+    <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs font-sans">
+      
+      {/* EN-TÊTE ÉPURÉ */}
       <div className="flex items-center justify-between flex-wrap gap-4 pb-4 mb-5 border-b border-slate-100">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#F0822A]">
-            GESTION ÉLECTRONIQUE DES DOCUMENTS (GED RH)
-          </span>
-          <h2 className="text-base font-black text-slate-900 m-0 tracking-tight">
-            Registre Officiel des Permissions Archivées & Certifiées
+          <h2 className="text-base font-bold text-slate-900 m-0">
+            Archives des permissions certifiées (GED RH)
           </h2>
           <p className="text-xs text-slate-500 m-0 mt-0.5">
-            Conservation légale de 5 ans, numérotation séquentielle inviolable et traçabilité SHA-256
+            Documents avec numéro unique, durée de rétention légale de 5 ans et empreinte SHA-256
           </p>
         </div>
 
@@ -50,17 +48,17 @@ export function ArchivesGedView({ demandes, onOpenPermission }: ArchivesGedViewP
         <div className="relative">
           <input
             type="text"
-            placeholder="Rechercher par n° unique, matricule, nom..."
+            placeholder="Rechercher n° unique, nom, matricule..."
             value={searchGed}
             onChange={(e) => setSearchGed(e.target.value)}
-            className="bg-slate-50 border border-slate-300 text-xs py-2 pl-8 pr-3 outline-none w-64 md:w-80 focus:border-[#F0822A]"
+            className="bg-white border border-slate-200 rounded-lg text-xs py-1.5 pl-8 pr-3 outline-none w-64 md:w-80 focus:border-[#F0822A] focus:ring-2 focus:ring-orange-100 transition-all"
           />
           <svg
-            className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"
+            className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="2.2"
           >
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -69,20 +67,20 @@ export function ArchivesGedView({ demandes, onOpenPermission }: ArchivesGedViewP
       </div>
 
       {/* TABLEAU DES ARCHIVES */}
-      <div className="overflow-x-auto border border-slate-200">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/80">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-100 text-slate-600 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+          <thead className="bg-slate-50/70 text-slate-500 font-semibold text-[11px] border-b border-slate-100">
             <tr>
-              <th className="py-3 px-4">N° Unique Permission</th>
-              <th className="py-3 px-4">Collaborateur & Matricule</th>
-              <th className="py-3 px-4">Nature & Période</th>
-              <th className="py-3 px-4">Émis par</th>
-              <th className="py-3 px-4">Intégrité SHA-256</th>
-              <th className="py-3 px-4">Rétention Légale</th>
-              <th className="py-3 px-4 text-right">Actions</th>
+              <th className="py-3.5 px-4">N° Unique</th>
+              <th className="py-3.5 px-4">Collaborateur</th>
+              <th className="py-3.5 px-4">Nature & Période</th>
+              <th className="py-3.5 px-4">Émis par</th>
+              <th className="py-3.5 px-4">Intégrité SHA-256</th>
+              <th className="py-3.5 px-4">Conservation</th>
+              <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
+          <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-10 text-center text-slate-400 text-xs">
@@ -91,26 +89,24 @@ export function ArchivesGedView({ demandes, onOpenPermission }: ArchivesGedViewP
               </tr>
             ) : (
               filtered.map((d) => (
-                <tr key={d.id} className="hover:bg-slate-50/80">
-                  <td className="py-3 px-4 font-black text-[#EA580C]">
+                <tr key={d.id} className="hover:bg-slate-50/60">
+                  <td className="py-3.5 px-4 font-bold text-[#EA580C]">
                     {d.documentPermission?.numeroUnique || "AGY-PERM-2026-XXXX"}
                   </td>
-                  <td className="py-3 px-4">
-                    <p className="font-extrabold text-slate-900 m-0">
+                  <td className="py-3.5 px-4">
+                    <p className="font-semibold text-slate-900 m-0">
                       {d.demandeur.prenom} {d.demandeur.nom}
                     </p>
-                    <p className="text-[10px] text-slate-500 m-0">
-                      {d.demandeur.matricule} — {d.demandeur.service}
+                    <p className="text-[11px] text-slate-400 m-0">{d.demandeur.service}</p>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <p className="font-medium text-slate-800 m-0">{d.libelleType}</p>
+                    <p className="text-[11px] text-slate-400 m-0">
+                      {new Date(d.dateDebut).toLocaleDateString("fr-FR")} — {new Date(d.dateFin).toLocaleDateString("fr-FR")} ({d.nombreJoursOuvres}j)
                     </p>
                   </td>
-                  <td className="py-3 px-4">
-                    <p className="font-bold text-slate-800 m-0">{d.libelleType}</p>
-                    <p className="text-[10px] text-slate-500 m-0">
-                      Du {new Date(d.dateDebut).toLocaleDateString("fr-FR")} au {new Date(d.dateFin).toLocaleDateString("fr-FR")} ({d.nombreJoursOuvres}j)
-                    </p>
-                  </td>
-                  <td className="py-3 px-4 text-[11px] text-slate-600">
-                    <p className="font-bold text-slate-900 m-0">
+                  <td className="py-3.5 px-4 text-slate-600">
+                    <p className="font-medium text-slate-900 m-0">
                       {d.documentPermission?.emetteurAgentNom || "Aïcha DIARRA"}
                     </p>
                     <p className="text-[10px] text-slate-400 m-0">
@@ -119,22 +115,22 @@ export function ArchivesGedView({ demandes, onOpenPermission }: ArchivesGedViewP
                         : "2026-08-25"}
                     </p>
                   </td>
-                  <td className="py-3 px-4 text-[10px] font-mono text-slate-400">
+                  <td className="py-3.5 px-4 text-[10px] font-mono text-slate-400">
                     {d.documentPermission?.hashSha256
-                      ? `${d.documentPermission.hashSha256.substring(0, 16)}...`
-                      : "e3b0c44298fc1c14..."}
+                      ? `${d.documentPermission.hashSha256.substring(0, 14)}...`
+                      : "e3b0c442..."}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5">
+                  <td className="py-3.5 px-4">
+                    <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/70 px-2.5 py-0.5 rounded-full">
                       5 ans (2031)
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-3.5 px-4 text-right">
                     <button
                       onClick={() => onOpenPermission(d)}
-                      className="bg-slate-900 hover:bg-[#F0822A] text-white font-extrabold text-[11px] px-3 py-1.5 transition-colors cursor-pointer"
+                      className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-2xs"
                     >
-                      Consulter Certificat PDF
+                      Voir PDF
                     </button>
                   </td>
                 </tr>
@@ -143,7 +139,7 @@ export function ArchivesGedView({ demandes, onOpenPermission }: ArchivesGedViewP
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }
-

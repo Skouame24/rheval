@@ -1,7 +1,6 @@
 // ============================================================
 // features/absences/components/PlanningEquipeView.tsx
-// Calendrier et planning d'équipe avec calcul du quorum de présence (RG-04)
-// Design Agilly (Bords stricts, repères temporels clairs)
+// Planning d'équipe moderne et serein — Clean Design
 // ============================================================
 
 "use client";
@@ -65,66 +64,74 @@ export function PlanningEquipeView() {
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case "CONGE":
-        return <span className="bg-blue-600 text-white font-extrabold text-[9px] px-1 py-0.5 w-full block text-center">CONGÉ</span>;
+        return <span className="bg-blue-100 text-blue-700 font-semibold text-[10px] px-1 py-0.5 rounded block text-center">Congé</span>;
       case "MISSION":
-        return <span className="bg-purple-600 text-white font-extrabold text-[9px] px-1 py-0.5 w-full block text-center">MISSION</span>;
+        return <span className="bg-purple-100 text-purple-700 font-semibold text-[10px] px-1 py-0.5 rounded block text-center">Mission</span>;
       case "MALADIE":
-        return <span className="bg-emerald-600 text-white font-extrabold text-[9px] px-1 py-0.5 w-full block text-center">MALADIE</span>;
+        return <span className="bg-emerald-100 text-emerald-700 font-semibold text-[10px] px-1 py-0.5 rounded block text-center">Maladie</span>;
       case "WEEKEND":
-        return <span className="bg-slate-200 text-slate-400 font-bold text-[8px] w-full block text-center">WE</span>;
+        return <span className="text-slate-300 font-normal text-[9px] block text-center">WE</span>;
       default:
-        return <span className="text-slate-300 text-center block text-xs">•</span>;
+        return <span className="text-slate-200 block text-center">•</span>;
     }
   };
 
   return (
-    <div className="bg-white border border-slate-200 p-6 shadow-xs select-none">
+    <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs font-sans">
+      
+      {/* EN-TÊTE ÉPURÉ */}
       <div className="flex items-center justify-between flex-wrap gap-4 pb-4 mb-5 border-b border-slate-100">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#F0822A]">
-            PLANNING DES ABSENCES & CONTINUITÉ DE SERVICE (RG-04)
-          </span>
-          <h2 className="text-base font-black text-slate-900 m-0 tracking-tight">
-            Calendrier Mensuel de Présence — Novembre 2026
+          <h2 className="text-base font-bold text-slate-900 m-0">
+            Calendrier des présences de l'équipe
           </h2>
+          <p className="text-xs text-slate-500 m-0 mt-0.5">
+            Planning mensuel et visualisation des départs validés
+          </p>
         </div>
 
-        {/* FILTRE SERVICE & LÉGENDE */}
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
-            className="bg-slate-50 border border-slate-300 text-xs font-bold py-1.5 px-3 outline-none"
-          >
-            <option value="TOUS">Tous les services</option>
-            <option value="Infrastructure">Infrastructure IT</option>
-            <option value="Projets Clients">Projets Clients</option>
-            <option value="Commercial">Commercial</option>
-            <option value="DSI Applicatif">DSI Applicatif</option>
-            <option value="Ressources Humaines">Ressources Humaines</option>
-          </select>
-        </div>
+        {/* FILTRE SERVICE */}
+        <select
+          value={selectedService}
+          onChange={(e) => setSelectedService(e.target.value)}
+          className="bg-white border border-slate-200 rounded-lg text-xs font-medium py-1.5 px-3 outline-none cursor-pointer focus:border-[#F0822A]"
+        >
+          <option value="TOUS">Tous les services</option>
+          <option value="Infrastructure">Infrastructure IT</option>
+          <option value="Projets Clients">Projets Clients</option>
+          <option value="Commercial">Commercial</option>
+          <option value="DSI Applicatif">DSI Applicatif</option>
+          <option value="Ressources Humaines">Ressources Humaines</option>
+        </select>
       </div>
 
-      {/* LÉGENDE RAPIDE */}
-      <div className="flex items-center gap-4 text-xs font-bold text-slate-600 mb-4 bg-slate-50 p-2.5 border border-slate-200">
-        <span className="text-slate-400 font-bold text-[10px] uppercase">Légende :</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-blue-600 inline-block"/> Congé Payé</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-purple-600 inline-block"/> Mission Extérieure</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-emerald-600 inline-block"/> Repos Maladie</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-slate-200 inline-block"/> Week-end</span>
+      {/* LÉGENDE DOUCE */}
+      <div className="flex items-center gap-4 text-xs font-medium text-slate-500 mb-4 bg-slate-50/70 p-3 rounded-lg border border-slate-100">
+        <span className="text-slate-400 font-normal">Légende :</span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> Congé payé
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> Mission
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Maladie
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" /> Week-end
+        </span>
       </div>
 
       {/* TABLEAU CALENDRIER */}
-      <div className="overflow-x-auto border border-slate-200">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/80">
         <table className="w-full text-xs">
-          <thead className="bg-slate-100 text-slate-700 font-extrabold uppercase text-[10px]">
+          <thead className="bg-slate-50 text-slate-600 font-semibold text-[11px]">
             <tr>
-              <th className="py-2.5 px-3 text-left w-48 border-r border-slate-200">Collaborateur</th>
+              <th className="py-3 px-4 text-left w-52 border-r border-slate-100">Collaborateur</th>
               {daysInView.map((d) => (
-                <th key={d} className="py-2.5 px-1 text-center w-10 border-r border-slate-200">
+                <th key={d} className="py-2.5 px-1 text-center w-10 border-r border-slate-100 font-medium">
                   {d}
-                  <span className="block text-[8px] font-normal text-slate-400">
+                  <span className="block text-[9px] font-normal text-slate-400">
                     {[7, 8, 14, 15].includes(d) ? "WE" : "J"}
                   </span>
                 </th>
@@ -133,16 +140,16 @@ export function PlanningEquipeView() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredTeam.map((c) => (
-              <tr key={c.id} className="hover:bg-slate-50/70">
-                <td className="py-2.5 px-3 font-bold text-slate-900 border-r border-slate-200">
+              <tr key={c.id} className="hover:bg-slate-50/60">
+                <td className="py-3 px-4 font-semibold text-slate-900 border-r border-slate-100">
                   <p className="m-0 leading-tight">{c.nom}</p>
-                  <p className="text-[10px] text-slate-400 font-normal m-0">{c.poste} — {c.service}</p>
+                  <p className="text-[11px] text-slate-400 font-normal m-0">{c.service}</p>
                 </td>
                 {daysInView.map((d) => (
                   <td
                     key={d}
-                    className={`py-2 px-1 text-center border-r border-slate-200 ${
-                      [7, 8, 14, 15].includes(d) ? "bg-slate-50" : ""
+                    className={`py-2 px-1 text-center border-r border-slate-100 ${
+                      [7, 8, 14, 15].includes(d) ? "bg-slate-50/50" : ""
                     }`}
                   >
                     {getStatusBadge(c.jours[d])}
@@ -153,7 +160,7 @@ export function PlanningEquipeView() {
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }
-

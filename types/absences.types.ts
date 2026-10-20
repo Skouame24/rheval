@@ -1,14 +1,16 @@
 // ============================================================
 // types/absences.types.ts
-// Modélisation complète du module Digitalisation RH - Demandes & Workflow
-// Conforme au Cahier des charges Agilly & BPMN Swimming Lanes
+// Modélisation complète conforme au formulaire officiel Agilly
+// ("FORMULAIRE DE DEMANDE DE PERMISSION - BULLETIN INDIVIDUEL")
 // ============================================================
 
 export type TypeDemandeRH =
-  | "CONGE_PAYE"
-  | "CONGE_EXCEPTIONNEL"
-  | "PERMISSION_ABSENCE"
-  | "REPOS_MALADIE"
+  | "CONGES_ANNUELS"
+  | "CONGES_MALADIE"
+  | "CONGES_MATERNITE"
+  | "RECUPERATION"
+  | "ABSENCE_NON_PAYEE"
+  | "PERMISSION_EXCEPTIONNELLE"
   | "MISSION_DEPLACEMENT"
   | "INTERVENTION_TERRAIN";
 
@@ -47,10 +49,11 @@ export interface DemandeurInfo {
   nom: string;
   prenom: string;
   email: string;
-  poste: string;
+  poste: string; // Fonction
   departement: string;
   service: string;
   telephone: string;
+  numeroCnss?: string; // N° CNSS de l'employé
   photoUrl?: string;
   managerNom?: string;
   managerEmail?: string;
@@ -90,6 +93,7 @@ export interface DocumentPermissionPDF {
   signatureElectronique: boolean;
   hashSha256: string;
   dureeConservationAnnees: number;
+  balanceCongesPayesSolde: number; // Balance DRH sur le bulletin
 }
 
 export interface DemandeRHItem {
@@ -103,22 +107,24 @@ export interface DemandeRHItem {
   // Demandeur
   demandeur: DemandeurInfo;
 
-  // Dates & Durée
+  // Dates & Durée (Du ... Au ... inclus)
   dateDebut: string;
   dateFin: string;
   estDemiJourneeDebut?: boolean;
   estDemiJourneeFin?: boolean;
   nombreJoursOuvres: number;
+  nombreJoursCalendaires?: number;
   
-  // Détails spécifiques
-  motif: string;
+  // Champs spécifiques du formulaire officiel Agilly
+  motif: string; // Motif de la permission
+  adresseContactPendantAbsence: string; // Adresse et contact téléphonique pendant l'absence
   destination?: string; // pour mission/déplacement
   moyenTransport?: string;
   fraisPrevisionnels?: number;
 
   // Compteurs & Règles de gestion
   cycleRetoursCount: number; // Max 2 avant refus définitif
-  alertesQuorumService?: string; // Ex: "Effectif restant: 65% (seuil min: 50%)"
+  alertesQuorumService?: string;
 
   // Justificatifs & Validations
   piecesJointes: PieceJointe[];
@@ -146,7 +152,7 @@ export interface StatistiqueServiceAbsence {
   service: string;
   totalEffectif: number;
   enCongeActuellement: number;
-  tauxPresence: number; // en pourcentage
+  tauxPresence: number;
   conformeQuorum: boolean;
 }
 
@@ -159,4 +165,3 @@ export interface KPIOverview {
   permissionsEditees: number;
   archivesGedTotal: number;
 }
-

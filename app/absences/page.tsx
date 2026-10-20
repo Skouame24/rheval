@@ -1,7 +1,7 @@
 // ============================================================
 // app/absences/page.tsx
 // Application Officielle AGILLY ABSENCES & CONGÉS (Portail SSO)
-// Respect strict de la charte graphique et du workflow BPMN
+// Refonte Visuelle Propre, Moderne & Structurée — Clean Design
 // ============================================================
 
 "use client";
@@ -28,10 +28,10 @@ import { ArchivesGedView } from "@/features/absences/components/ArchivesGedView"
 export default function AbsencesPage() {
   const { user } = useAuth();
 
-  // ── ÉTAT DU PERSONA CONNECTÉ (Switchable en direct) ──
+  // ── ÉTAT DU PERSONA CONNECTÉ ──
   const [currentPersona, setCurrentPersona] = useState<PersonaUser>(MOCK_PERSONAS[0]);
 
-  // Synchronisation avec la session SSO du portail
+  // Synchronisation avec la session utilisateur
   useEffect(() => {
     if (user) {
       setCurrentPersona((prev) => ({
@@ -68,13 +68,11 @@ export default function AbsencesPage() {
 
   // ── ACTIONS SUR LE WORKFLOW ──
 
-  // 1. Soumission d'une nouvelle demande
   const handleCreateDemande = (nouvelle: DemandeRHItem) => {
     setDemandes((prev) => [nouvelle, ...prev]);
     setMainNav("DEMANDES");
   };
 
-  // 2. Approbation (Validation OK)
   const handleApproveDemande = (demandeId: string, observation?: string) => {
     setDemandes((prev) =>
       prev.map((d) => {
@@ -87,8 +85,7 @@ export default function AbsencesPage() {
           nextStatut = "EN_VALIDATION_DRH";
           nextEtape = "DRH";
         } else if (d.statut === "EN_VALIDATION_DRH") {
-          // Si permission courte <= 2j, court-circuitage direct vers APPROUVEE (RG-01)
-          if (d.typeDemande === "PERMISSION_ABSENCE" && d.nombreJoursOuvres <= 2) {
+          if (d.typeDemande === "PERMISSION_EXCEPTIONNELLE" && d.nombreJoursOuvres <= 2) {
             nextStatut = "APPROUVEE";
             nextEtape = "AGENT_DRH";
           } else {
@@ -123,7 +120,6 @@ export default function AbsencesPage() {
     );
   };
 
-  // 3. Refus avec retour N-1 (Non OK avec motif obligatoire)
   const handleRejectReturn = (demandeId: string, motifObligatoire: string) => {
     setDemandes((prev) =>
       prev.map((d) => {
@@ -132,7 +128,6 @@ export default function AbsencesPage() {
         let nextStatut = d.statut;
         let nextEtape = d.etapeCourante;
 
-        // Cascade de retour : DG -> DRH, DRH -> N+1, N+1 -> Salarié
         if (d.statut === "EN_VALIDATION_DG") {
           nextStatut = "EN_VALIDATION_DRH";
           nextEtape = "DRH";
@@ -168,7 +163,6 @@ export default function AbsencesPage() {
     );
   };
 
-  // 4. Refus définitif (après plafond des 2 cycles)
   const handleRejectDefinitif = (demandeId: string, motif: string) => {
     setDemandes((prev) =>
       prev.map((d) => {
@@ -196,7 +190,6 @@ export default function AbsencesPage() {
     );
   };
 
-  // 5. Édition et Archivage GED de la Permission par l'Agent DRH
   const handleGeneratePermission = (demande: DemandeRHItem) => {
     const numGenere = `AGY-PERM-2026-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -211,6 +204,7 @@ export default function AbsencesPage() {
       signatureElectronique: true,
       hashSha256: "b4c2e817a992d4f8901235ecba99234851abcf18992384aedfc09812",
       dureeConservationAnnees: 5,
+      balanceCongesPayesSolde: 14.5,
     };
 
     setDemandes((prev) =>
@@ -239,7 +233,6 @@ export default function AbsencesPage() {
       })
     );
 
-    // Ouvrir immédiatement l'aperçu du document généré
     setSelectedDemandeForPermission({
       ...demande,
       statut: "ARCHIVEE",
@@ -248,8 +241,9 @@ export default function AbsencesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] font-sans antialiased text-slate-900 flex flex-col">
-      {/* ── EN-TÊTE PRINCIPAL ── */}
+    <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900 flex flex-col">
+      
+      {/* ── EN-TÊTE ÉPURÉ ── */}
       <AbsencesHeader
         currentPersona={currentPersona}
         onSelectPersona={setCurrentPersona}
@@ -257,44 +251,46 @@ export default function AbsencesPage() {
         onOpenNewDemande={() => setIsNewDemandeOpen(true)}
       />
 
-      {/* ── BARRE DE NAVIGATION MODULAIRE (ONGLETS PRINCIPAUX) ── */}
-      <nav className="bg-white border-b border-slate-200 px-4 md:px-8 shadow-xs select-none sticky top-[88px] z-20">
-        <div className="flex items-center gap-2 overflow-x-auto">
-          {[
-            { id: "DASHBOARD", label: "Vue Globale & Statistiques" },
-            { id: "DEMANDES", label: "Registre des Demandes RH", count: demandes.length },
-            { id: "SOLDES", label: "Mes Droits & Soldes Congés" },
-            { id: "PLANNING", label: "Planning d'Équipe (Quorums)" },
-            { id: "GED", label: "Archives GED des Permissions", count: demandes.filter((d) => d.documentPermission).length },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setMainNav(item.id as any)}
-              className={`flex items-center gap-2 py-3.5 px-4 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
-                mainNav === item.id
-                  ? "border-b-[#F0822A] text-slate-900 bg-orange-50/20"
-                  : "border-b-transparent text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              <span>{item.label}</span>
-              {item.count !== undefined && (
-                <span
-                  className={`text-[10px] font-black px-1.5 py-0.2 ${
-                    mainNav === item.id
-                      ? "bg-[#FFF7ED] text-[#EA580C] border border-[#FFEDD5]"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {item.count}
-                </span>
-              )}
-            </button>
-          ))}
+      {/* ── BARRE DE NAVIGATION MODULAIRE SOIGNÉE ── */}
+      <nav className="bg-white border-b border-slate-200/80 sticky top-16 z-20">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-1 overflow-x-auto h-12">
+            {[
+              { id: "DASHBOARD", label: "Vue d'ensemble" },
+              { id: "DEMANDES", label: "Demandes RH", count: demandes.length },
+              { id: "SOLDES", label: "Soldes de congés" },
+              { id: "PLANNING", label: "Planning d'équipe" },
+              { id: "GED", label: "Archives GED", count: demandes.filter((d) => d.documentPermission).length },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setMainNav(item.id as any)}
+                className={`flex items-center gap-2 h-full px-4 text-xs font-semibold transition-all border-b-2 cursor-pointer ${
+                  mainNav === item.id
+                    ? "border-[#F0822A] text-[#F0822A]"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <span>{item.label}</span>
+                {item.count !== undefined && (
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                      mainNav === item.id
+                        ? "bg-orange-50 text-[#F0822A]"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {item.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </nav>
 
       {/* ── CONTENU PRINCIPAL PAR ONGLET ── */}
-      <main className="flex-1 p-4 md:p-8 max-w-[1440px] w-full mx-auto space-y-6">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1440px] w-full mx-auto space-y-6">
         
         {/* ONGLET 1 : TABLEAU DE BORD & KPIS */}
         {mainNav === "DASHBOARD" && (
@@ -305,15 +301,14 @@ export default function AbsencesPage() {
               totalArchives={demandes.filter((d) => d.documentPermission).length}
             />
 
-            {/* Aperçu rapide des demandes nécessitant attention */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900">
-                  Dernières Activités sur le Circuit de Validation
+                <h3 className="text-sm font-bold text-slate-800 m-0">
+                  Dernières demandes en cours
                 </h3>
                 <button
                   onClick={() => setMainNav("DEMANDES")}
-                  className="text-xs font-bold text-[#F0822A] hover:underline"
+                  className="text-xs font-semibold text-[#F0822A] hover:underline"
                 >
                   Voir toutes les demandes →
                 </button>
@@ -329,7 +324,7 @@ export default function AbsencesPage() {
           </div>
         )}
 
-        {/* ONGLET 2 : REGISTRE COMPLET DES DEMANDES */}
+        {/* ONGLET 2 : DEMANDES */}
         {mainNav === "DEMANDES" && (
           <div className="space-y-6">
             <DemandesListTable
@@ -396,18 +391,17 @@ export default function AbsencesPage() {
         onGeneratePermission={handleGeneratePermission}
       />
 
-      {/* 3. Modal Visualiseur Permission Officielle */}
+      {/* 3. Modal Permission Officielle */}
       <PermissionViewerModal
         isOpen={selectedDemandeForPermission !== null}
         onClose={() => setSelectedDemandeForPermission(null)}
         demande={selectedDemandeForPermission}
       />
 
-      {/* ── FOOTER OFFICIEL AGILLY ── */}
-      <footer className="bg-white border-t border-slate-200 py-5 px-8 text-center text-xs font-bold text-slate-500 uppercase tracking-widest mt-auto select-none">
-        AGILLY GROUP © {new Date().getFullYear()} — MODULE ABSENCES & CONGÉS DU PORTAIL ENTREPRISE SSO
+      {/* ── PIED DE PAGE DISCRET ── */}
+      <footer className="py-6 px-8 text-center text-xs text-slate-400 mt-auto border-t border-slate-200/60 bg-white">
+        AGILLY GROUP © {new Date().getFullYear()} — Module Absences & Congés
       </footer>
     </div>
   );
 }
-
