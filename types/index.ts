@@ -8,3 +8,4 @@ export * from "./user.types";
 export * from "./cycle.types";
 export * from "./evaluation.types";
 export * from "./bonus.types";
+export * from "./absences.types";

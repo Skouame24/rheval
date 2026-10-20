@@ -135,31 +135,41 @@ export default function PortailPage() {
             </div>
           </button>
 
-          {/* ABSENCES & CONGÉS - EN DÉVELOPPEMENT */}
-          <div className="relative flex flex-col bg-white/80 border border-slate-200/80 opacity-80 select-none rounded-none border-t-4 border-t-blue-500">
+          {/* ABSENCES & CONGÉS - APPLICATION DISPONIBLE */}
+          <button 
+            onClick={() => router.push("/absences")}
+            className="group relative flex flex-col bg-white border border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-blue-600"
+          >
             <div className="p-6 pb-4">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 flex items-center justify-center rounded-none mb-4 border border-blue-100">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 flex items-center justify-center rounded-none mb-4 border border-blue-100 group-hover:scale-105 transition-transform">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="0" ry="0"/>
                   <line x1="16" y1="2" x2="16" y2="6"/>
                   <line x1="8" y1="2" x2="8" y2="6"/>
                   <line x1="3" y1="10" x2="21" y2="10"/>
+                  <path d="m9 16 2 2 4-4"/>
                 </svg>
               </div>
-              <h3 className="text-xl font-extrabold text-slate-900 mb-2">
-                Absences & Congés
-              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
+                  Absences & Congés
+                </h3>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5">
+                  NOUVEAU
+                </span>
+              </div>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Planning des congés payés, arrêts maladie, autorisations d'absence et suivi du solde.
+                Workflow des congés, permissions, missions, interventions, contrôle solde et archivage GED.
               </p>
             </div>
             
-            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest bg-slate-200/80 px-2 py-1 rounded-none border border-slate-300">
-                Bientôt disponible
-              </span>
+            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-blue-50/50 transition-colors">
+              <span className="text-xs font-extrabold text-blue-600">Ouvrir l'application →</span>
+              <svg className="text-blue-600 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
             </div>
-          </div>
+          </button>
 
           {/* ÉVALUATION COMPÉTENCES - EN DÉVELOPPEMENT */}
           <div className="relative flex flex-col bg-white/80 border border-slate-200/80 opacity-80 select-none rounded-none border-t-4 border-t-purple-600">
@@ -184,7 +194,6 @@ export default function PortailPage() {
               </span>
             </div>
           </div>
-
 
         </div>
 
