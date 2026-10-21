@@ -40,9 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Synchronisation dynamique avec la session Microsoft Entra ID
   useEffect(() => {
-    // Nettoyage proactif de tout profil simulé résiduel en localStorage
+    // 1. Priorité au profil simulé si actif pour les tests de parcours
     if (typeof window !== "undefined") {
-      localStorage.removeItem("agilly_simulated_user");
+      const simStored = localStorage.getItem("agilly_simulated_user");
+      if (simStored) {
+        try {
+          const simParsed = JSON.parse(simStored);
+          setUser(simParsed);
+          setIsSimulated(true);
+          setIsLoading(false);
+          return;
+        } catch {
+          localStorage.removeItem("agilly_simulated_user");
+        }
+      }
     }
 
     if (status === "loading") {
@@ -88,6 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         assignedRole = detected.role;
       }
 
+      // Surcharge de rôle éventuelle
+      if (typeof window !== "undefined") {
+        const roleOverride = localStorage.getItem("agilly_user_role_override") as Role | null;
+        if (roleOverride) {
+          assignedRole = roleOverride;
+        }
+      }
+
       const realUser: User = {
         id: u.id,
         nom: nom || "Connecté",
@@ -103,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       setUser(realUser);
+      setIsSimulated(false);
       localStorage.setItem("agilly_user", JSON.stringify(realUser));
       if (u.accessToken) {
         localStorage.setItem("agilly_token", u.accessToken);
@@ -154,14 +174,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) {
       const updatedUser = { ...user, role: newRole };
       setUser(updatedUser);
-      localStorage.setItem("agilly_user", JSON.stringify(updatedUser));
-      window.location.href = ROLE_DASHBOARD[newRole] || "/dashboard/mon-espace";
+      if (typeof window !== "undefined") {
+        localStorage.setItem("agilly_user_role_override", newRole);
+        localStorage.setItem("agilly_user", JSON.stringify(updatedUser));
+        if (isSimulated) {
+          localStorage.setItem("agilly_simulated_user", JSON.stringify(updatedUser));
+        }
+      }
+      const target = ROLE_DASHBOARD[newRole] || "/dashboard/mon-espace";
+      window.location.href = target;
     }
   };
 
   const switchProfile = (newUser: User) => {
-    localStorage.setItem("agilly_simulated_user", JSON.stringify(newUser));
-    localStorage.setItem("agilly_user", JSON.stringify(newUser));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("agilly_simulated_user", JSON.stringify(newUser));
+      localStorage.setItem("agilly_user", JSON.stringify(newUser));
+      localStorage.removeItem("agilly_user_role_override");
+    }
     setUser(newUser);
     setIsSimulated(true);
     const target = ROLE_DASHBOARD[newUser.role] || "/dashboard/mon-espace";
@@ -169,8 +199,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resetToSsoUser = () => {
-    localStorage.removeItem("agilly_simulated_user");
-    localStorage.removeItem("agilly_user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("agilly_simulated_user");
+      localStorage.removeItem("agilly_user");
+      localStorage.removeItem("agilly_user_role_override");
+    }
+    setIsSimulated(false);
     window.location.href = "/dashboard/mon-espace";
   };
 

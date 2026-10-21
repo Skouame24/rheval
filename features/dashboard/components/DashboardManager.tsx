@@ -682,6 +682,23 @@ export function DashboardManager() {
                               >
                                 Évaluer & Noter
                               </Button>
+                            ) : (!fiche || fiche.statut === "FIXATION_OBJECTIFS") ? (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                leftIcon={<TargetIcon size={13} />}
+                                onClick={() =>
+                                  setSelectedCollabForObjectifs({
+                                    id: member.id,
+                                    nom: fullName,
+                                    poste: member.poste || "Collaborateur",
+                                    readOnly: false,
+                                  })
+                                }
+                                className="bg-[#F0822A] hover:bg-orange-600 text-white font-bold"
+                              >
+                                Fixer les objectifs
+                              </Button>
                             ) : (
                               <Button
                                 variant="secondary"

@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ROLE_METADATA } from "@/lib/constants/roles";
 import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { UserRoleSwitcher } from "@/components/shared/UserRoleSwitcher";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import { notificationsApi, type AppNotification } from "@/lib/api";
 
@@ -37,7 +38,7 @@ interface HeaderProps {
 
 export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 0 }: HeaderProps) {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, isSimulated, switchRole, resetToSsoUser, logout } = useAuth();
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
@@ -130,7 +131,24 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
     : "/dashboard/mon-espace/notifications";
 
   return (
-    <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+    <>
+      {isSimulated && (
+        <div className="bg-amber-500 text-slate-950 px-6 py-2 text-xs font-black flex items-center justify-between shadow-xs sticky top-0 z-40">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🎭</span>
+            <span>Mode simulation actif : vous naviguez en tant que <strong>{userName}</strong> ({displayLabel} • {currentRole})</span>
+          </div>
+          {resetToSsoUser && (
+            <button
+              onClick={resetToSsoUser}
+              className="px-3 py-1 bg-slate-950 hover:bg-slate-800 text-white font-black text-xs cursor-pointer shadow-2xs"
+            >
+              ❌ Quitter la simulation (revenir à mon compte)
+            </button>
+          )}
+        </div>
+      )}
+      <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
       {/* Gauche — Titre de Page & Bouton Switch Rapide de Rôle */}
       <div className="flex items-center gap-4 flex-wrap">
         <h1 className="text-lg font-bold text-slate-900 tracking-tight m-0">
@@ -369,6 +387,9 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
           )}
         </div>
 
+        {/* Sélecteur de Rôles et d'Acteurs */}
+        <UserRoleSwitcher />
+
         {/* Ligne séparatrice */}
         <div className="w-px h-6 bg-slate-200" />
 
@@ -401,6 +422,55 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 <p className="text-xs text-slate-500">{user?.email || "utilisateur@agilly.com"}</p>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none text-xs font-bold bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/30">
                   Rôle actuel : {displayLabel}
+                </div>
+              </div>
+
+              {/* Rôles rapides */}
+              <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2 mb-1.5">
+                  Changer de rôle
+                </p>
+                <div className="grid grid-cols-2 gap-1 px-1">
+                  <button
+                    onClick={() => switchRole("SALARIE")}
+                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
+                      currentRole === "SALARIE"
+                        ? "bg-[#F0822A] text-white border-[#F0822A]"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    👤 Salarié
+                  </button>
+                  <button
+                    onClick={() => switchRole("N1")}
+                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
+                      currentRole === "N1"
+                        ? "bg-[#F0822A] text-white border-[#F0822A]"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    👔 Manager N+1
+                  </button>
+                  <button
+                    onClick={() => switchRole("N2")}
+                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
+                      currentRole === "N2"
+                        ? "bg-[#F0822A] text-white border-[#F0822A]"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    👑 Direction N+2
+                  </button>
+                  <button
+                    onClick={() => switchRole("DRH")}
+                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
+                      currentRole === "DRH" || currentRole === "RH"
+                        ? "bg-[#F0822A] text-white border-[#F0822A]"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    💼 Pilotage DRH
+                  </button>
                 </div>
               </div>
 
@@ -480,6 +550,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
         </div>
       </div>
     </header>
+    </>
   );
 }
 
