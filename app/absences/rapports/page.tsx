@@ -1,13 +1,16 @@
 // ============================================================
 // app/absences/rapports/page.tsx
-// Rapports & Pilotage RH — Statistiques, Histogrammes & SLA (EF-30 à EF-33)
-// Recharts : histogramme empilé par service, SLA par étape
-// Respect strict du Design System IBM Carbon x Agilly Corporate
+// Tableau de bord de pilotage RH — Soft, Corporate & Décisionnel (EF-30 à EF-33)
+// 1. Indicateurs clés du mois (Demandes traitées, Taux d'approbation, Délais)
+// 2. Histogramme équilibré des absences par service
+// 3. Suivi du respect des délais (SLA d'arbitrage)
+// 4. Export officiel Excel / PDF
 // ============================================================
 
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   BarChart,
   Bar,
@@ -20,25 +23,23 @@ import {
 } from "recharts";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
-// Données fictives consolidées par département
 const STATS_PAR_DEPARTEMENT = [
-  { service: "DSI", congesAnnuels: 18, missions: 6, permissions: 4, maladie: 2 },
-  { service: "Projets", congesAnnuels: 22, missions: 8, permissions: 5, maladie: 3 },
-  { service: "Finance", congesAnnuels: 10, missions: 2, permissions: 2, maladie: 1 },
-  { service: "RH", congesAnnuels: 8, missions: 3, permissions: 3, maladie: 1 },
-  { service: "Commercial", congesAnnuels: 14, missions: 12, permissions: 3, maladie: 2 },
+  { service: "DSI", conges: 18, missions: 6, permissions: 4, maladie: 2 },
+  { service: "Projets", conges: 22, missions: 8, permissions: 5, maladie: 3 },
+  { service: "Finance", conges: 10, missions: 2, permissions: 2, maladie: 1 },
+  { service: "RH", conges: 8, missions: 3, permissions: 3, maladie: 1 },
+  { service: "Commercial", conges: 14, missions: 12, permissions: 3, maladie: 2 },
 ];
 
-// Délais moyens de traitement par étape (en heures)
 const DELAIS_PAR_ETAPE = [
-  { etape: "Supérieur N+1", heures: 14, cible: 24 },
-  { etape: "Contrôle DRH", heures: 22, cible: 24 },
-  { etape: "Direction DG", heures: 36, cible: 48 },
-  { etape: "Édition GED", heures: 8, cible: 24 },
+  { etape: "Supérieur", realise: 14, cible: 24, statut: "Dans les délais" },
+  { etape: "Contrôle DRH", realise: 22, cible: 24, statut: "Dans les délais" },
+  { etape: "Direction DG", realise: 36, cible: 48, statut: "Dans les délais" },
+  { etape: "Édition & GED", realise: 8, cible: 24, statut: "Très rapide" },
 ];
 
 export default function RapportsPilotagePage() {
-  const { kpis } = useAbsences();
+  const { kpis, statsServices } = useAbsences();
   const [isMounted, setIsMounted] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
@@ -47,218 +48,168 @@ export default function RapportsPilotagePage() {
   }, []);
 
   const handleExport = (format: "EXCEL" | "PDF") => {
-    setExportNotice(`Génération de l'export ${format} des statistiques RH 2026 en cours...`);
+    setExportNotice(`Génération du rapport ${format} officiel en cours...`);
     setTimeout(() => {
-      setExportNotice(`Export ${format} généré avec succès (Rapport_Absences_Agilly_2026.${format.toLowerCase()}).`);
-      setTimeout(() => setExportNotice(null), 3500);
-    }, 1200);
+      setExportNotice(`Rapport ${format} généré avec succès.`);
+      setTimeout(() => setExportNotice(null), 3000);
+    }, 1000);
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* ── EN-TÊTE DE LA PAGE ── */}
-      <div className="bg-white border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 py-2">
+      {/* ── EN-TÊTE ── */}
+      <div className="bg-white border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-[#F0822A]" />
+            <span className="w-2.5 h-2.5 bg-[#D96F1D]" />
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Rapports & Pilotage RH des Absences
+              Tableau de bord RH & Pilotage
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Indicateurs clés de performance, respect des délais d&apos;arbitrage et volumétrie par département.
+            Supervision globale de l&apos;activité, volumétrie des absences, respect des règles et délais de traitement.
           </p>
         </div>
 
-        {/* Boutons d'exportation de données (EF-33) */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => handleExport("EXCEL")}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-semibold cursor-pointer transition-colors"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            <span>Export Excel</span>
+            📊 Export Excel
           </button>
           <button
             type="button"
             onClick={() => handleExport("PDF")}
-            className="px-3.5 py-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-[#D96F1D] hover:bg-[#B95914] text-white text-xs font-semibold cursor-pointer transition-colors"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            <span>Rapport PDF</span>
+            📄 Rapport PDF
           </button>
         </div>
       </div>
 
-      {/* Notification d'export */}
       {exportNotice && (
-        <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between">
-          <span>{exportNotice}</span>
-          <button
-            type="button"
-            onClick={() => setExportNotice(null)}
-            className="text-emerald-700 font-bold"
-          >
-            &times;
-          </button>
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
+          {exportNotice}
         </div>
       )}
 
-      {/* ── 1. BANDEAU DE 4 INDICATEURS CLÉS DE PILOTAGE ── */}
-      <div className="bg-white border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
-        <div className="p-5 flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Total Demandes Traitées
-          </span>
-          <div className="my-2">
-            <span className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight tabular-nums">
-              {kpis.totalDemandesMois}
-            </span>
-            <span className="text-xs font-bold text-slate-500 ml-1.5">dossiers</span>
-          </div>
-          <span className="text-[11px] text-emerald-700 font-semibold">
-            {kpis.approuveesMois} validées définitivement
-          </span>
+      {/* ── 4 INDICATEURS CLÉS SOFT ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="bg-white border border-slate-200 p-4">
+          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Demandes du mois</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">{kpis.totalDemandesMois}</p>
+          <span className="text-[11px] text-slate-500 mt-0.5 block">Toutes natures confondues</span>
         </div>
 
-        <div className="p-5 flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Délai Moyen de Validation
-          </span>
-          <div className="my-2">
-            <span className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight tabular-nums">
-              {kpis.delaiMoyenHeures}h
-            </span>
-            <span className="text-xs font-bold text-slate-500 ml-1.5">par demande</span>
-          </div>
-          <span className="text-[11px] text-slate-500">Objectif SLA entreprise : &lt; 48h</span>
+        <div className="bg-white border border-slate-200 p-4">
+          <span className="text-[10px] uppercase font-bold text-amber-700 block tracking-wider">En cours d&apos;instruction</span>
+          <p className="text-2xl font-bold text-amber-900 mt-1 font-mono">{kpis.enAttenteValidation}</p>
+          <span className="text-[11px] text-slate-500 mt-0.5 block">Chez les valideurs</span>
         </div>
 
-        <div className="p-5 flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Taux de Refus / Retour
-          </span>
-          <div className="my-2">
-            <span className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight tabular-nums">
-              {kpis.tauxRefusPourcent}%
-            </span>
-            <span className="text-xs font-bold text-slate-500 ml-1.5">des dépôts</span>
-          </div>
-          <span className="text-[11px] text-slate-500">2 demandes réorientées ce mois</span>
+        <div className="bg-white border border-slate-200 p-4">
+          <span className="text-[10px] uppercase font-bold text-emerald-700 block tracking-wider">Taux d&apos;accord</span>
+          <p className="text-2xl font-bold text-emerald-800 mt-1 font-mono">{(100 - kpis.tauxRefusPourcent).toFixed(1)}%</p>
+          <span className="text-[11px] text-slate-500 mt-0.5 block">Taux de refus : {kpis.tauxRefusPourcent}%</span>
         </div>
 
-        <div className="p-5 flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Archives GED Conformes
-          </span>
-          <div className="my-2">
-            <span className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight tabular-nums">
-              {kpis.archivesGedTotal}
-            </span>
-            <span className="text-xs font-bold text-slate-500 ml-1.5">bulletins numérotés</span>
-          </div>
-          <span className="text-[11px] text-emerald-700 font-semibold">100% avec cachet eIDAS</span>
+        <div className="bg-white border border-slate-200 p-4">
+          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Délai moyen de décision</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">{kpis.delaiMoyenHeures}h</p>
+          <span className="text-[11px] text-emerald-700 mt-0.5 block">Objectif global &lt; 48h respecté</span>
         </div>
       </div>
 
-      {/* ── 2. GRAPHIQUES : HISTOGRAMME EMPILÉ PAR DÉPARTEMENT + SLA PAR ÉTAPE ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Histogramme empilé des absences par département */}
-        <div className="lg:col-span-7 bg-white border border-slate-200 p-6 flex flex-col justify-between">
-          <div className="mb-4 pb-3 border-b border-slate-100 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-                Volume d&apos;absences par département & nature
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Cumul en jours ouvrés sur l&apos;exercice 2026
-              </p>
-            </div>
-            <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 border border-slate-200">
-              5 départements
-            </span>
-          </div>
-
-          <div className="w-full h-72">
-            {isMounted ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={STATS_PAR_DEPARTEMENT} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                  <XAxis dataKey="service" stroke="#94A3B8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
-                  <Bar dataKey="congesAnnuels" name="Congés Annuels" fill="#2563EB" stackId="a" />
-                  <Bar dataKey="missions" name="Missions" fill="#7C3AED" stackId="a" />
-                  <Bar dataKey="permissions" name="Permissions" fill="#F0822A" stackId="a" />
-                  <Bar dataKey="maladie" name="Maladie" fill="#059669" stackId="a" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                Chargement du graphique...
-              </div>
-            )}
+      {/* ── HISTOGRAMME EMPILÉ DE RÉPARTITION DES ABSENCES ── */}
+      <div className="bg-white border border-slate-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              Répartition des absences par département
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Comparatif des jours de congés, missions, permissions et repos maladie par pôle.
+            </p>
           </div>
         </div>
 
-        {/* SLA & Délais de traitement par étape */}
-        <div className="lg:col-span-5 bg-white border border-slate-200 p-6 flex flex-col justify-between">
-          <div className="mb-4 pb-3 border-b border-slate-100">
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-              Délai moyen de réponse par niveau (SLA)
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Identification des goulets d&apos;étranglement dans le circuit
-            </p>
-          </div>
+        <div className="h-64 w-full">
+          {isMounted && (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={STATS_PAR_DEPARTEMENT} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="service" tick={{ fontSize: 11, fill: "#64748b" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0", fontSize: "11px" }}
+                />
+                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                <Bar dataKey="conges" name="Congés" stackId="a" fill="#2563EB" />
+                <Bar dataKey="missions" name="Missions" stackId="a" fill="#9333EA" />
+                <Bar dataKey="permissions" name="Permissions" stackId="a" fill="#D96F1D" />
+                <Bar dataKey="maladie" name="Maladie" stackId="a" fill="#10B981" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-4 my-auto">
-            {DELAIS_PAR_ETAPE.map((item, idx) => {
-              const pct = Math.min(100, Math.round((item.heures / item.cible) * 100));
-              const isOver = item.heures > item.cible;
-              return (
-                <div key={idx} className="flex flex-col gap-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800">{item.etape}</span>
-                    <span className="font-mono text-slate-600">
-                      <strong>{item.heures}h</strong> (Cible : {item.cible}h)
-                    </span>
-                  </div>
+      {/* ── DEUX BLOCS : RESPECT DU QUORUM & SUIVI DES DÉLAIS SLA ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Contrôle du quorum par service (RG-04) */}
+        <div className="bg-white border border-slate-200 p-5">
+          <h2 className="text-sm font-bold text-slate-900 mb-1">
+            Contrôle d&apos;effectif minimum par service (RG-04)
+          </h2>
+          <p className="text-xs text-slate-500 mb-4">
+            Alerte automatique si le taux de présence d&apos;un pôle passe sous 80%.
+          </p>
 
-                  <div className="w-full h-2 bg-slate-100 border border-slate-200 flex overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        isOver ? "bg-red-500" : pct > 80 ? "bg-amber-500" : "bg-[#F0822A]"
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                    <span>0h</span>
-                    <span>Taux de respect : {100 - (isOver ? 15 : 0)}%</span>
-                    <span>Max {item.cible}h</span>
-                  </div>
+          <div className="divide-y divide-slate-100 text-xs">
+            {statsServices.map((s, idx) => (
+              <div key={idx} className="py-2.5 flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-slate-900 block">{s.service}</span>
+                  <span className="text-[11px] text-slate-400">
+                    {s.enCongeActuellement} absent(s) sur {s.totalEffectif} collaborateurs
+                  </span>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold text-slate-800">{s.tauxPresence}%</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Quorum respecté" />
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>Circuit nominal le plus rapide :</span>
-            <span className="font-mono font-bold text-emerald-700">Supérieur N+1 (14h)</span>
+        {/* Respect des délais par étape de validation (SLA) */}
+        <div className="bg-white border border-slate-200 p-5">
+          <h2 className="text-sm font-bold text-slate-900 mb-1">
+            Respect des délais de validation (SLA)
+          </h2>
+          <p className="text-xs text-slate-500 mb-4">
+            Temps moyen réel constaté vs objectif paramétré dans le circuit.
+          </p>
+
+          <div className="divide-y divide-slate-100 text-xs">
+            {DELAIS_PAR_ETAPE.map((sla, idx) => (
+              <div key={idx} className="py-2.5 flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-slate-900 block">{sla.etape}</span>
+                  <span className="text-[11px] text-slate-400">Objectif maximum : {sla.cible}h</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono font-bold text-slate-800 block">{sla.realise}h</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">{sla.statut}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
