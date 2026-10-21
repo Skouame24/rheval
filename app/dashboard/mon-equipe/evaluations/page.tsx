@@ -60,7 +60,7 @@ export default function EvaluationsEquipePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<string>("TOUS");
 
-  const isN2 = user?.role === "N2";
+  const isN2 = user?.role === "N2" || user?.role === "ADMIN";
   const userRole = isN2 ? "N2" : "N1";
 
   const displayName = user
@@ -565,28 +565,60 @@ export default function EvaluationsEquipePage() {
                               item.statut === "AUTO_EVALUATION" ||
                               item.statut === "VALIDATION_OBJECTIFS_SALARIE"
                             ) ? (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                leftIcon={<PencilIcon size={14} />}
-                                onClick={() => setSelectedFicheId(item.id)}
-                              >
-                                Évaluer & Noter
-                              </Button>
+                              isN2 ? (
+                                <>
+                                  <span className="px-2.5 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 inline-flex items-center gap-1.5">
+                                    ⏳ En attente notation N+1
+                                  </span>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    leftIcon={<EyeIcon size={14} />}
+                                    onClick={() => setSelectedFicheId(item.id)}
+                                  >
+                                    Consulter la fiche
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  leftIcon={<PencilIcon size={14} />}
+                                  onClick={() => setSelectedFicheId(item.id)}
+                                >
+                                  Évaluer & Noter
+                                </Button>
+                              )
                             ) : (
                               item.statut === "EVALUATION_N2" ||
                               item.statut === "VALIDATION_N2" ||
                               item.statut === "VALIDATION_NOTES_N2" ||
                               item.statut === "EN_ATTENTE_N2"
                             ) ? (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                leftIcon={<CheckCircleIcon size={14} />}
-                                onClick={() => setSelectedFicheId(item.id)}
-                              >
-                                Valider l'évaluation
-                              </Button>
+                              isN2 ? (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  leftIcon={<CheckCircleIcon size={14} />}
+                                  onClick={() => setSelectedFicheId(item.id)}
+                                >
+                                  Valider l&apos;évaluation
+                                </Button>
+                              ) : (
+                                <>
+                                  <span className="px-2.5 py-1 text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 inline-flex items-center gap-1.5">
+                                    ⏳ En attente validation N+2
+                                  </span>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    leftIcon={<EyeIcon size={14} />}
+                                    onClick={() => setSelectedFicheId(item.id)}
+                                  >
+                                    Consulter la fiche
+                                  </Button>
+                                </>
+                              )
                             ) : (
                               <Button
                                 variant="secondary"
