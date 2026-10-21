@@ -186,7 +186,7 @@ export default function RhDashboardPage() {
                 className="px-4 py-2.5 bg-[#F0822A] hover:bg-[#d97220] text-white text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
               >
                 <RocketIcon size={16} />
-                Lancer un Nouveau Cycle
+                Lancer une campagne d&apos;évaluation
               </button>
             )}
           </div>

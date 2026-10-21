@@ -127,7 +127,7 @@ export default function CyclesRhPage() {
               className="px-4 py-2 text-xs font-bold text-white bg-agilly-primary hover:bg-[#d9701f] transition-colors flex items-center gap-2"
             >
               <RocketIcon size={14} />
-              Nouveau Cycle
+              Lancer une campagne d&apos;évaluation
             </button>
           </div>
         </div>

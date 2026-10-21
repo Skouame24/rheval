@@ -1,9 +1,7 @@
 // ============================================================
 // app/absences/page.tsx
-// Tableau de bord personnel du salarié — Soft, aéré, centré sur ses 3 besoins vitaux :
-// 1. Déposer une demande (Congé, Permission, Mission, Intervention)
-// 2. Connaître ses soldes d'un coup d'œil
-// 3. Suivre le circuit vivant de sa demande en cours (Schéma officiel)
+// Tableau de bord personnel du salarié — Harmonisé avec le reste du portail
+// Padding & layout standard : flex flex-col gap-6 (même structure que Mes demandes, Soldes, Formulaire)
 // ============================================================
 
 "use client";
@@ -29,30 +27,41 @@ export default function AbsencesDashboardPage() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6 py-2">
-      {/* ── 1. EN-TÊTE ACCUEIL SOFT ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+    <div className="flex flex-col gap-6">
+      {/* ── 1. EN-TÊTE HARMONISÉ (MÊME PADDING P-6 ET BORDURES QUE TOUT LE PORTAIL) ── */}
+      <div className="bg-white border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Espace Salarié
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Bonjour {currentPersona.prenom.split(" ")[0]} · Gérez vos congés, permissions, missions et interventions en toute simplicité.
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-[#D96F1D]" />
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Tableau de bord salarié — Absences & Missions
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Bonjour <strong>{currentPersona.prenom} {currentPersona.nom}</strong> ({currentPersona.poste}) • Suivi en temps réel de vos congés et autorisations.
           </p>
         </div>
 
-        <Link
-          href="/absences/planning"
-          className="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3.5 py-2 transition-colors self-start sm:self-auto"
-        >
-          📅 Voir le planning d&apos;équipe
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/absences/planning"
+            className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 px-3 py-2 bg-white transition-colors"
+          >
+            📅 Planning d&apos;équipe
+          </Link>
+          <Link
+            href="/absences/nouvelle"
+            className="inline-flex items-center gap-2 bg-[#D96F1D] hover:bg-[#B95914] text-white font-semibold text-xs py-2 px-3.5 transition-colors shadow-xs"
+          >
+            <span>+ Nouvelle demande</span>
+          </Link>
+        </div>
       </div>
 
       {/* ── 2. CARTES D'ACCÈS RAPIDE PAR NATURE (CONGÉ, PERMISSION, MISSION, INTERVENTION) ── */}
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2.5">
-          Faire une nouvelle demande
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 px-1">
+          Déposer une nouvelle demande (Accès direct)
         </span>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link
@@ -121,10 +130,10 @@ export default function AbsencesDashboardPage() {
         </div>
       </div>
 
-      {/* ── 3. RÉSUMÉ DES SOLDES DU SALARIÉ (SOFT & COMPACT) ── */}
-      <div className="bg-white border border-slate-200 p-4">
+      {/* ── 3. RÉSUMÉ DES SOLDES DU SALARIÉ (MÊME PADDING P-5 QUE LES AUTRES PAGES) ── */}
+      <div className="bg-white border border-slate-200 p-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Mes soldes & compteurs disponibles
           </span>
           <Link href="/absences/soldes" className="text-xs font-semibold text-[#D96F1D] hover:underline">
@@ -134,7 +143,7 @@ export default function AbsencesDashboardPage() {
         <div className="grid grid-cols-3 divide-x divide-slate-100 text-xs">
           <div className="px-3 first:pl-0">
             <span className="text-[10px] text-slate-500 block uppercase font-medium">Congés payés</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5">
+            <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               {soldeConges.joursRestants} <span className="text-xs font-normal text-slate-500">j</span>
             </p>
             <span className="text-[10px] text-slate-400">{soldeConges.joursPris} j consommés sur {soldeConges.joursAcquis} j</span>
@@ -142,15 +151,15 @@ export default function AbsencesDashboardPage() {
 
           <div className="px-3">
             <span className="text-[10px] text-slate-500 block uppercase font-medium">Permissions autorisées</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5">
+            <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               {soldeConges.repartition.permissionsAnnuelles.solde} <span className="text-xs font-normal text-slate-500">j</span>
             </p>
-            <span className="text-[10px] text-slate-400">Quota annuel légal restant</span>
+            <span className="text-[10px] text-slate-400">Quota annuel restant</span>
           </div>
 
           <div className="px-3">
             <span className="text-[10px] text-slate-500 block uppercase font-medium">Récupérations</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5">
+            <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
               {soldeConges.repartition.recuperations.solde} <span className="text-xs font-normal text-slate-500">j</span>
             </p>
             <span className="text-[10px] text-slate-400">Heures sup & astreintes</span>
@@ -161,11 +170,11 @@ export default function AbsencesDashboardPage() {
       {/* ── 4. MES DEMANDES EN COURS AVEC CIRCUIT SCHÉMA OFFICIEL ── */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
             Suivi en temps réel de mes demandes ({enCours.length})
           </span>
           <Link href="/absences/demandes" className="text-xs font-semibold text-slate-600 hover:text-slate-900">
-            Voir tout l&apos;historique →
+            Consulter toutes mes demandes &rarr;
           </Link>
         </div>
 
@@ -178,12 +187,12 @@ export default function AbsencesDashboardPage() {
           enCours.map((d) => {
             const motif = d.historique.find((h) => h.decision === "REFUSE_RETOUR")?.motif;
             return (
-              <div key={d.id} className="bg-white border border-slate-200 p-4 flex flex-col gap-3.5">
+              <div key={d.id} className="bg-white border border-slate-200 p-5 flex flex-col gap-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900">{d.libelleType}</span>
-                      <span className="text-[10px] font-mono text-slate-400">({d.codeReference})</span>
+                      <span className="text-sm font-bold text-slate-900">{d.libelleType}</span>
+                      <span className="text-xs font-mono text-slate-500">({d.codeReference})</span>
                     </div>
                     <p className="text-xs text-slate-600 mt-0.5">
                       Période : <strong>Du {fr(d.dateDebut)} au {fr(d.dateFin)}</strong> · {d.nombreJoursOuvres} jour(s)
@@ -193,7 +202,7 @@ export default function AbsencesDashboardPage() {
                   {d.statut === "RETOURNEE_EMPLOYE" && (
                     <Link
                       href={`/absences/nouvelle?edit=${d.id}`}
-                      className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1 transition-colors"
+                      className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 transition-colors"
                     >
                       Corriger & Renvoyer
                     </Link>
@@ -205,8 +214,8 @@ export default function AbsencesDashboardPage() {
 
                 {/* Si retournée avec motif */}
                 {motif && d.statut === "RETOURNEE_EMPLOYE" && (
-                  <div className="text-xs text-red-900 bg-red-50 border border-red-200 p-2.5 flex items-start gap-2">
-                    <span className="font-bold text-red-600">Motif de retour du supérieur :</span>
+                  <div className="text-xs text-red-900 bg-red-50 border border-red-200 p-3 flex items-start gap-2">
+                    <span className="font-bold text-red-600 shrink-0">Motif de retour du supérieur :</span>
                     <span className="italic">&ldquo;{motif}&rdquo;</span>
                   </div>
                 )}
@@ -218,23 +227,23 @@ export default function AbsencesDashboardPage() {
 
       {/* ── 5. DERNIÈRE PERMISSION APPROUVÉE ET PRÊTE À TÉLÉCHARGER ── */}
       {approuvees.length > 0 && (
-        <div className="bg-emerald-50/70 border border-emerald-200 p-4 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5">
-            <span className="w-7 h-7 bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+        <div className="bg-emerald-50/70 border border-emerald-200 p-5 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
               ✓
             </span>
             <div>
-              <p className="font-bold text-emerald-950">
+              <p className="font-bold text-emerald-950 text-sm">
                 Permission prête : {approuvees[0].libelleType} ({approuvees[0].codeReference})
               </p>
-              <p className="text-emerald-800 text-[11px]">
+              <p className="text-emerald-800 text-[11px] mt-0.5">
                 Validée et éditée. Votre document officiel scellé est disponible au téléchargement.
               </p>
             </div>
           </div>
           <Link
             href="/absences/registre"
-            className="px-3 py-1.5 bg-white border border-emerald-300 font-bold text-emerald-900 hover:bg-emerald-100 transition-colors whitespace-nowrap"
+            className="px-3.5 py-2 bg-white border border-emerald-300 font-bold text-emerald-900 hover:bg-emerald-100 transition-colors whitespace-nowrap"
           >
             Télécharger le PDF
           </Link>

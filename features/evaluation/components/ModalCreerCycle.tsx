@@ -91,7 +91,7 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
             </div>
             <div>
               <h2 style={{ fontSize: 18, fontWeight: 900, color: "#000000", margin: 0 }}>
-                Lancer une Nouvelle Campagne RH
+                Lancer une campagne d'évaluation
               </h2>
               <p style={{ fontSize: 12, color: "#F0822A", margin: "2px 0 0 0", fontWeight: 800 }}>
                 Ouverture de la phase de fixation des objectifs
@@ -240,7 +240,7 @@ export function ModalCreerCycle({ isOpen, onClose, onSuccess }: ModalCreerCycleP
               disabled={isSubmitting}
               style={{ padding: "12px 24px", borderRadius: 0, border: "none", background: isSubmitting ? "#ccc" : "#F0822A", color: "#FFFFFF", fontWeight: 900, fontSize: 14, cursor: isSubmitting ? "not-allowed" : "pointer" }}
             >
-              {isSubmitting ? "Création en cours..." : "Lancer la Campagne"}
+              {isSubmitting ? "Création en cours..." : "Lancer la campagne d'évaluation"}
             </button>
           </div>
         </form>
