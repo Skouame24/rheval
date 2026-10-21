@@ -252,7 +252,7 @@ export function ModalDefinirObjectifs({
       });
 
       setSuccessMessage(
-        `✓ Les ${objectifsState.length} objectifs ont été validés avec succès ! La phase d'évaluation par le responsable est désormais ouverte.`
+        `✓ Les ${objectifsState.length} objectifs ont été fixés avec succès et transmis à la Direction RH pour validation !`
       );
 
       if (onSaved) {
@@ -818,7 +818,7 @@ export function ModalDefinirObjectifs({
                 ) : (
                   <>
                     <CheckCircleIcon size={14} />
-                    <span>Transmettre les Objectifs</span>
+                    <span>Transmettre à la Direction RH (Étape 2)</span>
                   </>
                 )}
               </button>

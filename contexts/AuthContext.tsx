@@ -142,7 +142,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           departement: realUser.departement,
           telephone: realUser.telephone,
           role: realUser.role,
-          managerId: u.manager?.id || null,
         }),
       })
         .then(async (res) => {
