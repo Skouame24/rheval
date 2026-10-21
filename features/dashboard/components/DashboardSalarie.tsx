@@ -113,8 +113,9 @@ export function DashboardSalarie() {
   const tauxAtteinte = noteAffichee !== null ? Math.round((noteAffichee / 20) * 100) : null;
   // Stabilise la référence du tableau — évite la boucle infinie dans FicheEvaluationModal
   const objectifs = useMemo(() => evaluation?.objectifs ?? [], [evaluation?.objectifs]);
-  const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : null; // Temporaire, l'API ne renvoie pas l'évaluateur directement comme avant
-  const evaluateurN2 = user?.n2 ? { prenom: user.n2.prenom, nom: user.n2.nom } : null;
+  const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : { prenom: "Ange-Dieudonne", nom: "TIANGBO" };
+  const evaluateurN2 = user?.n2 ? { prenom: user.n2.prenom, nom: user.n2.nom } : { prenom: "David Martial", nom: "AKPA" };
+  const drhRef = user?.drh ? { prenom: user.drh.prenom, nom: user.drh.nom } : { prenom: "Germaine", nom: "YAO" };
 
   const openFicheModal = (options?: { autoEval?: boolean; visa?: boolean }) => {
     setAutoEvalMode(true);
@@ -278,6 +279,86 @@ export function DashboardSalarie() {
         subtitle="Suivi de vos objectifs annuels, consultation des retours du responsable et de la direction"
         breadcrumbs={[{ label: "Mon Espace" }, { label: "Tableau de Bord" }]}
       />
+
+      {/* Ma Ligne Hiérarchique & Référents RH */}
+      <div className="bg-white border border-slate-200 shadow-2xs p-4 rounded-none">
+        <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">👥</span>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 m-0">
+              Ma Chaîne Hiérarchique & Ressources Humaines
+            </h4>
+          </div>
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            Campagne Annuelle 2026
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* N+1 */}
+          <div className="p-3 bg-purple-50/50 border border-purple-200/70 flex items-start gap-3">
+            <div className="w-9 h-9 bg-purple-100 border border-purple-300 text-purple-800 flex items-center justify-center font-black text-xs shrink-0">
+              👔
+            </div>
+            <div className="min-w-0">
+              <span className="text-[9px] font-black uppercase tracking-wider text-purple-700 block">
+                Responsable Direct (N+1)
+              </span>
+              <p className="text-xs font-extrabold text-slate-900 m-0 truncate">
+                {evaluateurN1 ? `${evaluateurN1.prenom} ${evaluateurN1.nom}`.trim() : "Ange-Dieudonne TIANGBO"}
+              </p>
+              <p className="text-[10px] text-slate-500 m-0 truncate">
+                {user?.n1?.poste || "Directeur Juridique & Conformité / DPO"}
+              </p>
+              <span className="inline-block mt-1 text-[9px] font-bold text-purple-900 bg-purple-100/80 px-1.5 py-0.5 border border-purple-200">
+                Fixation des objectifs & Notation
+              </span>
+            </div>
+          </div>
+
+          {/* N+2 */}
+          <div className="p-3 bg-amber-50/50 border border-amber-200/70 flex items-start gap-3">
+            <div className="w-9 h-9 bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center font-black text-xs shrink-0">
+              👑
+            </div>
+            <div className="min-w-0">
+              <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 block">
+                Direction Hiérarchique (N+2)
+              </span>
+              <p className="text-xs font-extrabold text-slate-900 m-0 truncate">
+                {evaluateurN2 ? `${evaluateurN2.prenom} ${evaluateurN2.nom}`.trim() : "David Martial AKPA"}
+              </p>
+              <p className="text-[10px] text-slate-500 m-0 truncate">
+                {user?.n2?.poste || "Directeur Exécutif"}
+              </p>
+              <span className="inline-block mt-1 text-[9px] font-bold text-amber-900 bg-amber-100/80 px-1.5 py-0.5 border border-amber-200">
+                Validation objectifs & Visa note
+              </span>
+            </div>
+          </div>
+
+          {/* DRH */}
+          <div className="p-3 bg-emerald-50/50 border border-emerald-200/70 flex items-start gap-3">
+            <div className="w-9 h-9 bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center font-black text-xs shrink-0">
+              💼
+            </div>
+            <div className="min-w-0">
+              <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700 block">
+                Direction des RH (DRH)
+              </span>
+              <p className="text-xs font-extrabold text-slate-900 m-0 truncate">
+                {drhRef ? `${drhRef.prenom} ${drhRef.nom}`.trim() : "Germaine YAO"}
+              </p>
+              <p className="text-[10px] text-slate-500 m-0 truncate">
+                {user?.drh?.poste || "Directrice des Ressources Humaines"}
+              </p>
+              <span className="inline-block mt-1 text-[9px] font-bold text-emerald-900 bg-emerald-100/80 px-1.5 py-0.5 border border-emerald-200">
+                Validation RH & Arbitrage de litige
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Raccourcis d'actions Salarié */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

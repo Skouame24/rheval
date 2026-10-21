@@ -17,6 +17,7 @@ export interface User {
   managerId?: string | null;
   n1?: UserSummary;          // Manager direct
   n2?: UserSummary;          // Supérieur du manager
+  drh?: UserSummary;         // Direction RH
   avatarUrl?: string;
   createdAt: string;
   updatedAt: string;

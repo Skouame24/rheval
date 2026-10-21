@@ -144,7 +144,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: realUser.role,
           managerId: u.manager?.id || null,
         }),
-      }).catch((e) => console.warn("[AuthContext] sync-session non bloquant:", e));
+      })
+        .then(async (res) => {
+          if (!res.ok) return;
+          const resData = await res.json().catch(() => null);
+          if (resData?.user) {
+            const dbUser = resData.user;
+            setUser((current) => {
+              if (!current) return current;
+              const roleOverride = typeof window !== "undefined" ? (localStorage.getItem("agilly_user_role_override") as Role | null) : null;
+              const updated: User = {
+                ...current,
+                role: roleOverride || (dbUser.role as Role) || current.role,
+                n1: dbUser.n1 || current.n1,
+                n2: dbUser.n2 || current.n2,
+                drh: dbUser.drh || current.drh,
+              };
+              if (typeof window !== "undefined") {
+                localStorage.setItem("agilly_user", JSON.stringify(updated));
+              }
+              return updated;
+            });
+          }
+        })
+        .catch((e) => console.warn("[AuthContext] sync-session non bloquant:", e));
 
       setIsLoading(false);
       return;
@@ -166,7 +189,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [status, session]);
 
   const login = async (email: string): Promise<void> => {
-    // Méthode de secours
     console.info("[Auth] Connexion standard pour:", email);
   };
 
@@ -212,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("agilly_user");
     localStorage.removeItem("agilly_token");
     localStorage.removeItem("agilly_simulated_user");
+    localStorage.removeItem("agilly_user_role_override");
     setUser(null);
     try {
       await nextAuthSignOut({ redirect: false });
