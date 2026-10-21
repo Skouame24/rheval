@@ -395,31 +395,41 @@ export function FicheEvaluationModal({
   const tauxGlobal = ((noteAffichee / 20) * 100).toFixed(1);
   const numTaux = parseFloat(tauxGlobal) || 0;
 
-  // Configuration jauge dynamique selon le taux d'atteinte :
-  // >= 80% : Vert (#10B981)
-  // 51% à 79% (autour de 60%) : Jaune / Ambre (#F59E0B)
-  // <= 50% (50 et en descendant) : Rouge (#EF4444)
+  // Configuration jauge dynamique & politique de bonus selon le taux d'atteinte :
+  // - En-dessous de 60% : Rouge (#EF4444) -> Non éligible au bonus
+  // - Entre 60% et 75% : Orange (#F0822A) -> Éligible au bonus
+  // - Plus de 75% : Vert (#10B981) -> Éligible au bonus (Performance supérieure)
   let jaugeColor = "#10B981";
   let jaugeText = "#065F46";
   let jaugeBg = "#ECFDF5";
   let jaugeBorder = "#A7F3D0";
+  let bonusLabel = "Éligible au bonus";
+  let bonusIcon = "✓";
 
-  if (numTaux >= 80) {
+  if (numTaux > 75) {
     jaugeColor = "#10B981"; // Vert
     jaugeText = "#065F46";
     jaugeBg = "#ECFDF5";
     jaugeBorder = "#A7F3D0";
-  } else if (numTaux > 50) {
-    jaugeColor = "#F59E0B"; // Jaune / Ambre
-    jaugeText = "#B45309";
-    jaugeBg = "#FFFBEB";
-    jaugeBorder = "#FDE68A";
+    bonusLabel = "Éligible au bonus (> 75%)";
+    bonusIcon = "✓";
+  } else if (numTaux >= 60) {
+    jaugeColor = "#F0822A"; // Orange
+    jaugeText = "#9A3412";
+    jaugeBg = "#FFF7ED";
+    jaugeBorder = "#FED7AA";
+    bonusLabel = "Éligible au bonus (60% - 75%)";
+    bonusIcon = "✓";
   } else {
     jaugeColor = "#EF4444"; // Rouge
     jaugeText = "#991B1B";
     jaugeBg = "#FEF2F2";
     jaugeBorder = "#FECACA";
+    bonusLabel = "Non éligible au bonus (< 60%)";
+    bonusIcon = "✕";
   }
+
+  const hasNotes = noteAffichee > 0 || (objectifs && objectifs.some((o: any) => o.noteObtenue !== undefined && o.noteObtenue !== null && o.noteObtenue !== ""));
 
   let dynamicStep: number = 1;
   if (isFicheCloturee) {
@@ -847,7 +857,7 @@ export function FicheEvaluationModal({
                 gap: 6
               }}
             >
-              Évaluation Manager & Formations ({noteGlobaleN1.toFixed(2)}/20)
+              Évaluation Manager & Formations
             </button>
           )}
 
@@ -888,8 +898,76 @@ export function FicheEvaluationModal({
             </button>
           </div>
 
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B" }}>
-            Connecté en tant que : <strong style={{ color: "#0F172A" }}>{effectiveRole}</strong>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            {/* ── INDICATEURS DE PERFORMANCE CONSOLIDÉS (Montés en haut) ── */}
+            {hasNotes && (
+              <>
+                {/* Jauge Taux d'atteinte dynamique */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 145 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      Taux d&apos;atteinte
+                    </span>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 900,
+                      color: jaugeText,
+                      background: jaugeBg,
+                      padding: "1px 7px",
+                      border: `1px solid ${jaugeBorder}`,
+                    }}>
+                      {tauxGlobal}%
+                    </span>
+                  </div>
+                  <div style={{
+                    width: "100%",
+                    height: 6,
+                    background: "#E2E8F0",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}>
+                    <div style={{
+                      width: `${Math.min(100, Math.max(0, numTaux))}%`,
+                      height: "100%",
+                      background: jaugeColor,
+                      transition: "width 0.4s ease, background-color 0.3s ease",
+                    }} />
+                  </div>
+                </div>
+
+                {/* Séparateur */}
+                <div style={{ width: 1, height: 26, background: "#CBD5E1" }} />
+
+                {/* Moyenne générale */}
+                <div>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em", display: "block" }}>
+                    Moyenne générale
+                  </span>
+                  <p style={{ fontSize: 14, fontWeight: 900, color: "#0F172A", margin: "1px 0 0 0", lineHeight: 1.2 }}>
+                    {noteAffichee.toFixed(2)} <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B" }}>/ 20</span>
+                  </p>
+                </div>
+
+                {/* Badge Éligibilité Bonus */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "4px 9px",
+                  background: jaugeBg,
+                  border: `1px solid ${jaugeBorder}`,
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: jaugeText }}>{bonusIcon}</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: jaugeText }}>
+                    {bonusLabel}
+                  </span>
+                </div>
+              </>
+            )}
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", borderLeft: hasNotes ? "1px solid #CBD5E1" : "none", paddingLeft: hasNotes ? 12 : 0 }}>
+              Rôle : <strong style={{ color: "#0F172A" }}>{effectiveRole}</strong>
+            </div>
           </div>
         </div>
 
@@ -1587,62 +1665,12 @@ export function FicheEvaluationModal({
           background: "#FFFFFF",
           borderTop: "1px solid #E2E8F0",
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           alignItems: "center",
           flexWrap: "wrap",
           gap: 12,
           flexShrink: 0
         }}>
-          {/* Bloc Indicateurs : Taux d'atteinte avec Jauge dynamique + Moyenne générale */}
-          <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-            {/* Taux d'atteinte avec jauge au-dessus / barre dynamique */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 170 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                  Taux d&apos;atteinte
-                </span>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 900,
-                  color: jaugeText,
-                  background: jaugeBg,
-                  padding: "1px 7px",
-                  border: `1px solid ${jaugeBorder}`,
-                }}>
-                  {tauxGlobal}%
-                </span>
-              </div>
-              {/* Jauge de remplissage dynamique (>=80% Vert, ~60% Jaune, <=50% Rouge) */}
-              <div style={{
-                width: "100%",
-                height: 7,
-                background: "#E2E8F0",
-                overflow: "hidden",
-                position: "relative",
-              }}>
-                <div style={{
-                  width: `${Math.min(100, Math.max(0, numTaux))}%`,
-                  height: "100%",
-                  background: jaugeColor,
-                  transition: "width 0.4s ease, background-color 0.3s ease",
-                }} />
-              </div>
-            </div>
-
-            {/* Séparateur vertical fin */}
-            <div style={{ width: 1, height: 32, background: "#E2E8F0" }} />
-
-            {/* Moyenne générale */}
-            <div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em", display: "block" }}>
-                Moyenne générale
-              </span>
-              <p style={{ fontSize: 14, fontWeight: 900, color: "#0F172A", margin: "2px 0 0 0" }}>
-                {noteAffichee.toFixed(2)} <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B" }}>/ 20</span>
-              </p>
-            </div>
-          </div>
-
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button
               onClick={onClose}
@@ -1679,7 +1707,7 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Transmission..." : "Valider & Transmettre l'Évaluation (N+1)"}
+                  {isSaving ? "Transmission..." : "Valider & Transmettre"}
                 </button>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

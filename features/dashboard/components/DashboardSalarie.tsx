@@ -13,6 +13,8 @@ import { STATUT_FLOW, STATUT_METADATA } from "@/lib/constants/statuts";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
+import { ModalAccordObjectifsSalarie } from "@/features/evaluation/components/ModalAccordObjectifsSalarie";
+import { ModalVisaEvaluationSalarie } from "@/features/evaluation/components/ModalVisaEvaluationSalarie";
 import type { StatutEvaluation } from "@/types";
 import { EyeIcon, TargetIcon, PencilIcon, FileTextIcon } from "@/components/ui/Icons";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -101,6 +103,11 @@ export function DashboardSalarie() {
   const { user } = useAuth();
   const [isFicheModalOpen, setIsFicheModalOpen] = useState(false);
   const [isDefinirObjectifsOpen, setIsDefinirObjectifsOpen] = useState(false);
+  const [isAccordObjectifsOpen, setIsAccordObjectifsOpen] = useState(false);
+  const [visaEvaluationModal, setVisaEvaluationModal] = useState<{ isOpen: boolean; mode: "ACCORD" | "ARBITRAGE" }>({
+    isOpen: false,
+    mode: "ACCORD",
+  });
   const [autoEvalMode, setAutoEvalMode] = useState(false);
   const [visaMode, setVisaMode] = useState(false);
 
@@ -271,6 +278,24 @@ export function DashboardSalarie() {
         objectifs={objectifs}
         readOnly={true}
         onSaved={refetch}
+      />
+
+      <ModalAccordObjectifsSalarie
+        isOpen={isAccordObjectifsOpen}
+        onClose={() => setIsAccordObjectifsOpen(false)}
+        evaluationId={evaluation?.id || ""}
+        objectifs={objectifs}
+        cycleLibelle={cycleLibelle}
+        onSuccess={refetch}
+      />
+
+      <ModalVisaEvaluationSalarie
+        isOpen={visaEvaluationModal.isOpen}
+        onClose={() => setVisaEvaluationModal((prev) => ({ ...prev, isOpen: false }))}
+        evaluationId={evaluation?.id || ""}
+        noteGlobale={noteAffichee}
+        mode={visaEvaluationModal.mode}
+        onSuccess={refetch}
       />
 
       {/* Page Header */}
@@ -528,36 +553,20 @@ export function DashboardSalarie() {
 
           <div className="flex items-center gap-3 flex-wrap">
             {statut === "VALIDATION_OBJECTIFS_SALARIE" && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!confirm("Confirmez-vous votre accord et prise de connaissance de vos objectifs pour 2026 ?")) return;
-                    try {
-                      await evaluationsApi.validateObjectifsSalarie(evaluation.id, { accord: true });
-                      refetch();
-                    } catch (err: any) {
-                      alert("Erreur lors de la confirmation : " + (err.message || "Erreur serveur"));
-                    }
-                  }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
-                >
-                  <span>✓ Approuver mes objectifs annuels</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsAccordObjectifsOpen(true)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+              >
+                <span>✓ Approuver mes objectifs annuels</span>
+              </button>
+            )}
 
-              {statut === "ACCORD_SALARIE" && (
+            {statut === "ACCORD_SALARIE" && (
               <>
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!confirm("Confirmez-vous votre accord sur l'évaluation et la note globale attribuée ?")) return;
-                    try {
-                      await evaluationsApi.submitVisaSalarie(evaluation.id, { accord: true, observation: "Visa et accord accordés sans réserve." });
-                      refetch();
-                    } catch (err: any) {
-                      alert("Erreur lors de la validation de l'accord : " + (err?.message || "Erreur serveur"));
-                    }
-                  }}
+                  onClick={() => setVisaEvaluationModal({ isOpen: true, mode: "ACCORD" })}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
                 >
                   <span>✓</span> Valider mon accord
@@ -565,20 +574,7 @@ export function DashboardSalarie() {
 
                 <button
                   type="button"
-                  onClick={async () => {
-                    const motif = window.prompt("Veuillez préciser le motif de votre contestation pour la Direction RH (ex: désaccord sur la note, atteinte non reconnue...) :");
-                    if (motif === null) return;
-                    if (!motif.trim()) {
-                      alert("Un motif est requis pour solliciter l'arbitrage RH.");
-                      return;
-                    }
-                    try {
-                      await evaluationsApi.submitVisaSalarie(evaluation.id, { accord: false, observation: motif.trim() });
-                      refetch();
-                    } catch (err: any) {
-                      alert("Erreur lors de la contestation : " + (err?.message || "Erreur serveur"));
-                    }
-                  }}
+                  onClick={() => setVisaEvaluationModal({ isOpen: true, mode: "ARBITRAGE" })}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
                   title="Contester la note et demander un arbitrage à la Direction RH"
                 >
