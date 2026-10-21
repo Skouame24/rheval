@@ -62,15 +62,29 @@ export default function RhDashboardPage() {
     loadData();
   }, [loadData]);
 
+  // Format date helper
+  const formatDateFr = (d?: string | Date | null) => {
+    if (!d) return "";
+    try {
+      return new Date(d).toLocaleDateString("fr-FR");
+    } catch {
+      return String(d);
+    }
+  };
+
   // Arbitrages ouverts réels
-  const arbitragesEnAttente = dossiers.filter((d) => d.statut === "ARBITRAGE");
+  const arbitragesEnAttente = dossiers.filter((d) => ["ARBITRAGE", "ARBITRAGE_RH"].includes(d.statut));
 
   // Filtrage
   const filteredDossiers = dossiers.filter((d) => {
-    const matchFilter =
-      filterStatut === "TOUT" ||
-      (filterStatut === "EN_ATTENTE" && (d.statut === "EN_ATTENTE_RH" || d.statut === "EN_ATTENTE_N1" || d.statut === "EN_ATTENTE_N2")) ||
-      d.statut === filterStatut;
+    let matchFilter = filterStatut === "TOUT";
+    if (filterStatut === "EN_ATTENTE") {
+      matchFilter = !["VALIDE", "CLOTURE", "CLOTUREE", "ARBITRAGE", "ARBITRAGE_RH"].includes(d.statut);
+    } else if (filterStatut === "ARBITRAGE") {
+      matchFilter = ["ARBITRAGE", "ARBITRAGE_RH"].includes(d.statut);
+    } else if (filterStatut === "VALIDE") {
+      matchFilter = ["VALIDE", "CLOTURE", "CLOTUREE"].includes(d.statut);
+    }
 
     const salarieName = `${d.salarie?.prenom || ""} ${d.salarie?.nom || ""} ${d.salarie?.poste || ""}`.toLowerCase();
     const matchSearch = salarieName.includes(searchQuery.toLowerCase());
@@ -79,10 +93,10 @@ export default function RhDashboardPage() {
 
   // Calculs dynamiques
   const totalSalaries = stats?.totalSalaries || dossiers.length || 0;
-  const fichesCompletes = dossiers.filter((d) => ["VALIDE", "CLOTURE"].includes(d.statut)).length;
+  const fichesCompletes = dossiers.filter((d) => ["VALIDE", "CLOTURE", "CLOTUREE"].includes(d.statut)).length;
   const tauxCompletion = totalSalaries > 0 ? Math.round((fichesCompletes / totalSalaries) * 100) : 0;
-  const fichesN1Done = dossiers.filter((d) => !["FIXATION_OBJECTIFS", "EN_ATTENTE_N1"].includes(d.statut)).length;
-  const fichesN2Done = dossiers.filter((d) => ["VALIDATION_DRH", "EN_ATTENTE_RH", "VALIDE", "CLOTURE"].includes(d.statut)).length;
+  const fichesN1Done = dossiers.filter((d) => !["FIXATION_OBJECTIFS", "EN_ATTENTE_N1", "VALIDATION_OBJECTIFS_N2", "VALIDATION_OBJECTIFS_SALARIE"].includes(d.statut)).length;
+  const fichesN2Done = dossiers.filter((d) => ["ACCORD_SALARIE", "VALIDATION_DRH", "EN_ATTENTE_RH", "VALIDE", "CLOTURE", "CLOTUREE"].includes(d.statut)).length;
 
   const handleArbitrageSuccess = async () => {
     setArbitrageModalItem(null);
@@ -92,14 +106,20 @@ export default function RhDashboardPage() {
   const getStatutLabel = (statut: string) => {
     switch (statut) {
       case "FIXATION_OBJECTIFS": return "Fixation Objectifs";
-      case "EN_ATTENTE_N1": return "En attente Responsable";
-      case "EVALUATION_N1": return "Évaluation Responsable";
-      case "EN_ATTENTE_N2": return "En attente Direction";
-      case "VALIDATION_N2": return "Validation Direction";
+      case "VALIDATION_OBJECTIFS_N2": return "Validation Objectifs N+2";
+      case "VALIDATION_OBJECTIFS_SALARIE": return "Accord Objectifs Salarié";
+      case "EN_ATTENTE_N1": return "En attente Manager";
+      case "EVALUATION_N1": return "Évaluation Manager";
+      case "EN_ATTENTE_N2": return "En attente N+2";
+      case "VALIDATION_N2":
+      case "VALIDATION_NOTES_N2": return "Évaluation N+2";
+      case "ACCORD_SALARIE": return "Visa / Accord Salarié";
       case "EN_ATTENTE_RH": return "En attente RH";
-      case "ARBITRAGE": return "Arbitrage Requis";
+      case "ARBITRAGE":
+      case "ARBITRAGE_RH": return "Arbitrage Requis";
       case "VALIDE": return "Validé & Clôturé";
-      case "CLOTURE": return "Clôturé";
+      case "CLOTURE":
+      case "CLOTUREE": return "✓ Dossier Clôturé";
       default: return statut;
     }
   };
@@ -176,7 +196,7 @@ export default function RhDashboardPage() {
                     CYCLE {activeCycle.annee} EN COURS
                   </span>
                   <p className="text-xs font-bold text-slate-800 m-0 mt-0.5">
-                    Du {activeCycle.dateDebut} au {activeCycle.dateFin}
+                    Du {formatDateFr(activeCycle.dateDebut || (activeCycle as any).dateOuverture)} au {formatDateFr(activeCycle.dateFin || (activeCycle as any).dateFermeture)}
                   </p>
                 </div>
               </div>
@@ -243,10 +263,10 @@ export default function RhDashboardPage() {
                   </p>
                   <div className="flex flex-wrap gap-4 text-xs font-bold">
                     <span className="text-[#F0822A] flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-[#F0822A] rounded-full inline-block" /> {fichesN1Done} Évaluations Responsables
+                      <span className="w-2.5 h-2.5 bg-[#F0822A] rounded-full inline-block" /> {fichesN1Done} Évaluations Managers
                     </span>
                     <span className="text-blue-600 flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block" /> {fichesN2Done} Validations Direction
+                      <span className="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block" /> {fichesN2Done} Évaluations N+2
                     </span>
                     <span className="text-red-600 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 bg-red-600 rounded-full inline-block" /> {arbitragesEnAttente.length} Arbitrage(s)
@@ -258,8 +278,8 @@ export default function RhDashboardPage() {
               {/* Taux par étape */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "1. Évaluation Responsable", count: `${fichesN1Done} / ${dossiers.length}`, color: "text-[#F0822A]" },
-                  { label: "2. Validation Direction", count: `${fichesN2Done} / ${dossiers.length}`, color: "text-blue-600" },
+                  { label: "1. Évaluation Manager", count: `${fichesN1Done} / ${dossiers.length}`, color: "text-[#F0822A]" },
+                  { label: "2. Évaluation N+2", count: `${fichesN2Done} / ${dossiers.length}`, color: "text-blue-600" },
                   { label: "3. Arbitrage RH", count: `${arbitragesEnAttente.length} Litige(s)`, color: "text-red-600" },
                   { label: "4. Clôture", count: `${fichesCompletes} / ${dossiers.length}`, color: "text-emerald-600" },
                 ].map((st, i) => (
@@ -422,8 +442,8 @@ export default function RhDashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredDossiers.map((item) => {
-                const isArbitrage = item.statut === "ARBITRAGE";
-                const isValide = ["VALIDE", "CLOTURE"].includes(item.statut);
+                const isArbitrage = ["ARBITRAGE", "ARBITRAGE_RH"].includes(item.statut);
+                const isValide = ["VALIDE", "CLOTURE", "CLOTUREE"].includes(item.statut);
                 const borderColorClass = isArbitrage ? "border-l-red-600" : isValide ? "border-l-emerald-600" : "border-l-[#F0822A]";
                 const noteAffichee = item.noteGlobale != null ? `${Number(item.noteGlobale).toFixed(1)} / 20` : "En attente";
 
@@ -466,15 +486,21 @@ export default function RhDashboardPage() {
 
                       {/* Statut pastille */}
                       <div className="mb-5">
-                        <span className={`
-                          text-[10px] font-black px-3 py-1.5 border uppercase tracking-wider block text-center
-                          ${isArbitrage ? "bg-red-50 text-red-600 border-red-200" :
-                            isValide ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                              "bg-amber-50 text-amber-700 border-amber-200"
-                          }
-                        `}>
-                          {getStatutLabel(item.statut)}
-                        </span>
+                        {isValide ? (
+                          <div className="bg-emerald-50 border border-emerald-300 px-3 py-2 flex items-center justify-center gap-2 text-emerald-800 shadow-sm">
+                            <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block animate-pulse" />
+                            <span className="text-[11px] font-black uppercase tracking-wider">
+                              ✓ Dossier Clôturé
+                            </span>
+                          </div>
+                        ) : (
+                          <span className={`
+                            text-[10px] font-black px-3 py-1.5 border uppercase tracking-wider block text-center
+                            ${isArbitrage ? "bg-red-50 text-red-600 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}
+                          `}>
+                            {getStatutLabel(item.statut)}
+                          </span>
+                        )}
                       </div>
                     </div>
 

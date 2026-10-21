@@ -10,6 +10,7 @@ import { Card, CardHeader, Button, PageHeaderSkeleton, StatCardSkeleton, Skeleto
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { STATUT_FLOW, STATUT_METADATA } from "@/lib/constants/statuts";
+import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import type { StatutEvaluation } from "@/types";
@@ -293,7 +294,7 @@ export function DashboardSalarie() {
               <span className="text-sm font-extrabold block">
                 {statut === "VALIDATION_OBJECTIFS_SALARIE"
                   ? "Consulter & Confirmer mes Objectifs (Action Requise)"
-                  : "Consulter mes Objectifs (Fixés par mon Responsable)"}
+                  : "Consulter mes Objectifs (Fixés par mon Manager)"}
               </span>
             </div>
           </button>
@@ -304,7 +305,7 @@ export function DashboardSalarie() {
             </div>
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Étape 01 · En attente</span>
-              <span className="text-sm font-bold text-slate-500 block">Objectifs non encore fixés par votre responsable</span>
+              <span className="text-sm font-bold text-slate-500 block">Objectifs non encore fixés par votre manager</span>
             </div>
           </div>
         )}
@@ -332,7 +333,7 @@ export function DashboardSalarie() {
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Étape 02 · En attente</span>
               <span className="text-sm font-bold text-slate-500 block">
-                Évaluation disponible dès la fixation des objectifs par votre responsable
+                Évaluation disponible dès la fixation des objectifs par votre manager
               </span>
             </div>
           </div>
@@ -398,36 +399,96 @@ export function DashboardSalarie() {
         {/* CTA Consulter Fiche Officielle */}
         <div className="border-t border-slate-200 pt-6 mt-6 flex justify-between items-center flex-wrap gap-4">
           <div className={`flex items-center gap-3 px-4 py-2 rounded-none border ${
-            hasObjectifs ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+            ["VALIDE", "CLOTURE", "CLOTUREE"].includes(statut)
+              ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+              : ["ARBITRAGE", "ARBITRAGE_RH"].includes(statut)
+              ? "bg-red-50 text-red-900 border-red-300"
+              : hasObjectifs
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-amber-50 text-amber-800 border-amber-200"
           }`}>
             <span className={`w-2 h-2 rounded-none shrink-0 ${
-              hasObjectifs ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+              ["VALIDE", "CLOTURE", "CLOTUREE"].includes(statut)
+                ? "bg-emerald-600"
+                : ["ARBITRAGE", "ARBITRAGE_RH"].includes(statut)
+                ? "bg-red-600 animate-pulse"
+                : hasObjectifs
+                ? "bg-emerald-500 animate-pulse"
+                : "bg-amber-500"
             }`} />
             <span className="text-xs font-bold">
-              {hasObjectifs ? (
+              {["VALIDE", "CLOTURE", "CLOTUREE"].includes(statut) ? (
+                "✓ Évaluation annuelle clôturée et archivée définitivement. Vos notes officielles sont enregistrées."
+              ) : ["ARBITRAGE", "ARBITRAGE_RH"].includes(statut) ? (
+                "⚖ Demande d'arbitrage RH en cours : vous avez contesté votre note. La Direction RH prendra contact pour l'entretien d'arbitrage afin d'arrêter la note finale."
+              ) : hasObjectifs ? (
                 <>
                   Votre dossier est en cours de traitement. Évalué par{" "}
                   {evaluateurN1
                     ? `${evaluateurN1.prenom} ${evaluateurN1.nom}`.trim()
-                    : "votre Responsable"}
+                    : "votre Manager"}
                   {evaluateurN2
                     ? ` et ${evaluateurN2.prenom} ${evaluateurN2.nom}`.trim()
                     : ""}.
                 </>
               ) : (
-                "Campagne ouverte : vos objectifs sont en cours de définition par votre responsable hiérarchique."
+                "Campagne ouverte : vos objectifs sont en cours de définition par votre manager."
               )}
             </span>
           </div>
 
-          <Button
-            variant={hasObjectifs ? "primary" : "secondary"}
-            onClick={() => openFicheModal()}
-            leftIcon={<EyeIcon size={16} />}
-            disabled={!hasObjectifs}
-          >
-            {hasObjectifs ? "Consulter ma Fiche Officielle" : "Fiche non encore disponible"}
-          </Button>
+          <div className="flex items-center gap-3 flex-wrap">
+            {statut === "ACCORD_SALARIE" && (
+              <>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm("Confirmez-vous votre accord sur l'évaluation et la note globale attribuée ?")) return;
+                    try {
+                      await evaluationsApi.submitVisaSalarie(evaluation.id, { accord: true, observation: "Visa et accord accordés sans réserve." });
+                      refetch();
+                    } catch (err: any) {
+                      alert("Erreur lors de la validation de l'accord : " + (err?.message || "Erreur serveur"));
+                    }
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
+                >
+                  <span>✓</span> Valider mon accord
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const motif = window.prompt("Veuillez préciser le motif de votre contestation pour la Direction RH (ex: désaccord sur la note, atteinte non reconnue...) :");
+                    if (motif === null) return;
+                    if (!motif.trim()) {
+                      alert("Un motif est requis pour solliciter l'arbitrage RH.");
+                      return;
+                    }
+                    try {
+                      await evaluationsApi.submitVisaSalarie(evaluation.id, { accord: false, observation: motif.trim() });
+                      refetch();
+                    } catch (err: any) {
+                      alert("Erreur lors de la contestation : " + (err?.message || "Erreur serveur"));
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
+                  title="Contester la note et demander un arbitrage à la Direction RH"
+                >
+                  <span>⚖</span> Contester la note & Demander un Arbitrage RH
+                </button>
+              </>
+            )}
+
+            <Button
+              variant={hasObjectifs ? "primary" : "secondary"}
+              onClick={() => openFicheModal()}
+              leftIcon={<EyeIcon size={16} />}
+              disabled={!hasObjectifs}
+            >
+              {hasObjectifs ? "Consulter ma Fiche Officielle" : "Fiche non encore disponible"}
+            </Button>
+          </div>
         </div>
       </Card>
 

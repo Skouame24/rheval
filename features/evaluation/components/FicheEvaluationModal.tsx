@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { WorkflowStepper } from "@/components/shared/WorkflowStepper";
 import { useAuth } from "@/contexts/AuthContext";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
+import { FileSpreadsheetIcon } from "@/components/ui/Icons";
 
 interface FicheEvaluationModalProps {
   isOpen: boolean;
@@ -345,7 +346,7 @@ export function FicheEvaluationModal({
 
   // Détection dynamique du statut et de l'étape du workflow officiel AGILLY
   const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
-  const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE";
+  const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE" || currentStatut === "CLOTUREE";
 
   // Droits de modification selon l'étape du cycle
   // 1. N+1 (Responsable) : évalue directement dès que les objectifs sont définis
@@ -378,8 +379,8 @@ export function FicheEvaluationModal({
     propRole === "N2"
   );
 
-  // 3. RH : ne peut valider ou arbitrer QUE si le statut est VALIDATION_DRH ou ARBITRAGE (ou EN_ATTENTE_RH) et NON clôturé
-  const isRHEvalOpen = !isFicheCloturee && (currentStatut === "VALIDATION_DRH" || currentStatut === "ARBITRAGE" || currentStatut === "EN_ATTENTE_RH");
+  // 3. RH : ne peut valider ou arbitrer QUE si le statut est VALIDATION_DRH, ARBITRAGE, ARBITRAGE_RH ou EN_ATTENTE_RH et NON clôturé
+  const isRHEvalOpen = !isFicheCloturee && (currentStatut === "VALIDATION_DRH" || currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH" || currentStatut === "EN_ATTENTE_RH");
   const canEditRH = !readOnly && !isFicheCloturee && (activeTab === "RH" || effectiveRole === "RH" || effectiveRole === "DRH") && isRHEvalOpen && (effectiveRole === "RH" || effectiveRole === "DRH" || effectiveRole === "ADMIN");
 
   // Calculs pondérés des moyennes
@@ -389,18 +390,36 @@ export function FicheEvaluationModal({
     ? objectifs.reduce((acc, obj) => acc + (Number(obj.noteObtenue || 0) * (Number(obj.ponderation || 0) / 100)), 0)
     : (objectifs.length > 0 ? objectifs.reduce((acc, obj) => acc + Number(obj.noteObtenue || 0), 0) / objectifs.length : 0);
 
-  const noteGlobaleN2 = totalPond > 0
-    ? objectifs.reduce((acc, obj) => acc + (Number(obj.noteN2 ?? obj.noteObtenue ?? 0) * (Number(obj.ponderation || 0) / 100)), 0)
-    : (objectifs.length > 0 ? objectifs.reduce((acc, obj) => acc + Number(obj.noteN2 ?? obj.noteObtenue ?? 0), 0) / objectifs.length : 0);
-
-  const noteAffichee =
-    activeTab === "N2"
-      ? noteGlobaleN2
-      : activeTab === "RH"
-      ? (noteGlobaleN2 > 0 ? noteGlobaleN2 : noteGlobaleN1)
-      : noteGlobaleN1;
-
+  // La note officielle unique est celle attribuée par le Manager N+1
+  const noteAffichee = noteGlobaleN1;
   const tauxGlobal = ((noteAffichee / 20) * 100).toFixed(1);
+  const numTaux = parseFloat(tauxGlobal) || 0;
+
+  // Configuration jauge dynamique selon le taux d'atteinte :
+  // >= 80% : Vert (#10B981)
+  // 51% à 79% (autour de 60%) : Jaune / Ambre (#F59E0B)
+  // <= 50% (50 et en descendant) : Rouge (#EF4444)
+  let jaugeColor = "#10B981";
+  let jaugeText = "#065F46";
+  let jaugeBg = "#ECFDF5";
+  let jaugeBorder = "#A7F3D0";
+
+  if (numTaux >= 80) {
+    jaugeColor = "#10B981"; // Vert
+    jaugeText = "#065F46";
+    jaugeBg = "#ECFDF5";
+    jaugeBorder = "#A7F3D0";
+  } else if (numTaux > 50) {
+    jaugeColor = "#F59E0B"; // Jaune / Ambre
+    jaugeText = "#B45309";
+    jaugeBg = "#FFFBEB";
+    jaugeBorder = "#FDE68A";
+  } else {
+    jaugeColor = "#EF4444"; // Rouge
+    jaugeText = "#991B1B";
+    jaugeBg = "#FEF2F2";
+    jaugeBorder = "#FECACA";
+  }
 
   let dynamicStep: number = 3;
   if (isFicheCloturee) {
@@ -424,22 +443,17 @@ export function FicheEvaluationModal({
     dynamicStep = currentStep;
   }
 
-  // Gestion des notes
+  // Gestion des notes (exclusivement réservée au Manager N+1)
   const handleSelectTranche = (objId: string, critere: { tranche: string; min: number; max: number; defaultNote: number }) => {
-    if (!canEditN1 && !canEditN2) return;
+    if (!canEditN1) return;
 
     setObjectifs((prev) =>
       prev.map((o) => {
         if (o.id === objId) {
-          const currentNote = activeTab === "N2" ? (o.noteN2 ?? o.noteObtenue) : o.noteObtenue;
+          const currentNote = o.noteObtenue;
           const isNoteInTier = currentNote >= critere.min && currentNote <= critere.max;
           const newNote = isNoteInTier && currentNote > 0 ? currentNote : critere.defaultNote;
-
-          if (activeTab === "N2") {
-            return { ...o, noteN2: newNote, trancheSelectionnee: critere.tranche };
-          } else {
-            return { ...o, trancheSelectionnee: critere.tranche, noteObtenue: newNote };
-          }
+          return { ...o, trancheSelectionnee: critere.tranche, noteObtenue: newNote };
         }
         return o;
       })
@@ -447,7 +461,7 @@ export function FicheEvaluationModal({
   };
 
   const handleNoteChange = (objId: string, valStr: string) => {
-    if (!canEditN1 && !canEditN2) return;
+    if (!canEditN1) return;
     const val = parseFloat(valStr) || 0;
     const clampedVal = Math.min(20, Math.max(0, val));
 
@@ -455,11 +469,7 @@ export function FicheEvaluationModal({
       prev.map((o) => {
         if (o.id === objId) {
           const matchedCritere = o.criteres.find((c) => clampedVal >= c.min && clampedVal <= c.max) || o.criteres[o.criteres.length - 1];
-          if (activeTab === "N2") {
-            return { ...o, noteN2: clampedVal };
-          } else {
-            return { ...o, noteObtenue: clampedVal, trancheSelectionnee: matchedCritere?.tranche || "" };
-          }
+          return { ...o, noteObtenue: clampedVal, trancheSelectionnee: matchedCritere?.tranche || "" };
         }
         return o;
       })
@@ -600,8 +610,8 @@ export function FicheEvaluationModal({
           observations: observationN2 || (finalDecision === "APPROUVE" ? "Évaluation validée sans réserve." : "Notes rejetées et renvoyées au manager."),
           notes: objectifs.map((o) => ({
             objectifId: o.id,
-            note: Number(o.noteN2 ?? o.noteObtenue ?? 0),
-            commentaire: o.commentaireN2 || o.commentaire,
+            note: Number(o.noteObtenue ?? 0),
+            commentaire: o.commentaire,
           })),
         });
 
@@ -633,14 +643,18 @@ export function FicheEvaluationModal({
     }
     setIsSaving(true);
     setSaveSuccessMsg(null);
+    const finalNoteToSubmit = noteArbitrage !== "" && !isNaN(Number(noteArbitrage))
+      ? Number(noteArbitrage)
+      : Number(noteAffichee.toFixed(2));
+
     try {
       await evaluationsApi.validerParRh(resolvedFicheId, {
         statut: targetStatut,
-        commentaire: commentaireRH || (targetStatut === "ARBITRAGE" ? "Dossier ouvert en arbitrage RH." : "Validation finale et approbation RH effectuée."),
-        noteFinale: Number(noteAffichee.toFixed(2)),
+        commentaire: commentaireRH || (targetStatut === "ARBITRAGE" ? "Dossier ouvert en arbitrage RH." : "Validation finale et clôture après arbitrage RH."),
+        noteFinale: finalNoteToSubmit,
       });
 
-      setFetchedEval((prev: any) => prev ? { ...prev, statut: targetStatut } : { statut: targetStatut });
+      setFetchedEval((prev: any) => prev ? { ...prev, statut: targetStatut, noteGlobale: finalNoteToSubmit } : { statut: targetStatut, noteGlobale: finalNoteToSubmit });
 
       setSaveSuccessMsg(
         targetStatut === "ARBITRAGE"
@@ -807,7 +821,7 @@ export function FicheEvaluationModal({
                 gap: 6
               }}
             >
-              Évaluation Responsable & Formations ({noteGlobaleN1.toFixed(2)}/20)
+              Évaluation Manager & Formations ({noteGlobaleN1.toFixed(2)}/20)
             </button>
           )}
 
@@ -826,7 +840,7 @@ export function FicheEvaluationModal({
               gap: 6
             }}
           >
-            Évaluation Direction ({noteGlobaleN2.toFixed(2)}/20)
+            Traitement du Litige (N+2)
           </button>
 
             <button
@@ -857,6 +871,53 @@ export function FicheEvaluationModal({
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20, background: "#F7F8FA" }}>
           
           <WorkflowStepper currentStep={dynamicStep} isCompleted={isFicheCloturee} />
+
+          {/* BANNIÈRE OFFICIELLE CLÔTURÉE */}
+          {isFicheCloturee && (
+            <div style={{
+              background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+              border: "1.5px solid #10B981",
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 16,
+              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.08)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: "50%",
+                  background: "#059669",
+                  color: "#FFFFFF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 20,
+                  fontWeight: 900,
+                  flexShrink: 0,
+                }}>
+                  ✓
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.05em", background: "#065F46", color: "#FFFFFF", padding: "2px 8px" }}>
+                      CYCLE OFFICIELLEMENT CLÔTURÉ & ARCHIVÉ
+                    </span>
+                  </div>
+                  <p style={{ margin: "4px 0 0 0", fontSize: 13, fontWeight: 700, color: "#065F46" }}>
+                    L&apos;évaluation annuelle a été validée par le Manager, approuvée par le N+2 et signée par le collaborateur.
+                  </p>
+                </div>
+              </div>
+              <div style={{ background: "#FFFFFF", border: "1.5px solid #059669", padding: "8px 16px", textAlign: "right" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>Note Finale Officielle</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: "#065F46" }}>{noteAffichee.toFixed(2)} / 20</span>
+              </div>
+            </div>
+          )}
 
           {/* SECTION 1 : COLLABORATEUR HERO */}
           <div style={{ background: "#FFFFFF", padding: 18, border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -894,21 +955,15 @@ export function FicheEvaluationModal({
 
             {/* Comparatif synthétique des notes */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, background: "#F8FAFC", padding: 12, border: "1px solid #E2E8F0" }}>
-              {!isCollabManager && (
-                <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>1. Note Manager</span>
-                  <span style={{ fontSize: 15, fontWeight: 900, color: "#F0822A" }}>{noteGlobaleN1.toFixed(2)} / 20</span>
-                </div>
-              )}
               <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block" }}>
-                  {isCollabManager ? "1. Note Direction" : "2. Note Direction"}
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>Note globale</span>
+                <span style={{ fontSize: 15, fontWeight: 900, color: "#F0822A" }}>
+                  {noteGlobaleN1.toFixed(2)} / 20
                 </span>
-                <span style={{ fontSize: 15, fontWeight: 900, color: "#9333EA" }}>{noteGlobaleN2.toFixed(2)} / 20</span>
               </div>
               <div style={{ textAlign: "center" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>
-                  {isCollabManager ? "2. Formations à Prévoir" : "3. Formations à Prévoir"}
+                  Formations à Prévoir
                 </span>
                 <span style={{ fontSize: 15, fontWeight: 900, color: "#059669" }}>{formations.length} module(s)</span>
               </div>
@@ -926,7 +981,7 @@ export function FicheEvaluationModal({
                   {activeTab === "N1"
                     ? "Attribuez les notes de performance par tranche ou valeur directe"
                     : activeTab === "N2"
-                    ? "Examinez les notes du manager et attribuez l'évaluation de la Direction"
+                    ? "Examinez les notes attribuées par le manager et formulez votre avis N+2"
                     : "Supervision finale DRH des écarts et moyennes consolidées"}
                 </p>
               </div>
@@ -937,10 +992,7 @@ export function FicheEvaluationModal({
             </div>
 
             {objectifs.map((obj) => {
-              const currentNote =
-                activeTab === "N2"
-                  ? (obj.noteN2 ?? obj.noteObtenue)
-                  : obj.noteObtenue;
+              const currentNote = obj.noteObtenue;
 
               return (
                 <div key={obj.id} style={{ background: "#FFFFFF", padding: 20, border: "1px solid #E2E8F0" }}>
@@ -961,94 +1013,48 @@ export function FicheEvaluationModal({
                     </div>
 
                     <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
-                      {!isCollabManager && (
-                        <div style={{
-                          background: "#FFF7ED",
-                          padding: "6px 10px",
-                          border: "1px solid #FFEDD5",
-                          textAlign: "right",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-end",
-                          justifyContent: "center"
-                        }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block", marginBottom: 2 }}>
-                            Note Manager
+                      <div style={{
+                        background: "#FFF7ED",
+                        padding: "6px 10px",
+                        border: "1px solid #FFEDD5",
+                        textAlign: "right",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        justifyContent: "center"
+                      }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block", marginBottom: 2 }}>
+                          Note
+                        </span>
+                        {canEditN1 ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <input
+                              type="number"
+                              min="0"
+                              max="20"
+                              step="0.5"
+                              value={obj.noteObtenue}
+                              onChange={(e) => handleNoteChange(obj.id, e.target.value)}
+                              style={{
+                                width: 54,
+                                height: 28,
+                                textAlign: "center",
+                                fontSize: 13,
+                                fontWeight: 900,
+                                color: "#EA580C",
+                                border: "1px solid #FDBA74",
+                                background: "#FFFFFF",
+                                outline: "none"
+                              }}
+                            />
+                            <span style={{ fontSize: 12, fontWeight: 800, color: "#EA580C" }}>/ 20</span>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 13, fontWeight: 900, color: "#F0822A" }}>
+                            {obj.noteObtenue} / 20
                           </span>
-                          {canEditN1 ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                              <input
-                                type="number"
-                                min="0"
-                                max="20"
-                                step="0.5"
-                                value={obj.noteObtenue}
-                                onChange={(e) => handleNoteChange(obj.id, e.target.value)}
-                                style={{
-                                  width: 54,
-                                  height: 28,
-                                  textAlign: "center",
-                                  fontSize: 13,
-                                  fontWeight: 900,
-                                  color: "#EA580C",
-                                  border: "1px solid #FDBA74",
-                                  background: "#FFFFFF",
-                                  outline: "none"
-                                }}
-                              />
-                              <span style={{ fontSize: 12, fontWeight: 800, color: "#EA580C" }}>/ 20</span>
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: 13, fontWeight: 900, color: "#F0822A" }}>
-                              {obj.noteObtenue} / 20
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {(activeTab === "N2" || activeTab === "RH" || isCollabManager) && (
-                        <div style={{
-                          background: "#FAF5FF",
-                          padding: "6px 10px",
-                          border: "1px solid #E9D5FF",
-                          textAlign: "right",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-end",
-                          justifyContent: "center"
-                        }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: "#9333EA", textTransform: "uppercase", display: "block", marginBottom: 2 }}>
-                            Note Direction
-                          </span>
-                          {canEditN2 ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                              <input
-                                type="number"
-                                min="0"
-                                max="20"
-                                step="0.5"
-                                value={obj.noteN2 ?? obj.noteObtenue}
-                                onChange={(e) => handleNoteChange(obj.id, e.target.value)}
-                                style={{
-                                  width: 54,
-                                  height: 28,
-                                  textAlign: "center",
-                                  fontSize: 13,
-                                  fontWeight: 900,
-                                  color: "#9333EA",
-                                  border: "1px solid #D8B4FE",
-                                  background: "#FFFFFF",
-                                  outline: "none"
-                                }}
-                              />
-                              <span style={{ fontSize: 12, fontWeight: 800, color: "#9333EA" }}>/ 20</span>
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: 13, fontWeight: 900, color: "#9333EA" }}>
-                              {obj.noteN2 ?? obj.noteObtenue} / 20
-                            </span>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1067,7 +1073,7 @@ export function FicheEvaluationModal({
                             display: "flex",
                             alignItems: "center",
                             gap: 12,
-                            cursor: (canEditN1 || canEditN2) ? "pointer" : "default",
+                            cursor: canEditN1 ? "pointer" : "default",
                           }}
                         >
                           <span style={{
@@ -1097,7 +1103,7 @@ export function FicheEvaluationModal({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <h4 style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
-                    Commentaire général & Appréciation du Responsable (N+1)
+                    Commentaire général & Appréciation du Manager (N+1)
                   </h4>
                   <p style={{ fontSize: 11, color: "#64748B", margin: "2px 0 0 0" }}>
                     Bilan global sur la période : atteinte des objectifs, investissement, points forts et axes d'amélioration.
@@ -1118,7 +1124,7 @@ export function FicheEvaluationModal({
                 placeholder={
                   canEditN1
                     ? "Saisissez votre commentaire général d'évaluation (forces, compétences démontrées, axes de progrès...)..."
-                    : "Aucun commentaire général renseigné par le responsable."
+                    : "Aucun commentaire général renseigné par le manager."
                 }
                 style={{
                   width: "100%",
@@ -1144,7 +1150,7 @@ export function FicheEvaluationModal({
                   3. Formations à envisager & Plan de développement
                 </h3>
                 <p style={{ fontSize: 11, color: "#64748B", margin: "2px 0 0 0" }}>
-                  Besoins en compétences identifiés par le responsable pour accompagner les objectifs futurs
+                  Besoins en compétences identifiés par le manager pour accompagner les objectifs futurs
                 </p>
               </div>
 
@@ -1287,20 +1293,20 @@ export function FicheEvaluationModal({
             )}
           </div>
 
-          {/* SECTION 4 : ÉVALUATION DIRECTION */}
+          {/* SECTION 4 : TRAITEMENT DU LITIGE & ARBITRAGE N+2 */}
           {activeTab === "N2" && (
             <div style={{ background: "#FAF5FF", padding: 20, border: "1px solid #E9D5FF" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h3 style={{ fontSize: 13, fontWeight: 800, color: "#581C87", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
-                  Décision & Avis de la Direction
+                  Décision N+2 — Traitement du Litige & Arbitrage
                 </h3>
                 <span style={{ fontSize: 11, fontWeight: 800, color: "#7E22CE", background: "#F3E8FF", padding: "3px 8px", border: "1px solid #E9D5FF" }}>
-                  Moyenne Direction : {noteGlobaleN2.toFixed(2)}/20
+                  Instance Hiérarchique N+2
                 </span>
               </div>
 
               <p style={{ fontSize: 12, color: "#6B21A8", margin: "0 0 12px 0" }}>
-                En tant que Directeur / Supérieur Hiérarchique, vous examinez l'évaluation et formulez votre appréciation finale.
+                En tant que N+2 (Direction / Supérieur Hiérarchique), vous intervenez pour arbitrer et trancher en cas de litige ou désaccord sur l&apos;évaluation entre le manager et le collaborateur.
               </p>
 
               <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
@@ -1319,7 +1325,7 @@ export function FicheEvaluationModal({
                     cursor: canEditN2 ? "pointer" : "default",
                   }}
                 >
-                  Validation sans réserve
+                  ✓ Confirmer la notation & Clore le litige
                 </button>
                 <button
                   type="button"
@@ -1336,7 +1342,7 @@ export function FicheEvaluationModal({
                     cursor: canEditN2 ? "pointer" : "default",
                   }}
                 >
-                  Demande d'arbitrage hiérarchique
+                  ✕ Renvoyer au Manager pour révision
                 </button>
               </div>
 
@@ -1344,13 +1350,13 @@ export function FicheEvaluationModal({
                 value={observationN2}
                 onChange={(e) => setObservationN2(e.target.value)}
                 disabled={!canEditN2}
-                placeholder="Motivations, appréciations ou réserves de la Direction..."
+                placeholder="Motif de l'arbitrage, synthèse de la conciliation et décision finale du N+2..."
                 style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: canEditN2 ? "#FFFFFF" : "#F8FAFC", marginBottom: 8 }}
               />
 
               {!canEditN2 && (
                 <p style={{ fontSize: 11, color: "#7E22CE", fontStyle: "italic", margin: "4px 0 0" }}>
-                  L'évaluation de la Direction est enregistrée. Les champs sont en consultation seule.
+                  L&apos;arbitrage du N+2 est enregistré. Les champs sont en consultation seule.
                 </p>
               )}
             </div>
@@ -1359,37 +1365,62 @@ export function FicheEvaluationModal({
           {/* SECTION 5 : DÉCISION & VALIDATION RH */}
           {activeTab === "RH" && (
             <div style={{
-              background: currentStatut === "ARBITRAGE" ? "#FFF7ED" : "#ECFDF5",
+              background: (currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "#FFF7ED" : "#ECFDF5",
               padding: 20,
-              border: `1px solid ${currentStatut === "ARBITRAGE" ? "#FDBA74" : "#A7F3D0"}`
+              border: `1px solid ${(currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "#FDBA74" : "#A7F3D0"}`
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 800, color: currentStatut === "ARBITRAGE" ? "#9A3412" : "#065F46", margin: 0, textTransform: "uppercase" }}>
-                  {currentStatut === "ARBITRAGE" ? "Dossier en Arbitrage — Saisie de la Note Retenue" : "Validation Finale de la Direction RH"}
+                <h3 style={{ fontSize: 13, fontWeight: 800, color: (currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "#9A3412" : "#065F46", margin: 0, textTransform: "uppercase" }}>
+                  {(currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "Arbitrage RH — Saisie de la Note Retenue après Entretien" : "Validation Finale RH & Clôture"}
                 </h3>
-                <span style={{ fontSize: 11, fontWeight: 800, color: currentStatut === "ARBITRAGE" ? "#EA580C" : "#059669", background: currentStatut === "ARBITRAGE" ? "#FED7AA" : "#D1FAE5", padding: "3px 8px" }}>
-                  {currentStatut === "ARBITRAGE" ? "Dossier en Arbitrage" : `Moyenne : ${noteAffichee.toFixed(2)}/20`}
+                <span style={{ fontSize: 11, fontWeight: 800, color: (currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "#EA580C" : "#059669", background: (currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "#FED7AA" : "#D1FAE5", padding: "3px 8px" }}>
+                  {(currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "Dossier en Arbitrage" : `Moyenne : ${noteAffichee.toFixed(2)}/20`}
                 </span>
               </div>
 
               {/* ── CAS 1 : FICHE CLÔTURÉE ── */}
               {isFicheCloturee ? (
-                <div style={{ background: "#FFFFFF", border: "1px solid #D1FAE5", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-                  <h4 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: "#065F46" }}>Dossier Validé & Clôturé Définitivement</h4>
-                  <p style={{ margin: 0, fontSize: 12, color: "#047857" }}>
-                    Note officielle retenue : <strong>{noteAffichee.toFixed(2)} / 20 ({tauxGlobal}%)</strong>
+                <div style={{ background: "#FFFFFF", border: "1.5px solid #10B981", padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 18, color: "#059669", fontWeight: 900 }}>✓</span>
+                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: "#065F46" }}>
+                        Dossier d&apos;Évaluation Validé & Clôturé Définitivement
+                      </h4>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: "#047857", background: "#D1FAE5", padding: "4px 10px", border: "1px solid #A7F3D0" }}>
+                      STATUT : ARCHIVÉ RH
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#047857", lineHeight: 1.5 }}>
+                    L&apos;ensemble des étapes de notation, d&apos;approbation N+2 et de visa collaborateur ont été accomplies avec succès. Ce dossier est désormais scellé et conservé au registre du personnel.
                   </p>
+                  <div style={{ display: "flex", gap: 20, marginTop: 4, flexWrap: "wrap" }}>
+                    <div style={{ background: "#F0FDF4", border: "1px solid #A7F3D0", padding: "8px 14px" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>Note finale officielle</span>
+                      <p style={{ margin: "2px 0 0 0", fontSize: 16, fontWeight: 900, color: "#065F46" }}>{noteAffichee.toFixed(2)} / 20 ({tauxGlobal}%)</p>
+                    </div>
+                    <div style={{ background: "#F0FDF4", border: "1px solid #A7F3D0", padding: "8px 14px" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>Taux d&apos;atteinte global</span>
+                      <p style={{ margin: "2px 0 0 0", fontSize: 16, fontWeight: 900, color: "#065F46" }}>{tauxGlobal}%</p>
+                    </div>
+                  </div>
                 </div>
-              ) : currentStatut === "ARBITRAGE" ? (
-                /* ── CAS 2 : DOSSIER EN ARBITRAGE → RH saisit la note finale ── */
+              ) : (currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? (
+                /* ── CAS 2 : DOSSIER EN ARBITRAGE → RH saisit la note finale après entretien de conciliation ── */
                 <>
-                  <p style={{ fontSize: 12, color: "#92400E", margin: "0 0 10px 0" }}>
-                    Ce dossier a été placé en arbitrage hiérarchique. Après conciliation, saisissez la note finale arrêtée.
-                  </p>
+                  <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", padding: 12, marginBottom: 14 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", margin: "0 0 4px 0" }}>
+                      ⚖ Contestation & Demande d&apos;Arbitrage Salarié
+                    </p>
+                    <p style={{ fontSize: 12, color: "#7F1D1D", margin: 0 }}>
+                      Le collaborateur a contesté sa notation. Après avoir mené l&apos;entretien de conciliation avec le salarié et le manager, la Direction RH renseigne ci-dessous la note définitive arrêtée et les conclusions d&apos;arbitrage pour clore le dossier.
+                    </p>
+                  </div>
                   <div style={{ display: "flex", gap: 16, marginBottom: 12, alignItems: "center" }}>
                     <div>
                       <label style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
-                        Note finale retenue après arbitrage / 20
+                        Note finale arrêtée après entretien (/20)
                       </label>
                       <input
                         type="number"
@@ -1403,13 +1434,14 @@ export function FicheEvaluationModal({
                         }}
                         placeholder={noteAffichee.toFixed(2)}
                         style={{
-                          width: 100,
-                          height: 34,
+                          width: 120,
+                          height: 36,
                           textAlign: "center",
-                          fontSize: 14,
-                          fontWeight: 800,
-                          border: "1px solid #CBD5E1",
+                          fontSize: 15,
+                          fontWeight: 900,
+                          border: "1.5px solid #F59E0B",
                           background: "#FFFFFF",
+                          color: "#0F172A",
                         }}
                       />
                     </div>
@@ -1417,8 +1449,8 @@ export function FicheEvaluationModal({
                   <textarea
                     value={commentaireRH}
                     onChange={(e) => setCommentaireRH(e.target.value)}
-                    placeholder="Conclusions de la séance d'arbitrage..."
-                    style={{ width: "100%", height: 60, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: "#FFFFFF" }}
+                    placeholder="Conclusions de l'entretien d'arbitrage RH, motif de la note arrêtée et accord trouvé..."
+                    style={{ width: "100%", height: 70, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: "#FFFFFF" }}
                   />
                 </>
               ) : (
@@ -1478,25 +1510,52 @@ export function FicheEvaluationModal({
           gap: 12,
           flexShrink: 0
         }}>
-          {/* Note globale & pourcentage sobre */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              padding: "4px 10px",
-              background: "#F1F5F9",
-              border: "1px solid #CBD5E1",
-              fontSize: 12,
-              fontWeight: 800,
-              color: "#0F172A",
-              letterSpacing: "-0.02em",
-            }}>
-              {tauxGlobal}%
+          {/* Bloc Indicateurs : Taux d'atteinte avec Jauge dynamique + Moyenne générale */}
+          <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+            {/* Taux d'atteinte avec jauge au-dessus / barre dynamique */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 170 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                  Taux d&apos;atteinte
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 900,
+                  color: jaugeText,
+                  background: jaugeBg,
+                  padding: "1px 7px",
+                  border: `1px solid ${jaugeBorder}`,
+                }}>
+                  {tauxGlobal}%
+                </span>
+              </div>
+              {/* Jauge de remplissage dynamique (>=80% Vert, ~60% Jaune, <=50% Rouge) */}
+              <div style={{
+                width: "100%",
+                height: 7,
+                background: "#E2E8F0",
+                overflow: "hidden",
+                position: "relative",
+              }}>
+                <div style={{
+                  width: `${Math.min(100, Math.max(0, numTaux))}%`,
+                  height: "100%",
+                  background: jaugeColor,
+                  transition: "width 0.4s ease, background-color 0.3s ease",
+                }} />
+              </div>
             </div>
+
+            {/* Séparateur vertical fin */}
+            <div style={{ width: 1, height: 32, background: "#E2E8F0" }} />
+
+            {/* Moyenne générale */}
             <div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", display: "block" }}>
-                Moyenne {activeTab === "N1" ? "Responsable" : activeTab === "N2" ? "Direction" : "Direction RH"}
+              <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.03em", display: "block" }}>
+                Moyenne générale
               </span>
-              <p style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: 0 }}>
-                {noteAffichee.toFixed(2)} / 20
+              <p style={{ fontSize: 14, fontWeight: 900, color: "#0F172A", margin: "2px 0 0 0" }}>
+                {noteAffichee.toFixed(2)} <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B" }}>/ 20</span>
               </p>
             </div>
           </div>
@@ -1519,8 +1578,8 @@ export function FicheEvaluationModal({
 
             {/* ACTION UNIQUE SELON LE RÔLE ET L'ÉTAPE DU CYCLE */}
             {isFicheCloturee ? (
-              <div style={{ padding: "8px 14px", background: "#ECFDF5", border: "1px solid #A7F3D0", color: "#065F46", fontWeight: 700, fontSize: 12 }}>
-                Dossier Clôturé (Lecture seule)
+              <div style={{ padding: "8px 16px", background: "#ECFDF5", border: "1.5px solid #10B981", color: "#065F46", fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 900 }}>✓</span> Dossier Clôturé & Archivé (Lecture seule)
               </div>
             ) : activeTab === "N1" ? (
               canEditN1 ? (
@@ -1558,7 +1617,7 @@ export function FicheEvaluationModal({
                         cursor: "pointer",
                       }}
                     >
-                      Valider en tant que Direction (N+2) →
+                      Valider en tant que N+2 →
                     </button>
                   )}
                 </div>
@@ -1570,7 +1629,7 @@ export function FicheEvaluationModal({
                   disabled={isSaving}
                   style={{
                     padding: "8px 18px",
-                    background: "#0F172A",
+                    background: decisionN2 === "REJETE" ? "#DC2626" : "#7C3AED",
                     color: "#FFFFFF",
                     border: "none",
                     fontWeight: 700,
@@ -1582,21 +1641,21 @@ export function FicheEvaluationModal({
                     ? "Enregistrement..."
                     : currentStatut === "VALIDATION_OBJECTIFS_N2"
                     ? (decisionN2 === "REJETE" ? "Rejeter les objectifs" : "Approuver les objectifs")
-                    : (decisionN2 === "REJETE" ? "Transmettre en Arbitrage" : "Valider l'Évaluation")}
+                    : (decisionN2 === "REJETE" ? "Renvoyer au Manager pour révision" : "Trancher & Valider l'Arbitrage (N+2)")}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                  Évaluation validée
+                  Arbitrage N+2 enregistré
                 </div>
               )
             ) : activeTab === "RH" ? (
               canEditRH ? (
                 <button
-                  onClick={() => handleValiderRH(currentStatut === "ARBITRAGE" ? "VALIDE" : decisionRH)}
+                  onClick={() => handleValiderRH((currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "VALIDE" : decisionRH)}
                   disabled={isSaving}
                   style={{
                     padding: "8px 18px",
-                    background: decisionRH === "ARBITRAGE" && currentStatut !== "ARBITRAGE" ? "#DC2626" : "#0F172A",
+                    background: (decisionRH === "ARBITRAGE" && currentStatut !== "ARBITRAGE" && currentStatut !== "ARBITRAGE_RH") ? "#DC2626" : "#059669",
                     color: "#FFFFFF",
                     border: "none",
                     fontWeight: 700,
@@ -1604,7 +1663,7 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Traitement..." : currentStatut === "ARBITRAGE" ? "Valider la note d'arbitrage" : decisionRH === "ARBITRAGE" ? "Placer en Arbitrage" : "Valider et Clôturer Définitivement"}
+                  {isSaving ? "Traitement..." : (currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH") ? "Valider la note d'arbitrage et clôturer" : decisionRH === "ARBITRAGE" ? "Placer en Arbitrage" : "Valider et Clôturer Définitivement"}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
@@ -1634,7 +1693,7 @@ export function FicheEvaluationModal({
                       ponderation: o.ponderation,
                       noteSalarie: o.noteSalarie,
                       noteN1: o.noteObtenue,
-                      noteN2: o.noteN2 ?? o.noteObtenue,
+                      noteN2: o.noteObtenue,
                     })),
                     formations: formations.map((f) => ({
                       formation: f.intitule,
@@ -1652,9 +1711,13 @@ export function FicheEvaluationModal({
                 fontWeight: 700,
                 fontSize: 12,
                 cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              Export Excel (.xlsx)
+              <FileSpreadsheetIcon size={14} color="#059669" />
+              <span>Export Excel (.xlsx)</span>
             </button>
           </div>
         </div>

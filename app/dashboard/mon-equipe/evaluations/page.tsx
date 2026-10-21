@@ -130,7 +130,7 @@ export default function EvaluationsEquipePage() {
             item.statut === "VALIDATION_NOTES_N2" ||
             item.statut === "EN_ATTENTE_N2"
           )) ||
-          (filtreStatut === "CLOTURES" && (item.statut === "VALIDE" || item.statut === "CLOTURE"));
+          (filtreStatut === "CLOTURES" && (item.statut === "VALIDE" || item.statut === "CLOTURE" || item.statut === "CLOTUREE"));
         return matchSearch && matchStatut;
       }
     });
@@ -372,7 +372,7 @@ export default function EvaluationsEquipePage() {
                         : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
-                    À valider Direction ({fichesEvaluations.filter((f) => f.statut === "EVALUATION_N2" || f.statut === "VALIDATION_N2" || f.statut === "VALIDATION_NOTES_N2" || f.statut === "EN_ATTENTE_N2").length})
+                    À valider N+2 ({fichesEvaluations.filter((f) => f.statut === "EVALUATION_N2" || f.statut === "VALIDATION_N2" || f.statut === "VALIDATION_NOTES_N2" || f.statut === "EN_ATTENTE_N2").length})
                   </button>
                   <button
                     onClick={() => setFiltreStatut("CLOTURES")}
@@ -382,7 +382,7 @@ export default function EvaluationsEquipePage() {
                         : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
-                    Validées / Clôturées ({fichesEvaluations.filter((f) => f.statut === "VALIDE" || f.statut === "CLOTURE").length})
+                    Validées / Clôturées ({fichesEvaluations.filter((f) => f.statut === "VALIDE" || f.statut === "CLOTURE" || f.statut === "CLOTUREE").length})
                   </button>
                 </>
               )}
@@ -500,7 +500,7 @@ export default function EvaluationsEquipePage() {
                                 </button>
                               ) : (
                                 <span className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 inline-flex items-center gap-1.5 cursor-not-allowed">
-                                  ⏳ En attente de validation Direction N+2
+                                  ⏳ En attente de validation N+2
                                 </span>
                               )
                             )}

@@ -33,14 +33,14 @@ export default function CyclesRhPage() {
       if (Array.isArray(data) && data.length > 0) {
         const mapped: CycleItem[] = data.map((c: any) => {
           const totalFiches = c.fiches_evaluation?.length || 0;
-          const cloturees = c.fiches_evaluation?.filter((f: any) => ["VALIDE", "CLOTURE"].includes(f.statut)).length || 0;
+          const cloturees = c.fiches_evaluation?.filter((f: any) => ["VALIDE", "CLOTURE", "CLOTUREE"].includes(f.statut)).length || 0;
           const isActif = ["ACTIF", "EN_COURS"].includes(c.statut);
           return {
             id: c.id,
             annee: String(c.annee),
             libelle: c.libelle,
-            debut: c.dateOuverture ? new Date(c.dateOuverture).toLocaleDateString("fr-FR") : "01/06/2026",
-            fin: c.dateFermeture ? new Date(c.dateFermeture).toLocaleDateString("fr-FR") : "31/12/2026",
+            debut: c.dateDebut ? new Date(c.dateDebut).toLocaleDateString("fr-FR") : (c.dateOuverture ? new Date(c.dateOuverture).toLocaleDateString("fr-FR") : "01/01/2026"),
+            fin: c.dateFin ? new Date(c.dateFin).toLocaleDateString("fr-FR") : (c.dateFermeture ? new Date(c.dateFermeture).toLocaleDateString("fr-FR") : "31/12/2026"),
             statut: isActif ? "En cours" : "Clôturé",
             participants: totalFiches > 0 ? totalFiches : 2,
             cloturees: cloturees,
