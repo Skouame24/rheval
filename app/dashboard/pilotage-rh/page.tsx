@@ -23,6 +23,7 @@ import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { rhApi, type RhDashboardStats } from "@/lib/api/rh.api";
 import { cyclesApi } from "@/lib/api/cycles.api";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
+import { exportPointCampagneRHToExcel } from "@/lib/utils/exportPointCampagneRH";
 import type { EvaluationCycle, Cycle } from "@/types";
 
 export default function RhDashboardPage() {
@@ -214,6 +215,21 @@ export default function RhDashboardPage() {
               Actualiser
             </button>
 
+            <button
+              onClick={() => {
+                if (dossiers.length > 0) {
+                  exportPointCampagneRHToExcel(dossiers, activeCycle, stats);
+                } else {
+                  alert("Aucun dossier d'évaluation disponible pour l'export.");
+                }
+              }}
+              title="Exporter le point global complet de la campagne d'évaluation sous format Excel (.xlsx)"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+            >
+              <FileSpreadsheetIcon size={15} color="#FFFFFF" />
+              <span>Exporter le Point RH (.xlsx)</span>
+            </button>
+
             {activeCycle && activeCycle.statut === "ACTIF" ? (
               <div className="flex items-center gap-4 bg-white border border-slate-200 px-5 py-2.5 shadow-sm">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#F0822A] animate-pulse" />
@@ -378,14 +394,15 @@ export default function RhDashboardPage() {
                 <button
                   onClick={() => {
                     if (dossiers.length > 0) {
-                      exportEvaluationToExcel(dossiers[0]);
+                      exportPointCampagneRHToExcel(dossiers, activeCycle, stats);
                     } else {
                       alert("Aucune fiche d'évaluation disponible pour l'export.");
                     }
                   }}
                   className="w-full py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  title="Télécharger le rapport de point global complet de la campagne pour la DRH"
                 >
-                  <FileSpreadsheetIcon size={14} color="#10B981" /> Télécharger Fiche Officielle (.xlsx)
+                  <FileSpreadsheetIcon size={14} color="#10B981" /> Exporter le Point de Campagne RH (.xlsx)
                 </button>
               </div>
             </div>
@@ -415,6 +432,21 @@ export default function RhDashboardPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="px-3.5 py-2 text-xs font-semibold border border-slate-300 bg-white w-64 outline-none focus:border-[#F0822A]"
               />
+
+              <button
+                onClick={() => {
+                  if (dossiers.length > 0) {
+                    exportPointCampagneRHToExcel(dossiers, activeCycle, stats);
+                  } else {
+                    alert("Aucun dossier d'évaluation disponible pour l'export.");
+                  }
+                }}
+                className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Exporter l'état d'avancement et les notes sous forme de point Excel"
+              >
+                <FileSpreadsheetIcon size={14} color="#059669" />
+                <span>Point Global (.xlsx)</span>
+              </button>
 
               {/* Filtres par Statut */}
               <div className="flex bg-white border border-slate-200">
