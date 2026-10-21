@@ -9,6 +9,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalCreerCycle } from "@/features/evaluation/components/ModalCreerCycle";
 import { ModalArbitrageRH } from "@/features/evaluation/components/ModalArbitrageRH";
+import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import {
   ScaleIcon,
   RocketIcon,
@@ -28,6 +29,7 @@ export default function RhDashboardPage() {
   const [isNewCycleOpen, setIsNewCycleOpen] = useState(false);
   const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
   const [arbitrageModalItem, setArbitrageModalItem] = useState<any | null>(null);
+  const [selectedCollabForObjectifs, setSelectedCollabForObjectifs] = useState<any | null>(null);
 
   const [dossiers, setDossiers] = useState<EvaluationCycle[]>([]);
   const [stats, setStats] = useState<RhDashboardStats | null>(null);
@@ -74,12 +76,15 @@ export default function RhDashboardPage() {
 
   // Arbitrages ouverts réels
   const arbitragesEnAttente = dossiers.filter((d) => ["ARBITRAGE", "ARBITRAGE_RH"].includes(d.statut));
+  const objectifsAValider = dossiers.filter((d) => d.statut === "VALIDATION_OBJECTIFS_RH");
 
   // Filtrage
   const filteredDossiers = dossiers.filter((d) => {
     let matchFilter = filterStatut === "TOUT";
     if (filterStatut === "EN_ATTENTE") {
       matchFilter = !["VALIDE", "CLOTURE", "CLOTUREE", "ARBITRAGE", "ARBITRAGE_RH"].includes(d.statut);
+    } else if (filterStatut === "OBJECTIFS_RH") {
+      matchFilter = d.statut === "VALIDATION_OBJECTIFS_RH";
     } else if (filterStatut === "ARBITRAGE") {
       matchFilter = ["ARBITRAGE", "ARBITRAGE_RH"].includes(d.statut);
     } else if (filterStatut === "VALIDE") {
@@ -395,6 +400,7 @@ export default function RhDashboardPage() {
                 {[
                   { id: "TOUT", label: `Toutes (${dossiers.length})` },
                   { id: "EN_ATTENTE", label: "En cours" },
+                  { id: "OBJECTIFS_RH", label: `🎯 Objectifs à valider (${objectifsAValider.length})` },
                   { id: "ARBITRAGE", label: `Arbitrages (${arbitragesEnAttente.length})` },
                   { id: "VALIDE", label: `Validées (${fichesCompletes})` },
                 ].map((f) => (
@@ -505,6 +511,22 @@ export default function RhDashboardPage() {
                     </div>
 
                     {/* ACTIONS */}
+                    {item.statut === "VALIDATION_OBJECTIFS_RH" && (
+                      <button
+                        onClick={() => setSelectedCollabForObjectifs({
+                          id: (item as any).salarieId || item.salarie?.id || item.id,
+                          nom: `${item.salarie?.prenom || ""} ${item.salarie?.nom || ""}`.trim(),
+                          poste: item.salarie?.poste || "Collaborateur",
+                          evaluationId: item.id,
+                          statut: item.statut,
+                          objectifs: item.objectifs,
+                        })}
+                        className="w-full mb-2.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                      >
+                        <CheckCircleIcon size={14} color="#FFFFFF" />
+                        Examiner & Valider les Objectifs (RH)
+                      </button>
+                    )}
                     <div className="flex gap-2">
                       <button
                         onClick={() => setSelectedFicheModal(item)}

@@ -818,7 +818,7 @@ export function ModalDefinirObjectifs({
                 ) : (
                   <>
                     <CheckCircleIcon size={14} />
-                    <span>Transmettre à la Direction RH (Étape 2)</span>
+                    <span>Transmettre</span>
                   </>
                 )}
               </button>

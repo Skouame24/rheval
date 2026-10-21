@@ -421,21 +421,22 @@ export function FicheEvaluationModal({
     jaugeBorder = "#FECACA";
   }
 
-  let dynamicStep: number = 3;
+  let dynamicStep: number = 1;
   if (isFicheCloturee) {
+    dynamicStep = 8;
+  } else if (currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH" || currentStatut === "VALIDATION_DRH") {
+    dynamicStep = 8;
+  } else if (currentStatut === "ACCORD_SALARIE" || currentStatut === "VISA_SALARIE") {
+    dynamicStep = 7;
+  } else if (currentStatut === "VALIDATION_NOTES_N2" || currentStatut === "EVALUATION_N2" || currentStatut === "VALIDATION_N2" || currentStatut === "EN_ATTENTE_N2") {
     dynamicStep = 6;
-  } else if (currentStatut === "VALIDATION_DRH" || currentStatut === "EN_ATTENTE_RH" || currentStatut === "ARBITRAGE") {
+  } else if (currentStatut === "EVALUATION_N1" || currentStatut === "EN_ATTENTE_N1" || currentStatut === "AUTO_EVALUATION") {
     dynamicStep = 5;
-  } else if (currentStatut === "EVALUATION_N2" || currentStatut === "VALIDATION_N2" || currentStatut === "VALIDATION_NOTES_N2" || currentStatut === "EN_ATTENTE_N2") {
+  } else if (currentStatut === "VALIDATION_OBJECTIFS_SALARIE") {
     dynamicStep = 4;
-  } else if (
-    currentStatut === "EVALUATION_N1" ||
-    currentStatut === "EN_ATTENTE_N1" ||
-    currentStatut === "AUTO_EVALUATION" ||
-    currentStatut === "VALIDATION_OBJECTIFS_SALARIE"
-  ) {
-    dynamicStep = 3;
   } else if (currentStatut === "VALIDATION_OBJECTIFS_N2") {
+    dynamicStep = 3;
+  } else if (currentStatut === "VALIDATION_OBJECTIFS_RH") {
     dynamicStep = 2;
   } else if (currentStatut === "FIXATION_OBJECTIFS" || currentStatut === "CREE" || currentStatut === "BROUILLON") {
     dynamicStep = 1;
@@ -667,6 +668,31 @@ export function FicheEvaluationModal({
       }, 1500);
     } catch (err: any) {
       console.error("[FicheEvaluationModal] RH Save error:", err);
+      alert("Erreur validation RH : " + (err.message || "Erreur serveur"));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Validation des Objectifs par les RH (Étape 2)
+  const handleValidateRhObjectifs = async (decision: "APPROUVE" | "REJETE") => {
+    if (!resolvedFicheId) return;
+    setIsSaving(true);
+    try {
+      await evaluationsApi.validateObjectifsRh(resolvedFicheId, { decision });
+      const nextSt = decision === "APPROUVE" ? "VALIDATION_OBJECTIFS_N2" : "FIXATION_OBJECTIFS";
+      setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
+      setSaveSuccessMsg(
+        decision === "APPROUVE"
+          ? "✓ Les objectifs ont été validés par les RH et transmis à la Direction N+2 !"
+          : "✓ Une révision des objectifs a été demandée au responsable N+1."
+      );
+      if (onSaved) onSaved();
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      console.error("[FicheEvaluationModal] RH Objectifs error:", err);
       alert("Erreur validation RH : " + (err.message || "Erreur serveur"));
     } finally {
       setIsSaving(false);
@@ -915,6 +941,63 @@ export function FicheEvaluationModal({
               <div style={{ background: "#FFFFFF", border: "1.5px solid #059669", padding: "8px 16px", textAlign: "right" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>Note Finale Officielle</span>
                 <span style={{ fontSize: 20, fontWeight: 900, color: "#065F46" }}>{noteAffichee.toFixed(2)} / 20</span>
+              </div>
+            </div>
+          )}
+
+          {/* BANNIÈRE VALIDATION OBJECTIFS RH */}
+          {currentStatut === "VALIDATION_OBJECTIFS_RH" && (
+            <div style={{
+              background: "#F0F9FF",
+              border: "1.5px solid #0284C7",
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 16,
+            }}>
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.05em", background: "#0284C7", color: "#FFFFFF", padding: "2px 8px" }}>
+                  VALIDATION RH REQUISE · ÉTAPE 2/8
+                </span>
+                <p style={{ margin: "6px 0 0 0", fontSize: 13, fontWeight: 700, color: "#0369A1" }}>
+                  Le Manager N+1 a fixé les objectifs de performance. Votre validation RH est requise pour transmission à la Direction N+2.
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => handleValidateRhObjectifs("REJETE")}
+                  disabled={isSaving}
+                  style={{
+                    padding: "8px 14px",
+                    background: "#FFFFFF",
+                    border: "1px solid #FDA4AF",
+                    color: "#BE123C",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  ↩ Demander révision au N+1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleValidateRhObjectifs("APPROUVE")}
+                  disabled={isSaving}
+                  style={{
+                    padding: "8px 18px",
+                    background: "#0284C7",
+                    color: "#FFFFFF",
+                    border: "none",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  {isSaving ? "Validation en cours..." : "✓ Valider les Objectifs (RH ➔ N+2)"}
+                </button>
               </div>
             </div>
           )}

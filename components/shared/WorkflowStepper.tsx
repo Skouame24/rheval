@@ -1,7 +1,8 @@
 // ============================================================
 // components/shared/WorkflowStepper.tsx
-// Workflow Officiel AGILLY — 6 étapes institutionnelles
-// FIXATION_OBJECTIFS → AUTO_EVALUATION → EVALUATION_N1 → EVALUATION_N2 → VALIDATION_DRH → VALIDE/CLOTURE
+// Workflow Officiel AGILLY — Processus complet en 8 étapes
+// Phase 1 : Fixation (N+1 -> RH -> N+2 -> Accord Salarié)
+// Phase 2 : Évaluation (N+1 -> Validation Note N+2 -> Accord Salarié -> Clôture/Arbitrage RH)
 // ============================================================
 
 "use client";
@@ -18,12 +19,14 @@ export interface WorkflowStep {
 }
 
 export const WORKFLOW_STEPS: WorkflowStep[] = [
-  { id: 1, label: "Fixation Objectifs", actor: "Responsable (N+1)", description: "Définition des objectifs et pondérations" },
-  { id: 2, label: "Validation Direction", actor: "Direction (N+2)", description: "Validation des objectifs fixés" },
-  { id: 3, label: "Évaluation Manager", actor: "Responsable (N+1)", description: "Notation, observations et plan de formation" },
-  { id: 4, label: "Évaluation Direction", actor: "Direction (N+2)", description: "Revue hiérarchique et validation" },
-  { id: 5, label: "Validation RH", actor: "Direction RH", description: "Validation officielle ou arbitrage RH" },
-  { id: 6, label: "Clôture", actor: "Direction RH", description: "Dossier archivé et validé définitivement" },
+  { id: 1, label: "Fixation Objectifs", actor: "Responsable (N+1)", description: "Définition des objectifs et pondérations (somme = 100%)" },
+  { id: 2, label: "Validation RH", actor: "Direction RH", description: "Contrôle de conformité et validation des objectifs" },
+  { id: 3, label: "Validation Direction", actor: "Direction (N+2)", description: "Validation hiérarchique des objectifs fixés" },
+  { id: 4, label: "Accord Salarié", actor: "Collaborateur (Salarié)", description: "Prise de connaissance et visa d'accord sur les objectifs annuels" },
+  { id: 5, label: "Évaluation Manager", actor: "Responsable (N+1)", description: "Évaluation exclusive et notation par le responsable direct N+1" },
+  { id: 6, label: "Validation Note", actor: "Direction (N+2)", description: "Revue hiérarchique et validation de la note par la Direction N+2" },
+  { id: 7, label: "Accord Salarié", actor: "Collaborateur (Salarié)", description: "Visa d'accord pour clôture ou contestation pour arbitrage RH" },
+  { id: 8, label: "Clôture / Arbitrage", actor: "Direction RH", description: "Clôture définitive du dossier ou arbitrage RH en cas de contestation" },
 ];
 
 interface WorkflowStepperProps {
@@ -34,24 +37,9 @@ interface WorkflowStepperProps {
 }
 
 export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted = false, isCollabManager = false }: WorkflowStepperProps) {
-  // Normalisation du step entre 1 et 6
-  let normalizedStep = currentStep;
-  if (currentStep >= 7 || isCompleted) {
-    normalizedStep = 6;
-  } else if (currentStep === 6) {
-    normalizedStep = 4;
-  } else if (currentStep === 5) {
-    normalizedStep = 5;
-  } else if (currentStep === 4) {
-    normalizedStep = 3;
-  } else if (currentStep === 3) {
-    normalizedStep = 2;
-  } else if (currentStep <= 2) {
-    normalizedStep = 1;
-  }
-
-  const displayStep = isCompleted ? 6 : normalizedStep;
-  const currentStepObj = WORKFLOW_STEPS[Math.min(Math.max(displayStep - 1, 0), WORKFLOW_STEPS.length - 1)];
+  const totalSteps = WORKFLOW_STEPS.length;
+  const displayStep = isCompleted ? totalSteps : Math.min(Math.max(currentStep, 1), totalSteps);
+  const currentStepObj = WORKFLOW_STEPS[Math.min(Math.max(displayStep - 1, 0), totalSteps - 1)];
 
   return (
     <div className="bg-white border border-slate-200 p-4 md:p-5 shadow-xs mb-6">
@@ -67,7 +55,7 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
           <h3 className="text-xs font-bold text-slate-900 tracking-tight uppercase">
             {isCompleted
               ? "Cycle d'Évaluation — Dossier Validé & Clôturé"
-              : `Processus d'Évaluation — Étape ${displayStep}/6 : ${currentStepObj?.label}`}
+              : `Processus d'Évaluation — Étape ${displayStep}/${totalSteps} : ${currentStepObj?.label}`}
           </h3>
         </div>
         <span className={`text-[11px] font-semibold px-2.5 py-1 border ${
@@ -83,16 +71,15 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
         </span>
       </div>
 
-      {/* Barre de progression des 6 étapes institutionnelles */}
+      {/* Barre de progression des 8 étapes institutionnelles */}
       <div className="relative flex items-center justify-between gap-1 overflow-x-auto pb-1 scrollbar-none">
         {WORKFLOW_STEPS.map((step) => {
           const isDone = isCompleted ? true : step.id < displayStep;
           const isCurrent = !isCompleted && step.id === displayStep;
-          const isArbitrageStep = step.id === 5;
-          const isSkippedForManager = isCollabManager && step.id === 3;
+          const isArbitrageStep = step.id === 8;
 
           return (
-            <div key={step.id} className="flex-1 flex flex-col items-center min-w-[90px] relative group">
+            <div key={step.id} className="flex-1 flex flex-col items-center min-w-[85px] relative group">
               {/* Ligne connectrice */}
               {step.id > 1 && (
                 <div
@@ -111,8 +98,6 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
                     ? "bg-slate-800 text-white border-slate-800"
                     : isArbitrageStep && hasArbitrage
                     ? "bg-amber-600 text-white border-amber-600 animate-pulse"
-                    : isSkippedForManager
-                    ? "bg-slate-100 text-slate-400 border-dashed border-slate-300"
                     : "bg-white text-slate-400 border-slate-300"
                 }`}
               >
@@ -120,8 +105,6 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                ) : isSkippedForManager ? (
-                  "—"
                 ) : (
                   step.id
                 )}
@@ -138,7 +121,6 @@ export function WorkflowStepper({ currentStep, hasArbitrage = false, isCompleted
                 }`}
               >
                 {step.label}
-                {isSkippedForManager && <span className="block text-[8px] text-slate-400">(N/A Manager)</span>}
               </span>
 
               {/* Info-bulle institutionnelle */}
