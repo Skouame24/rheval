@@ -254,8 +254,7 @@ export function DashboardManager() {
         return (
           fiche?.statut === "EVALUATION_N1" ||
           fiche?.statut === "EN_ATTENTE_N1" ||
-          fiche?.statut === "AUTO_EVALUATION" ||
-          fiche?.statut === "VALIDATION_OBJECTIFS_SALARIE"
+          fiche?.statut === "AUTO_EVALUATION"
         );
       }
       if (filterTab === "EN_COURS") {
@@ -581,12 +580,15 @@ export function DashboardManager() {
                 {filteredReports.map(({ user: member, fiche }) => {
                   const fullName = `${member.prenom ? member.prenom + " " : ""}${member.nom}`.trim();
                   const initials = member.prenom?.charAt(0) || member.nom?.charAt(0) || "U";
-                  const isWaitingN2 = fiche?.statut === "VALIDATION_OBJECTIFS_N2";
+                  const isWaitingRh = fiche?.statut === "VALIDATION_OBJECTIFS_RH";
+                  const isWaitingN2Obj = fiche?.statut === "VALIDATION_OBJECTIFS_N2";
+                  const isWaitingSalarieObj = fiche?.statut === "VALIDATION_OBJECTIFS_SALARIE";
                   const isReadyToNote =
                     fiche?.statut === "EVALUATION_N1" ||
                     fiche?.statut === "EN_ATTENTE_N1" ||
-                    fiche?.statut === "AUTO_EVALUATION" ||
-                    fiche?.statut === "VALIDATION_OBJECTIFS_SALARIE";
+                    fiche?.statut === "AUTO_EVALUATION";
+                  const isWaitingN2Notes = fiche?.statut === "VALIDATION_NOTES_N2";
+                  const isWaitingSalarieVisa = fiche?.statut === "ACCORD_SALARIE";
 
                   return (
                     <tr
@@ -668,9 +670,55 @@ export function DashboardManager() {
                             </Button>
                           ) : (
                             /* Vue Équipe Directe / Comité de Direction */
-                            isWaitingN2 ? (
-                              <span className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 inline-flex items-center gap-1.5 cursor-not-allowed">
-                                ⏳ En attente validation N+2
+                            isWaitingRh ? (
+                              (user?.role === "RH" || user?.role === "DRH") ? (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  leftIcon={<TargetIcon size={13} />}
+                                  onClick={() =>
+                                    setSelectedCollabForObjectifs({
+                                      id: member.id,
+                                      nom: fullName,
+                                      poste: member.poste || "Collaborateur",
+                                      readOnly: false,
+                                    })
+                                  }
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                >
+                                  Valider Objectifs (RH)
+                                </Button>
+                              ) : (
+                                <span className="px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                                  ⏳ En attente validation RH
+                                </span>
+                              )
+                            ) : isWaitingN2Obj ? (
+                              (isPdg || user?.role === "N2") ? (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  leftIcon={<TargetIcon size={13} />}
+                                  onClick={() =>
+                                    setSelectedCollabForObjectifs({
+                                      id: member.id,
+                                      nom: fullName,
+                                      poste: member.poste || "Collaborateur",
+                                      readOnly: false,
+                                    })
+                                  }
+                                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                >
+                                  Valider Objectifs (N+2)
+                                </Button>
+                              ) : (
+                                <span className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                                  ⏳ En attente validation N+2
+                                </span>
+                              )
+                            ) : isWaitingSalarieObj ? (
+                              <span className="px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                                ⏳ En attente accord salarié
                               </span>
                             ) : isReadyToNote && fiche ? (
                               <Button
@@ -682,6 +730,26 @@ export function DashboardManager() {
                               >
                                 Évaluer & Noter
                               </Button>
+                            ) : isWaitingN2Notes && fiche ? (
+                              (isPdg || user?.role === "N2") ? (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  leftIcon={<EyeIcon size={13} />}
+                                  onClick={() => setSelectedFicheModal(fiche)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                                >
+                                  Valider la Note (N+2)
+                                </Button>
+                              ) : (
+                                <span className="px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                                  ⏳ En attente validation Note N+2
+                                </span>
+                              )
+                            ) : isWaitingSalarieVisa ? (
+                              <span className="px-3 py-1.5 text-xs font-semibold text-cyan-700 bg-cyan-50 border border-cyan-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                                ⏳ En attente visa salarié
+                              </span>
                             ) : (!fiche || fiche.statut === "FIXATION_OBJECTIFS") ? (
                               <Button
                                 variant="primary"

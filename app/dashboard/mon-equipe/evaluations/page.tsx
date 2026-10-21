@@ -34,6 +34,7 @@ import type { EvaluationCycle, StatutEvaluation } from "@/types";
 
 const STATUTS_PHASE_OBJECTIFS = [
   "FIXATION_OBJECTIFS",
+  "VALIDATION_OBJECTIFS_RH",
   "VALIDATION_OBJECTIFS_N2",
   "VALIDATION_OBJECTIFS_SALARIE",
 ];
@@ -485,6 +486,22 @@ export default function EvaluationsEquipePage() {
                               ) : (
                                 <span className="px-3 py-1.5 text-xs font-semibold text-slate-400 bg-slate-100 border border-slate-200 inline-flex items-center gap-1.5 cursor-not-allowed">
                                   ⏳ En attente du N+1
+                                </span>
+                              )
+                            )}
+
+                            {item.statut === "VALIDATION_OBJECTIFS_RH" && (
+                              (user?.role === "RH" || user?.role === "DRH") ? (
+                                <button
+                                  onClick={() => setSelectedFicheForObjectifs(item)}
+                                  className="px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                                >
+                                  <CheckCircleIcon size={14} />
+                                  Valider les objectifs (RH)
+                                </button>
+                              ) : (
+                                <span className="px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                                  ⏳ En attente de validation RH
                                 </span>
                               )
                             )}

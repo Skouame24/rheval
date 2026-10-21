@@ -151,6 +151,22 @@ export const evaluationsApi = {
   /**
    * PUT /api/n2/evaluations/:id/objectifs
    */
+  /**
+   * PUT /api/rh/evaluations/:id/objectifs
+   * Validation des objectifs par les RH.
+   */
+  validateObjectifsRh: async (
+    id: string,
+    dto: { decision: "APPROUVE" | "REJETE"; observations?: string }
+  ): Promise<EvaluationCycle> => {
+    try {
+      return await client.put<EvaluationCycle>(`/rh/evaluations/${id}/objectifs`, dto);
+    } catch (err) {
+      console.error("[evaluationsApi.validateObjectifsRh] Backend error:", err);
+      throw err;
+    }
+  },
+
   validateObjectifsN2: async (
     id: string,
     dto: { decision: "APPROUVE" | "REJETE"; observations?: string }

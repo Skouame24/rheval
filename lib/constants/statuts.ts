@@ -26,6 +26,15 @@ export const STATUT_METADATA: Record<StatutEvaluation, StatutMetadata> = {
     step: 1,
     isFinal: false,
   },
+  VALIDATION_OBJECTIFS_RH: {
+    label: "Validation objectifs RH",
+    description: "En attente de validation des objectifs par les Ressources Humaines",
+    color: "#0284C7",
+    bg: "#F0F9FF",
+    border: "#BAE6FD",
+    step: 1,
+    isFinal: false,
+  },
   VALIDATION_OBJECTIFS_N2: {
     label: "Validation objectifs direction",
     description: "En attente de validation des objectifs par le responsable direction",

@@ -270,6 +270,28 @@ export function ModalDefinirObjectifs({
     }
   };
 
+  const handleValidateRh = async (decision: 'APPROUVE' | 'REJETE') => {
+    const targetFicheId = evaluationId || salariedId;
+    if (!targetFicheId) return;
+    try {
+      setIsSaving(true);
+      await evaluationsApi.validateObjectifsRh(targetFicheId, { decision });
+      setSuccessMessage(
+        decision === 'APPROUVE'
+          ? "✓ Les objectifs ont été validés par les RH et transmis au N+2 !"
+          : "✓ Une révision a été demandée au manager N+1."
+      );
+      if (onSaved) onSaved();
+      setTimeout(() => {
+        onClose();
+      }, 1200);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Erreur lors de la validation des objectifs par les RH.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleValidateN2 = async (decision: 'APPROUVE' | 'REJETE') => {
     const targetFicheId = evaluationId || salariedId;
     if (!targetFicheId) return;
@@ -701,6 +723,35 @@ export function ModalDefinirObjectifs({
               <span className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold inline-flex items-center gap-2">
                 <span>⏳ Objectifs en cours de définition par votre responsable</span>
               </span>
+            )}
+
+            {/* Cas 1.5 : Objectifs en attente de validation RH */}
+            {!isSelf && statut === "VALIDATION_OBJECTIFS_RH" && (
+              (role === "RH" || role === "DRH") ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleValidateRh('REJETE')}
+                    disabled={isSaving}
+                    className="px-4 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    ↩ Demander révision au N+1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleValidateRh('APPROUVE')}
+                    disabled={isSaving}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  >
+                    <CheckCircleIcon size={14} />
+                    <span>Valider les Objectifs (RH ➔ N+2)</span>
+                  </button>
+                </div>
+              ) : (
+                <span className="px-4 py-2 bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold inline-flex items-center gap-2">
+                  <span>⏳ Objectifs transmis — En attente de validation RH</span>
+                </span>
+              )
             )}
 
             {/* Cas 2 : Objectifs en attente de validation N+2 */}

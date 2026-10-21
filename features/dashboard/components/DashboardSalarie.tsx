@@ -417,7 +417,15 @@ export function DashboardSalarie() {
                 : "bg-amber-500"
             }`} />
             <span className="text-xs font-bold">
-              {["VALIDE", "CLOTURE", "CLOTUREE"].includes(statut) ? (
+              {statut === "VALIDATION_OBJECTIFS_RH" ? (
+                "⏳ Vos objectifs ont été rédigés par votre Manager et sont en cours de validation par les Ressources Humaines."
+              ) : statut === "VALIDATION_OBJECTIFS_N2" ? (
+                "⏳ Vos objectifs ont été validés par les RH et sont en cours de validation par la Direction N+2."
+              ) : statut === "VALIDATION_OBJECTIFS_SALARIE" ? (
+                "🎯 Vos objectifs ont été validés par votre hiérarchie et les RH. Veuillez cliquer sur « Approuver mes objectifs annuels » pour confirmer votre accord."
+              ) : statut === "VALIDATION_NOTES_N2" ? (
+                "⏳ Votre Manager N+1 a finalisé votre évaluation. Elle est actuellement soumise à la Direction N+2 pour validation de la note."
+              ) : ["VALIDE", "CLOTURE", "CLOTUREE"].includes(statut) ? (
                 "✓ Évaluation annuelle clôturée et archivée définitivement. Vos notes officielles sont enregistrées."
               ) : ["ARBITRAGE", "ARBITRAGE_RH"].includes(statut) ? (
                 "⚖ Demande d'arbitrage RH en cours : vous avez contesté votre note. La Direction RH prendra contact pour l'entretien d'arbitrage afin d'arrêter la note finale."
@@ -438,7 +446,25 @@ export function DashboardSalarie() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            {statut === "ACCORD_SALARIE" && (
+            {statut === "VALIDATION_OBJECTIFS_SALARIE" && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm("Confirmez-vous votre accord et prise de connaissance de vos objectifs pour 2026 ?")) return;
+                    try {
+                      await evaluationsApi.validateObjectifsSalarie(evaluation.id, { accord: true });
+                      refetch();
+                    } catch (err: any) {
+                      alert("Erreur lors de la confirmation : " + (err.message || "Erreur serveur"));
+                    }
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+                >
+                  <span>✓ Approuver mes objectifs annuels</span>
+                </button>
+              )}
+
+              {statut === "ACCORD_SALARIE" && (
               <>
                 <button
                   type="button"
