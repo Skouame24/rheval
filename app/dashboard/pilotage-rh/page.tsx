@@ -172,6 +172,27 @@ export default function RhDashboardPage() {
           onSuccess={handleArbitrageSuccess}
         />
 
+        {/* Modal d'examen et validation des objectifs par la RH */}
+        <ModalDefinirObjectifs
+          isOpen={selectedCollabForObjectifs !== null}
+          onClose={() => {
+            setSelectedCollabForObjectifs(null);
+            loadData();
+          }}
+          salariedName={selectedCollabForObjectifs?.nom || ""}
+          salariedPoste={selectedCollabForObjectifs?.poste}
+          salariedId={selectedCollabForObjectifs?.id}
+          evaluationId={selectedCollabForObjectifs?.evaluationId}
+          statut={selectedCollabForObjectifs?.statut}
+          isN1Validated={true}
+          objectifs={selectedCollabForObjectifs?.objectifs}
+          readOnly={false}
+          onSaved={() => {
+            setSelectedCollabForObjectifs(null);
+            loadData();
+          }}
+        />
+
         {/* ── HEADER HERO ── */}
         <div className="flex flex-wrap justify-between items-end gap-5">
           <div>

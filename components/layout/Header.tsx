@@ -131,9 +131,9 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
     : "/dashboard/mon-espace/notifications";
 
   return (
-    <>
+    <div className="sticky top-0 z-40 w-full flex flex-col">
       {isSimulated && (
-        <div className="bg-amber-500 text-slate-950 px-6 py-2 text-xs font-black flex items-center justify-between shadow-xs sticky top-0 z-40">
+        <div className="bg-amber-500 text-slate-950 px-6 py-2 text-xs font-black flex items-center justify-between shadow-xs shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-base">🎭</span>
             <span>Mode simulation actif : vous naviguez en tant que <strong>{userName}</strong> ({displayLabel} • {currentRole})</span>
@@ -148,7 +148,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
           )}
         </div>
       )}
-      <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+      <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
       {/* Gauche — Titre de Page & Bouton Switch Rapide de Rôle */}
       <div className="flex items-center gap-4 flex-wrap">
         <h1 className="text-lg font-bold text-slate-900 tracking-tight m-0">
@@ -550,7 +550,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
         </div>
       </div>
     </header>
-    </>
+    </div>
   );
 }
 
