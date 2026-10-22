@@ -1,12 +1,13 @@
 // ============================================================
 // features/absences/context/AbsencesContext.tsx
-// Contexte d'état global pour le module Absences & Missions Agilly
-// Permet la réactivité complète entre Sidebar, Topbar et les vues
+// Contexte d'état global pour le module Absences, Congés & Missions Agilly
+// Connecté en temps réel au backend NestJS et à la base dédiée
+// Avec fallback optimiste et personas de démonstration
 // ============================================================
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import {
   DemandeRHItem,
   SoldeCongesInfo,
@@ -26,6 +27,7 @@ import {
   MOCK_REPARTITION_TYPES,
 } from "@/lib/mock/absences.mock";
 import { useAuth } from "@/contexts/AuthContext";
+import { demandesApi, mapFrontendTypeToBackend } from "@/lib/api";
 
 interface AbsencesContextType {
   // Persona actif & Démo
@@ -41,6 +43,8 @@ interface AbsencesContextType {
   kpis: KPIOverview;
   statsServices: StatistiqueServiceAbsence[];
   repartitionTypes: typeof MOCK_REPARTITION_TYPES;
+  isLoading: boolean;
+  refreshDemandes: () => Promise<void>;
 
   // Filtre / Recherche globale
   searchQuery: string;
@@ -69,6 +73,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   const [currentPersona, setCurrentPersona] = useState<PersonaUser>(MOCK_PERSONAS[0]);
   const [isDemoDrawerOpen, setIsDemoDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Synchronisation avec l'utilisateur authentifié si présent
   useEffect(() => {
@@ -87,8 +92,117 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   // Données réactives
   const [demandes, setDemandes] = useState<DemandeRHItem[]>(INITIAL_DEMANDES);
   const [soldeConges, setSoldeConges] = useState<SoldeCongesInfo>(MOCK_SOLDE_CONGES);
-  const [kpis] = useState<KPIOverview>(MOCK_KPIS);
   const [statsServices] = useState<StatistiqueServiceAbsence[]>(MOCK_STATS_SERVICES);
+
+  // ── Calcul dynamique des KPIs selon l'état réel des demandes ──
+  const kpis = useMemo<KPIOverview>(() => {
+    const totalDemandesMois = demandes.length;
+    const enAttenteValidation = demandes.filter((d) =>
+      ["EN_VALIDATION_N1", "EN_VALIDATION_DRH", "EN_VALIDATION_DG"].includes(d.statut)
+    ).length;
+    const approuveesMois = demandes.filter((d) =>
+      ["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(d.statut)
+    ).length;
+    const refusees = demandes.filter((d) =>
+      ["REFUSEE_DEFINITIVEMENT", "ANNULEE"].includes(d.statut)
+    ).length;
+    const tauxRefusPourcent = totalDemandesMois > 0 ? Math.round((refusees / totalDemandesMois) * 100) : 0;
+    const permissionsEditees = demandes.filter((d) => d.statut === "PERMISSION_EDITEE").length;
+    const archivesGedTotal = demandes.filter((d) => d.statut === "ARCHIVEE").length;
+
+    return {
+      totalDemandesMois,
+      enAttenteValidation,
+      approuveesMois,
+      tauxRefusPourcent,
+      delaiMoyenHeures: 4.5,
+      permissionsEditees,
+      archivesGedTotal,
+    };
+  }, [demandes]);
+
+  // ── Répartition dynamique des types de demandes ──
+  const repartitionTypes = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const d of demandes) {
+      counts[d.typeDemande] = (counts[d.typeDemande] || 0) + 1;
+    }
+    const total = demandes.length || 1;
+    return [
+      { type: "Congés Annuels", pourcent: Math.round(((counts["CONGES_ANNUELS"] || 0) / total) * 100), colorHex: "#2563EB" },
+      { type: "Missions / Déplacements", pourcent: Math.round(((counts["MISSION_DEPLACEMENT"] || 0) / total) * 100), colorHex: "#7C3AED" },
+      { type: "Permissions Exceptionnelles", pourcent: Math.round(((counts["PERMISSION_EXCEPTIONNELLE"] || 0) / total) * 100), colorHex: "#F0822A" },
+      { type: "Maladie & Repos", pourcent: Math.round(((counts["CONGES_MALADIE"] || 0) / total) * 100), colorHex: "#059669" },
+      { type: "Interventions Terrain", pourcent: Math.round(((counts["INTERVENTION_TERRAIN"] || 0) / total) * 100), colorHex: "#D97706" },
+    ];
+  }, [demandes]);
+
+  // ── Chargement des données réelles depuis le Backend dédié ──
+  const refreshDemandes = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      // 1. Charger mes demandes
+      const myItemsPromise = demandesApi.getMesDemandes().catch((err) => {
+        console.warn("[DemandesApi] getMesDemandes non joignable, fallback mock:", err);
+        return [] as DemandeRHItem[];
+      });
+
+      // 2. Charger le solde
+      const soldePromise = demandesApi.getMonSolde().catch((err) => {
+        console.warn("[DemandesApi] getMonSolde non joignable, fallback mock:", err);
+        return null;
+      });
+
+      // 3. Charger les demandes en validation selon le rôle
+      const role = currentPersona.role;
+      let pendingPromise: Promise<DemandeRHItem[]> = Promise.resolve([]);
+      if (role === "SUPERIEUR_N1") {
+        pendingPromise = demandesApi.getAValiderN1().catch(() => []);
+      } else if (role === "DRH" || role === "AGENT_DRH") {
+        pendingPromise = demandesApi.getAValiderDRH().catch(() => []);
+      } else if (role === "DIRECTION_DG") {
+        pendingPromise = demandesApi.getAValiderDG().catch(() => []);
+      } else if (role === "ADMIN") {
+        pendingPromise = Promise.all([
+          demandesApi.getAValiderN1().catch(() => []),
+          demandesApi.getAValiderDRH().catch(() => []),
+          demandesApi.getAValiderDG().catch(() => []),
+        ]).then(([n1, drh, dg]) => [...n1, ...drh, ...dg]);
+      }
+
+      const [myItems, realSolde, pendingItems] = await Promise.all([
+        myItemsPromise,
+        soldePromise,
+        pendingPromise,
+      ]);
+
+      if (realSolde) {
+        setSoldeConges(realSolde);
+      }
+
+      const allBackendItems = [...myItems, ...pendingItems];
+      if (user) {
+        // En session connectée réelle : afficher les vraies demandes issues de PostgreSQL
+        setDemandes(allBackendItems);
+      } else if (allBackendItems.length > 0) {
+        setDemandes((prev) => {
+          const backendIds = new Set(allBackendItems.map((d) => d.id));
+          const preservedMock = prev.filter((d) => !backendIds.has(d.id));
+          return [...allBackendItems, ...preservedMock];
+        });
+      }
+    } catch (e) {
+      console.warn("[AbsencesContext] Erreur refreshDemandes:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPersona.role]);
+
+  // Chargement initial et à chaque changement de persona / profil
+  useEffect(() => {
+    refreshDemandes();
+  }, [refreshDemandes]);
 
   // Demandes déposées par le collaborateur actif (Ebenezer ou le persona en cours)
   const myDemandes = useMemo(() => {
@@ -124,14 +238,15 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
 
   const pendingValidationsCount = pendingForCurrentRoleDemandes.length;
 
-  // Création d'une nouvelle demande
+  // Création d'une nouvelle demande (optimiste + synchro backend)
   const addDemande = (payload: Partial<DemandeRHItem>): DemandeRHItem => {
     const nextNum = demandes.length + 143;
     const codeRef = `DEM-2026-00${nextNum}`;
     const nowIso = new Date().toISOString();
+    const tempId = `dem-${Date.now()}`;
 
     const created: DemandeRHItem = {
-      id: `dem-${Date.now()}`,
+      id: tempId,
       codeReference: codeRef,
       typeDemande: payload.typeDemande || "CONGES_ANNUELS",
       libelleType: payload.libelleType || "Congés Annuels",
@@ -191,6 +306,28 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
       }));
     }
 
+    // Appel asynchrone au backend pour insertion réelle dans PostgreSQL dédié
+    const backendTypeCode = mapFrontendTypeToBackend(payload.typeDemande || "CONGES_ANNUELS");
+    demandesApi
+      .creerDemande({
+        typeCode: backendTypeCode,
+        dateDebut: payload.dateDebut || "2026-11-10",
+        dateFin: payload.dateFin || "2026-11-13",
+        demiJourneeDebut: payload.estDemiJourneeDebut,
+        demiJourneeFin: payload.estDemiJourneeFin,
+        motif: payload.motif || "Demande d'absence",
+        destination: payload.destination,
+        moyenTransport: payload.moyenTransport,
+        fraisEstimes: payload.fraisPrevisionnels,
+      })
+      .then((realCreated) => {
+        // Remplacer l'élément temporaire par l'élément réel de la DB
+        setDemandes((prev) => prev.map((d) => (d.id === tempId ? realCreated : d)));
+      })
+      .catch((err) => {
+        console.warn("[AbsencesContext] Enregistrement backend en arrière-plan ignoré :", err);
+      });
+
     return created;
   };
 
@@ -206,10 +343,10 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         let nextEtape: EtapeValidationRH = dem.etapeCourante;
 
         // Circuit nominal : N+1 -> DRH -> DG -> APPROUVÉE
-        // Circuit court (RG-01) : si permission <= 2 jours et type permission, DRH valide directement
         if (dem.statut === "EN_VALIDATION_N1") {
           nextStatut = "EN_VALIDATION_DRH";
           nextEtape = "DRH";
+          demandesApi.deciderN1(id, "APPROUVE", motif).catch(() => {});
         } else if (dem.statut === "EN_VALIDATION_DRH") {
           const isCourt =
             dem.nombreJoursOuvres <= 2 &&
@@ -221,9 +358,11 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
             nextStatut = "EN_VALIDATION_DG";
             nextEtape = "DIRECTION_DG";
           }
+          demandesApi.deciderDRH(id, "APPROUVE", motif).catch(() => {});
         } else if (dem.statut === "EN_VALIDATION_DG") {
           nextStatut = "APPROUVEE";
           nextEtape = "AGENT_DRH";
+          demandesApi.deciderDG(id, "APPROUVE", motif).catch(() => {});
         }
 
         const newHist = [
@@ -269,19 +408,18 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
           nextStatut = "REFUSEE_DEFINITIVEMENT";
           nextEtape = "CLOTURE";
         } else {
-          // Règles de retour §3.2 :
-          // N+1 -> Employé
-          // DRH -> N+1
-          // DG -> DRH
           if (dem.statut === "EN_VALIDATION_N1") {
             nextStatut = "RETOURNEE_EMPLOYE";
             nextEtape = "SUPERIEUR_N1";
+            demandesApi.deciderN1(id, "REFUSE", motif).catch(() => {});
           } else if (dem.statut === "EN_VALIDATION_DRH") {
             nextStatut = "EN_VALIDATION_N1";
             nextEtape = "SUPERIEUR_N1";
+            demandesApi.deciderDRH(id, "RETOURNE", motif).catch(() => {});
           } else if (dem.statut === "EN_VALIDATION_DG") {
             nextStatut = "EN_VALIDATION_DRH";
             nextEtape = "DRH";
+            demandesApi.deciderDG(id, "RETOURNE", motif).catch(() => {});
           }
         }
 
@@ -400,6 +538,8 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   const annulerDemande = (id: string) => {
     const nowIso = new Date().toISOString();
 
+    demandesApi.annulerDemande(id).catch(() => {});
+
     setDemandes((prev) =>
       prev.map((dem) => {
         if (dem.id !== id) return dem;
@@ -441,6 +581,8 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         kpis,
         statsServices,
         repartitionTypes: MOCK_REPARTITION_TYPES,
+        isLoading,
+        refreshDemandes,
         searchQuery,
         setSearchQuery,
         pendingValidationsCount,
@@ -466,4 +608,3 @@ export function useAbsences() {
   }
   return context;
 }
-
