@@ -410,7 +410,9 @@ export default function ValidationsInboxPage() {
             </>
           ) : (
             <div className="p-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
-              <span className="text-3xl">📋</span>
+              <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-mono text-xs">
+                —
+              </div>
               <p className="font-bold text-slate-700 text-sm">Aucun dossier en attente d&apos;arbitrage</p>
               <p className="text-slate-400 max-w-sm">
                 Vous n&apos;avez aucune demande d&apos;absence à arbitrer pour le moment. Dès qu&apos;un collaborateur soumet une demande, elle s&apos;affichera automatiquement ici.

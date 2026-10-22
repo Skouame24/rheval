@@ -56,7 +56,15 @@ export function DemandeWorkflowStepper({ demande }: { demande: DemandeRHItem }) 
                     : "bg-white border border-slate-300 text-slate-400"
                 }`}
               >
-                {done ? "✓" : active && retour ? "!" : i + 1}
+                {done ? (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : active && retour ? (
+                  "!"
+                ) : (
+                  i + 1
+                )}
               </div>
               <span className={`mt-1.5 text-[11px] font-semibold ${active || done ? "text-slate-900" : "text-slate-400"}`}>
                 {s.label}

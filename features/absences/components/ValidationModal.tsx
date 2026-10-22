@@ -92,9 +92,9 @@ export function ValidationModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer text-base font-bold"
           >
-            ✕
+            &times;
           </button>
         </div>
 
@@ -126,7 +126,7 @@ export function ValidationModal({
               </p>
               {demande.destination && (
                 <p className="text-slate-600 font-medium m-0 mt-0.5">
-                  📍 Destination : {demande.destination}
+                  Destination : {demande.destination}
                 </p>
               )}
             </div>
@@ -151,7 +151,7 @@ export function ValidationModal({
               <div className="space-y-1.5">
                 {demande.piecesJointes.map((pj) => (
                   <div key={pj.id} className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="font-medium text-slate-700">📄 {pj.nomOriginal} ({pj.taille})</span>
+                    <span className="font-medium text-slate-700">{pj.nomOriginal} ({pj.taille})</span>
                     <span className="text-xs font-semibold text-blue-600 cursor-pointer hover:underline">Ouvrir PJ</span>
                   </div>
                 ))}

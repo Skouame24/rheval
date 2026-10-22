@@ -4,15 +4,33 @@
 // ("FORMULAIRE DE DEMANDE DE PERMISSION - BULLETIN INDIVIDUEL")
 // ============================================================
 
+export type FamilleDemandeRH = "CONGES" | "PERMISSIONS" | "MISSIONS";
+
 export type TypeDemandeRH =
+  // ── FAMILLE 1 : CONGÉS FORMELS (6) ──
   | "CONGES_ANNUELS"
   | "CONGES_MALADIE"
   | "CONGES_MATERNITE"
+  | "CONGES_PATERNITE"
+  | "CONGES_SANS_SOLDE"
+  | "CONGES_FORMATION"
+  // ── FAMILLE 2 : PERMISSIONS D'ABSENCE (9) ──
+  | "PERMISSION_MARIAGE"
+  | "PERMISSION_NAISSANCE"
+  | "PERMISSION_DECES"
+  | "PERMISSION_FAMILIALE"
+  | "PERMISSION_MEDICALE"
+  | "PERMISSION_ADMINISTRATIVE"
+  | "PERMISSION_SCOLAIRE"
+  | "PERMISSION_EXAMEN"
+  | "PERMISSION_SORTIE"
+  // ── FAMILLE 3 : MISSIONS & DÉPLACEMENTS (2) ──
+  | "MISSION_DEPLACEMENT"
+  | "INTERVENTION_TERRAIN"
+  // Rétrocompatibilité
   | "RECUPERATION"
   | "ABSENCE_NON_PAYEE"
-  | "PERMISSION_EXCEPTIONNELLE"
-  | "MISSION_DEPLACEMENT"
-  | "INTERVENTION_TERRAIN";
+  | "PERMISSION_EXCEPTIONNELLE";
 
 export type StatutDemandeRH =
   | "BROUILLON"
@@ -129,6 +147,12 @@ export interface DemandeRHItem {
   estDemiJourneeFin?: boolean;
   nombreJoursOuvres: number;
   nombreJoursCalendaires?: number;
+  
+  // Plage horaire (pour permission de sortie)
+  heureDebut?: string; // ex: "10:00"
+  heureFin?: string;   // ex: "12:30"
+  dureeHeures?: number; // ex: 2.5
+  familleDemande?: FamilleDemandeRH;
   
   // Champs spécifiques du formulaire officiel Agilly
   motif: string; // Motif de la permission

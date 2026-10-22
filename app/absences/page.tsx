@@ -47,7 +47,7 @@ export default function AbsencesDashboardPage() {
             href="/absences/planning"
             className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 px-3 py-2 bg-white transition-colors"
           >
-            📅 Planning d&apos;équipe
+            Planning d&apos;équipe
           </Link>
           <Link
             href="/absences/nouvelle"
@@ -66,13 +66,11 @@ export default function AbsencesDashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link
             href="/absences/nouvelle?type=CONGES_ANNUELS"
-            className="bg-white border border-slate-200 hover:border-blue-500 p-4 transition-all group flex flex-col justify-between"
+            className="bg-white border border-slate-200 hover:border-blue-600 p-4 transition-all group flex flex-col justify-between"
           >
             <div>
-              <div className="w-8 h-8 bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm mb-2 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                🌴
-              </div>
-              <span className="text-xs font-bold text-slate-900 block">Congés</span>
+              <div className="w-1.5 h-6 bg-blue-600 mb-3" />
+              <span className="text-xs font-bold text-slate-900 block">Congés Payés</span>
               <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">Annuels ou maladie</span>
             </div>
             <span className="text-[11px] font-semibold text-blue-600 mt-3 group-hover:translate-x-0.5 transition-transform inline-block">
@@ -81,13 +79,11 @@ export default function AbsencesDashboardPage() {
           </Link>
 
           <Link
-            href="/absences/nouvelle?type=PERMISSION_EXCEPTIONNELLE"
+            href="/absences/nouvelle?type=PERMISSION_FAMILIALE"
             className="bg-white border border-slate-200 hover:border-[#D96F1D] p-4 transition-all group flex flex-col justify-between"
           >
             <div>
-              <div className="w-8 h-8 bg-orange-50 text-[#D96F1D] flex items-center justify-center font-bold text-sm mb-2 group-hover:bg-[#D96F1D] group-hover:text-white transition-colors">
-                ✉️
-              </div>
+              <div className="w-1.5 h-6 bg-[#D96F1D] mb-3" />
               <span className="text-xs font-bold text-slate-900 block">Permission</span>
               <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">Événement familial</span>
             </div>
@@ -98,12 +94,10 @@ export default function AbsencesDashboardPage() {
 
           <Link
             href="/absences/nouvelle?type=MISSION_DEPLACEMENT"
-            className="bg-white border border-slate-200 hover:border-purple-500 p-4 transition-all group flex flex-col justify-between"
+            className="bg-white border border-slate-200 hover:border-purple-600 p-4 transition-all group flex flex-col justify-between"
           >
             <div>
-              <div className="w-8 h-8 bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm mb-2 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                ✈️
-              </div>
+              <div className="w-1.5 h-6 bg-purple-600 mb-3" />
               <span className="text-xs font-bold text-slate-900 block">Mission</span>
               <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">Déplacement & frais</span>
             </div>
@@ -114,12 +108,10 @@ export default function AbsencesDashboardPage() {
 
           <Link
             href="/absences/nouvelle?type=INTERVENTION_TERRAIN"
-            className="bg-white border border-slate-200 hover:border-amber-500 p-4 transition-all group flex flex-col justify-between"
+            className="bg-white border border-slate-200 hover:border-amber-600 p-4 transition-all group flex flex-col justify-between"
           >
             <div>
-              <div className="w-8 h-8 bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-sm mb-2 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                🔧
-              </div>
+              <div className="w-1.5 h-6 bg-amber-600 mb-3" />
               <span className="text-xs font-bold text-slate-900 block">Intervention</span>
               <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">Site client ou astreinte</span>
             </div>
@@ -229,9 +221,7 @@ export default function AbsencesDashboardPage() {
       {approuvees.length > 0 && (
         <div className="bg-emerald-50/70 border border-emerald-200 p-5 flex items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
-            <span className="w-8 h-8 bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-              ✓
-            </span>
+            <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
             <div>
               <p className="font-bold text-emerald-950 text-sm">
                 Permission prête : {approuvees[0].libelleType} ({approuvees[0].codeReference})

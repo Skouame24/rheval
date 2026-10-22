@@ -96,14 +96,14 @@ export default function RapportsPilotagePage() {
             onClick={() => handleExport("EXCEL")}
             className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-semibold cursor-pointer transition-colors"
           >
-            📊 Export Excel
+            Export Excel
           </button>
           <button
             type="button"
             onClick={() => handleExport("PDF")}
             className="px-3 py-1.5 bg-[#D96F1D] hover:bg-[#B95914] text-white text-xs font-semibold cursor-pointer transition-colors"
           >
-            📄 Rapport PDF
+            Rapport PDF
           </button>
         </div>
       </div>

@@ -295,13 +295,29 @@ function MesDemandesContent() {
               className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
             >
               <option value="TOUS">Toutes les natures</option>
-              <option value="CONGES_ANNUELS">Congés Annuels</option>
-              <option value="PERMISSION_EXCEPTIONNELLE">Permission Exceptionnelle</option>
-              <option value="MISSION_DEPLACEMENT">Mission / Déplacement</option>
-              <option value="INTERVENTION_TERRAIN">Intervention Terrain</option>
-              <option value="CONGES_MALADIE">Congés Maladie</option>
-              <option value="RECUPERATION">Récupération</option>
-              <option value="ABSENCE_NON_PAYEE">Absence non payée</option>
+              <optgroup label="Congés">
+                <option value="CONGES_ANNUELS">Congé annuel payé</option>
+                <option value="CONGES_MALADIE">Congé maladie</option>
+                <option value="CONGES_MATERNITE">Congé de maternité</option>
+                <option value="CONGES_PATERNITE">Congé de paternité</option>
+                <option value="CONGES_SANS_SOLDE">Congé sans solde</option>
+                <option value="CONGES_FORMATION">Congé de formation</option>
+              </optgroup>
+              <optgroup label="Permissions">
+                <option value="PERMISSION_MARIAGE">Permission mariage</option>
+                <option value="PERMISSION_NAISSANCE">Permission naissance</option>
+                <option value="PERMISSION_DECES">Permission décès</option>
+                <option value="PERMISSION_FAMILIALE">Permission familiale / urgence</option>
+                <option value="PERMISSION_MEDICALE">Rendez-vous médical</option>
+                <option value="PERMISSION_ADMINISTRATIVE">Démarches administratives</option>
+                <option value="PERMISSION_SCOLAIRE">Obligations scolaires</option>
+                <option value="PERMISSION_EXAMEN">Examen ou concours</option>
+                <option value="PERMISSION_SORTIE">Permission de sortie (heures)</option>
+              </optgroup>
+              <optgroup label="Missions">
+                <option value="MISSION_DEPLACEMENT">Ordre de mission & déplacement</option>
+                <option value="INTERVENTION_TERRAIN">Intervention terrain</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -396,15 +412,15 @@ function MesDemandesContent() {
                       {/* Étape du circuit (sans jargon et tenant compte de circuit court) */}
                       <td className="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">
                         {dem.statut === "RETOURNEE_EMPLOYE" ? (
-                          <span className="text-red-700 font-bold flex items-center gap-1">
-                            <span>↺</span> Retournée à l&apos;employé
+                          <span className="text-red-700 font-bold">
+                            Retournée à l&apos;employé
                           </span>
                         ) : isCircuitCourt ? (
                           <>
                             {dem.etapeCourante === "SUPERIEUR_N1" && "1/3 : Avis Supérieur"}
                             {dem.etapeCourante === "DRH" && "2/3 : Validation finale DRH"}
                             {dem.etapeCourante === "AGENT_DRH" && "3/3 : Édition de la permission"}
-                            {dem.etapeCourante === "CLOTURE" && "Terminé ✓"}
+                            {dem.etapeCourante === "CLOTURE" && "Terminé"}
                           </>
                         ) : (
                           <>
@@ -412,7 +428,7 @@ function MesDemandesContent() {
                             {dem.etapeCourante === "DRH" && "2/4 : Contrôle DRH"}
                             {dem.etapeCourante === "DIRECTION_DG" && "3/4 : Direction Générale"}
                             {dem.etapeCourante === "AGENT_DRH" && "4/4 : Édition de la permission"}
-                            {dem.etapeCourante === "CLOTURE" && "Terminé ✓"}
+                            {dem.etapeCourante === "CLOTURE" && "Terminé"}
                           </>
                         )}
                       </td>

@@ -57,9 +57,23 @@ export function mapFrontendTypeToBackend(frontendType: string): string {
     case "CONGES_MALADIE":
       return "REPOS_MALADIE";
     case "MISSION_DEPLACEMENT":
-      return "ORDRE_MISSION";
     case "INTERVENTION_TERRAIN":
-      return "INTERVENTION_TERRAIN";
+      return "ORDRE_MISSION";
+    case "PERMISSION_MARIAGE":
+    case "PERMISSION_NAISSANCE":
+    case "PERMISSION_DECES":
+    case "PERMISSION_FAMILIALE":
+    case "PERMISSION_MEDICALE":
+    case "PERMISSION_ADMINISTRATIVE":
+    case "PERMISSION_SCOLAIRE":
+    case "PERMISSION_EXAMEN":
+    case "PERMISSION_SORTIE":
+      return "PERMISSION_ABSENCE";
+    case "CONGES_MATERNITE":
+    case "CONGES_PATERNITE":
+    case "CONGES_SANS_SOLDE":
+    case "CONGES_FORMATION":
+      return "CONGE_EXCEPTIONNEL";
     case "PERMISSION_EXCEPTIONNELLE":
     default:
       return "CONGE_EXCEPTIONNEL";

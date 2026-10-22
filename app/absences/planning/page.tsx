@@ -194,7 +194,10 @@ export default function CalendarPlanningPage() {
   // Helper pour vérifier si un événement couvre une date donnée (YYYY-MM-DD)
   const getEventsForDate = (dateStr: string) => {
     return events.filter((evt) => {
-      if (selectedNature !== "ALL" && evt.typeKey !== selectedNature) return false;
+      if (selectedNature === "CONGES" && !evt.typeKey.startsWith("CONGES_")) return false;
+      if (selectedNature === "PERMISSIONS" && !evt.typeKey.startsWith("PERMISSION_")) return false;
+      if (selectedNature === "MISSIONS" && !["MISSION_DEPLACEMENT", "INTERVENTION_TERRAIN"].includes(evt.typeKey)) return false;
+      if (!["ALL", "CONGES", "PERMISSIONS", "MISSIONS"].includes(selectedNature) && evt.typeKey !== selectedNature) return false;
       return dateStr >= evt.startDate && dateStr <= evt.endDate;
     });
   };
@@ -291,12 +294,9 @@ export default function CalendarPlanningPage() {
             className="bg-slate-50 border border-slate-300 font-bold text-slate-800 px-2 py-1 text-xs focus:outline-none cursor-pointer"
           >
             <option value="ALL">Toutes les absences ({events.length})</option>
-            <option value="CONGES_ANNUELS">🌴 Congés Annuels</option>
-            <option value="PERMISSION_EXCEPTIONNELLE">✉️ Permissions Exceptionnelles</option>
-            <option value="MISSION_DEPLACEMENT">✈️ Missions & Déplacements</option>
-            <option value="INTERVENTION_TERRAIN">🔧 Interventions Terrain</option>
-            <option value="CONGES_MALADIE">🩺 Repos Maladie</option>
-            <option value="RECUPERATION">⏱️ Récupérations</option>
+            <option value="CONGES">Congés (Tous)</option>
+            <option value="PERMISSIONS">Permissions d&apos;absence</option>
+            <option value="MISSIONS">Missions & Déplacements</option>
           </select>
         </div>
       </div>
@@ -359,7 +359,7 @@ export default function CalendarPlanningPage() {
                         className="text-[9px] bg-amber-100 text-amber-800 px-1 font-bold border border-amber-300 truncate max-w-[80px]"
                         title={isFerie}
                       >
-                        ★ Férié
+                        Férié
                       </span>
                     )}
                   </div>
@@ -459,7 +459,7 @@ export default function CalendarPlanningPage() {
             </div>
           ))}
           <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
-            <span className="text-amber-700 font-bold text-xs">★</span>
+            <span className="w-2 h-2 rounded-full bg-amber-600" />
             <span className="text-amber-900 font-semibold text-[11px]">Jour Férié chômé</span>
           </div>
         </div>
@@ -484,7 +484,7 @@ export default function CalendarPlanningPage() {
 
             {activeDayDetail.ferie && (
               <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-2">
-                <span className="font-bold text-amber-700">★ Jour Férié Officiel :</span>
+                <span className="font-bold text-amber-700">Jour Férié Officiel :</span>
                 <span>{activeDayDetail.ferie}</span>
               </div>
             )}

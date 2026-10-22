@@ -70,13 +70,25 @@ export function NouvelleDemandeModal({
       return;
     }
 
-    const labels: Record<TypeDemandeRH, string> = {
+    const labels: Partial<Record<TypeDemandeRH, string>> = {
       CONGES_ANNUELS: "Congés Annuels",
       CONGES_MALADIE: "Congés Maladie",
       CONGES_MATERNITE: "Congés Maternité",
+      CONGES_PATERNITE: "Congés Paternité",
+      CONGES_SANS_SOLDE: "Congé sans solde",
+      CONGES_FORMATION: "Congé de formation",
       RECUPERATION: "Récupération",
       ABSENCE_NON_PAYEE: "Absence autorisée non payée",
       PERMISSION_EXCEPTIONNELLE: "Permission Exceptionnelle",
+      PERMISSION_MARIAGE: "Permission pour mariage",
+      PERMISSION_NAISSANCE: "Permission pour naissance",
+      PERMISSION_DECES: "Permission pour décès",
+      PERMISSION_FAMILIALE: "Permission pour raisons familiales",
+      PERMISSION_MEDICALE: "Permission pour rendez-vous médical",
+      PERMISSION_ADMINISTRATIVE: "Permission pour obligations administratives",
+      PERMISSION_SCOLAIRE: "Permission pour obligations scolaires",
+      PERMISSION_EXAMEN: "Permission d'absence pour examen",
+      PERMISSION_SORTIE: "Permission de sortie (heures)",
       MISSION_DEPLACEMENT: "Mission / Déplacement",
       INTERVENTION_TERRAIN: "Intervention Terrain",
     };
@@ -88,7 +100,7 @@ export function NouvelleDemandeModal({
       id: newId,
       codeReference: newRef,
       typeDemande,
-      libelleType: labels[typeDemande],
+      libelleType: labels[typeDemande] || typeDemande,
       statut: isBrouillon ? "BROUILLON" : "EN_VALIDATION_N1",
       etapeCourante: "SUPERIEUR_N1",
       demandeur: {
@@ -164,9 +176,9 @@ export function NouvelleDemandeModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer shadow-2xs text-base font-bold"
           >
-            ✕
+            &times;
           </button>
         </div>
 
@@ -266,7 +278,7 @@ export function NouvelleDemandeModal({
                         : "border-slate-300 bg-white"
                     }`}
                   >
-                    {typeDemande === opt.id ? "✓" : ""}
+                    {typeDemande === opt.id ? "•" : ""}
                   </span>
                   <span className="text-xs">{opt.label}</span>
                 </label>
@@ -274,7 +286,7 @@ export function NouvelleDemandeModal({
             </div>
             {estCircuitCourt && (
               <p className="text-[11px] text-emerald-700 font-medium mt-1.5">
-                ✓ Permission courte ($\le 2$ jours) : circuit court allégé (N+1 et DRH uniquement).
+                Permission courte (&le; 2 jours) : circuit court allégé (N+1 et DRH uniquement).
               </p>
             )}
           </div>
@@ -316,11 +328,11 @@ export function NouvelleDemandeModal({
 
               {depassementSolde ? (
                 <span className="text-rose-700 font-semibold text-xs bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                  ⚠️ Solde insuffisant ({soldeConges.joursRestants}j disponibles)
+                  Solde insuffisant ({soldeConges.joursRestants}j disponibles)
                 </span>
               ) : (
                 <span className="text-emerald-700 font-semibold text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                  ✓ Solde conforme ({soldeConges.joursRestants}j restants)
+                  Solde conforme ({soldeConges.joursRestants}j restants)
                 </span>
               )}
             </div>
@@ -392,7 +404,7 @@ export function NouvelleDemandeModal({
             <div className="border border-dashed border-slate-200 rounded-xl p-3 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
               {pjNom ? (
                 <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
-                  <span className="font-semibold text-slate-700">📄 {pjNom}</span>
+                  <span className="font-semibold text-slate-700">{pjNom}</span>
                   <button
                     type="button"
                     onClick={() => setPjNom(null)}

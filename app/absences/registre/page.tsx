@@ -386,11 +386,11 @@ export default function RegistreGedPage() {
                     return (
                       <div key={item.key} className="flex items-center gap-1.5">
                         <span
-                          className={`w-3.5 h-3.5 border border-slate-900 flex items-center justify-center font-bold text-[10px] ${
+                          className={`w-3.5 h-3.5 border border-slate-900 flex items-center justify-center font-bold text-[9px] ${
                             isChecked ? "bg-slate-900 text-white" : "bg-white"
                           }`}
                         >
-                          {isChecked ? "✓" : ""}
+                          {isChecked ? "X" : ""}
                         </span>
                         <span className={isChecked ? "font-bold text-slate-900" : "text-slate-600"}>
                           {item.label}
