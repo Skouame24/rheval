@@ -101,14 +101,114 @@ interface AbsencesContextType {
   annulerDemande: (id: string) => void;
 }
 
+export const DIRECTION_PERSONAS: PersonaUser[] = [
+  {
+    id: "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb",
+    matricule: "EMP-SAMUEL",
+    nom: "KOUAME",
+    prenom: "Ebenezer Samuel",
+    email: "ebenezer.kouame@agilly.net",
+    poste: "Ingénieur Développeur Fullstack",
+    departement: "Direction Juridique & Digital",
+    service: "Digital & Systèmes",
+    role: "SALARIE",
+    labelRole: "Salarié (Demandeur)",
+    numeroCnss: "CI-CNPS-884102",
+    avatarBg: "bg-[#F0822A]",
+  },
+  {
+    id: "1f77edad-716c-4552-b96f-58ec7d1ee1d7",
+    matricule: "EMP-ANGE",
+    nom: "TIANGBO",
+    prenom: "Ange-Dieudonne",
+    email: "ange.tiangbo@agilly.net",
+    poste: "Directeur Juridique & Conformité / DPO",
+    departement: "Direction Juridique",
+    service: "Juridique & Conformité",
+    role: "SUPERIEUR_N1",
+    labelRole: "Manager N+1 (Direction)",
+    numeroCnss: "CI-CNPS-771204",
+    avatarBg: "bg-blue-600",
+  },
+  {
+    id: "c970e84d-5fd5-4cb9-8c4e-7cccc14ad269",
+    matricule: "EMP-GERMAINE",
+    nom: "YAO",
+    prenom: "Germaine",
+    email: "germaine.yao@agilly.net",
+    poste: "Directrice des Ressources Humaines",
+    departement: "Direction des Ressources Humaines",
+    service: "Ressources Humaines",
+    role: "DRH",
+    labelRole: "Directrice RH (DRH)",
+    numeroCnss: "CI-CNPS-662910",
+    avatarBg: "bg-emerald-600",
+  },
+  {
+    id: "aaf364d4-b002-4ae1-943d-d7ab5ec90a9a",
+    matricule: "EMP-DAVID",
+    nom: "AKPA",
+    prenom: "David Martial",
+    email: "david.akpa@agilly.net",
+    poste: "Directeur Exécutif & DG",
+    departement: "Direction Générale",
+    service: "Direction Générale",
+    role: "DIRECTION_DG",
+    labelRole: "Direction Générale (DG)",
+    numeroCnss: "CI-CNPS-551009",
+    avatarBg: "bg-purple-600",
+  },
+  {
+    id: "4d8b00e4-b383-4beb-b819-c184b5eddce4",
+    matricule: "EMP-RUTH",
+    nom: "GNAGNE",
+    prenom: "Marie Ruth",
+    email: "ruth.gnagne@agilly.net",
+    poste: "Juriste Affaires & Conformité",
+    departement: "Direction Juridique",
+    service: "Juridique",
+    role: "SALARIE",
+    labelRole: "Salariée (Juriste)",
+    numeroCnss: "CI-CNPS-992144",
+    avatarBg: "bg-pink-600",
+  },
+  {
+    id: "1e088664-6faf-484a-98ce-92de8fbdfb39",
+    matricule: "EMP-SYLVAIN",
+    nom: "OUEDRAOGO",
+    prenom: "Sylvain Windigoudou",
+    email: "sylvain.ouedraogo@agilly.net",
+    poste: "Chargé de mission GRC",
+    departement: "Direction Juridique",
+    service: "GRC & Audit",
+    role: "SALARIE",
+    labelRole: "Salarié (Audit GRC)",
+    numeroCnss: "CI-CNPS-443210",
+    avatarBg: "bg-amber-600",
+  },
+];
+
 const AbsencesContext = createContext<AbsencesContextType | undefined>(undefined);
 
 export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
-  // Persona actif prioritairement basé sur l'utilisateur connecté
-  const [currentPersona, setCurrentPersona] = useState<PersonaUser>(() => {
+  // Persona actif basé sur le mode test ou l'utilisateur connecté
+  const [currentPersona, setCurrentPersonaState] = useState<PersonaUser>(() => {
+    if (typeof window !== "undefined") {
+      const savedTestPersonaId = localStorage.getItem("agilly_test_persona_id");
+      if (savedTestPersonaId) {
+        const found = DIRECTION_PERSONAS.find((p) => p.id === savedTestPersonaId);
+        if (found) return found;
+      }
+    }
+
     if (user) {
+      const foundInDirection = DIRECTION_PERSONAS.find(
+        (p) => p.email.toLowerCase() === (user.email || "").toLowerCase() || p.id === user.id
+      );
+      if (foundInDirection) return foundInDirection;
+
       const r = mapUserRoleToActeurRH(user.role);
       return {
         id: user.id,
@@ -134,55 +234,62 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         avatarBg: "bg-[#D96F1D]",
       };
     }
-    return {
-      id: "",
-      matricule: "EMP-AGY",
-      nom: "Collaborateur",
-      prenom: "Agilly",
-      email: "",
-      poste: "Collaborateur",
-      departement: "Direction",
-      service: "Direction",
-      role: "SALARIE",
-      labelRole: "Salarié",
-      numeroCnss: "",
-      avatarBg: "bg-[#D96F1D]",
-    };
+    return DIRECTION_PERSONAS[0];
   });
 
   const [isDemoDrawerOpen, setIsDemoDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Synchronisation avec l'utilisateur authentifié
-  useEffect(() => {
-    if (user) {
-      const r = mapUserRoleToActeurRH(user.role);
-      setCurrentPersona({
-        id: user.id,
-        matricule: user.id ? `EMP-${user.id.substring(0, 6).toUpperCase()}` : "EMP-AGY",
-        nom: user.nom || "Utilisateur",
-        prenom: user.prenom || "Connecté",
-        email: user.email || "",
-        poste: user.poste || "Collaborateur",
-        departement: user.departement || "Direction",
-        service: user.departement || "Direction",
-        role: r,
-        labelRole:
-          r === "SUPERIEUR_N1"
-            ? "Manager N+1"
-            : r === "DRH"
-            ? "DRH"
-            : r === "DIRECTION_DG"
-            ? "Direction Générale"
-            : r === "ADMIN"
-            ? "Administrateur"
-            : "Salarié",
-        numeroCnss: "",
-        avatarBg: "bg-[#D96F1D]",
+  // Switcher de persona actif pour tests hiérarchiques Draw.io
+  const setCurrentPersona = useCallback((p: PersonaUser) => {
+    setCurrentPersonaState(p);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("agilly_test_persona_id", p.id);
+    }
+
+    // Mise à jour adaptée du solde de test
+    if (p.id === "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb" || p.id === "3eef0762-8149-43c7-b673-581335cb4df8") {
+      setSoldeConges({
+        annee: 2026,
+        joursAcquis: 30,
+        joursPris: 4,
+        joursEnAttente: 4,
+        joursRestants: 22,
+        repartition: {
+          congesPayes: { acquis: 30, pris: 4, solde: 22 },
+          permissionsAnnuelles: { quotaTotal: 10, prises: 1, solde: 9 },
+          recuperations: { acquises: 2, prises: 0, solde: 2 },
+        },
+      });
+    } else if (p.id === "4d8b00e4-b383-4beb-b819-c184b5eddce4") {
+      setSoldeConges({
+        annee: 2026,
+        joursAcquis: 30,
+        joursPris: 5,
+        joursEnAttente: 3,
+        joursRestants: 22,
+        repartition: {
+          congesPayes: { acquis: 30, pris: 5, solde: 22 },
+          permissionsAnnuelles: { quotaTotal: 10, prises: 3, solde: 7 },
+          recuperations: { acquises: 2, prises: 0, solde: 2 },
+        },
+      });
+    } else {
+      setSoldeConges({
+        annee: 2026,
+        joursAcquis: 30,
+        joursPris: 3,
+        joursEnAttente: 0,
+        joursRestants: 27,
+        repartition: {
+          congesPayes: { acquis: 30, pris: 3, solde: 27 },
+          permissionsAnnuelles: { quotaTotal: 10, prises: 0, solde: 10 },
+          recuperations: { acquises: 2, prises: 0, solde: 2 },
+        },
       });
     }
-  }, [user]);
+  }, []);
 
   // Données réactives — VRAIES données de la base dédiée PostgreSQL
   const [demandes, setDemandes] = useState<DemandeRHItem[]>([]);
@@ -304,31 +411,13 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
 
-      // 1. Charger le solde réel de l'utilisateur
-      const soldePromise = demandesApi.getMonSolde().catch((err) => {
-        console.warn("[DemandesApi] getMonSolde:", err);
-        return null;
-      });
+      // 1. Solde réel si disponible
+      const soldePromise = demandesApi.getMonSolde().catch(() => null);
 
-      // 2. Charger les demandes réelles selon le rôle
-      const role = currentPersona.role;
-      const isPrivileged = ["DRH", "AGENT_DRH", "DIRECTION_DG", "ADMIN"].includes(role);
-
-      let itemsPromise: Promise<DemandeRHItem[]>;
-      if (isPrivileged) {
-        itemsPromise = demandesApi.getAllDemandes().catch(() => []);
-      } else if (role === "SUPERIEUR_N1") {
-        itemsPromise = Promise.all([
-          demandesApi.getMesDemandes().catch(() => []),
-          demandesApi.getAValiderN1().catch(() => []),
-        ]).then(([mine, team]) => {
-          const map = new Map<string, DemandeRHItem>();
-          for (const d of [...mine, ...team]) map.set(d.id, d);
-          return Array.from(map.values());
-        });
-      } else {
-        itemsPromise = demandesApi.getMesDemandes().catch(() => []);
-      }
+      // 2. Charger l'ensemble des dossiers de la Direction depuis la base
+      const itemsPromise = demandesApi.getAllDemandes().catch(() =>
+        demandesApi.getMesDemandes().catch(() => [])
+      );
 
       const [realSolde, realDemandes] = await Promise.all([
         soldePromise,
@@ -338,13 +427,15 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
       if (realSolde) {
         setSoldeConges(realSolde);
       }
-      setDemandes(realDemandes);
+      if (realDemandes && realDemandes.length > 0) {
+        setDemandes(realDemandes);
+      }
     } catch (e) {
       console.warn("[AbsencesContext] Erreur refreshDemandes:", e);
     } finally {
       setIsLoading(false);
     }
-  }, [currentPersona.role]);
+  }, []);
 
   // Rechargement au montage et au changement d'utilisateur
   useEffect(() => {
@@ -358,11 +449,11 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
     });
   }, [refreshDemandes]);
 
-  // Demandes déposées par le collaborateur actif
+  // Demandes déposées par le collaborateur actif (priorité persona sélectionné pour test)
   const myDemandes = useMemo(() => {
-    const curId = (user?.id || currentPersona.id || "").toLowerCase();
-    const curEmail = (user?.email || currentPersona.email || "").toLowerCase();
-    const curNom = (user?.nom || currentPersona.nom || "").toLowerCase();
+    const curId = (currentPersona.id || user?.id || "").toLowerCase();
+    const curEmail = (currentPersona.email || user?.email || "").toLowerCase();
+    const curNom = (currentPersona.nom || user?.nom || "").toLowerCase();
 
     return demandes.filter((d) => {
       const dId = (d.demandeur.id || "").toLowerCase();
@@ -370,12 +461,12 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
       const dNom = (d.demandeur.nom || "").toLowerCase();
 
       return (
-        (curId && dId === curId) ||
-        (curEmail && dEmail === curEmail) ||
-        (curNom && dNom.includes(curNom))
+        (curId && (dId === curId || curId.includes(dId) || dId.includes(curId))) ||
+        (curEmail && (dEmail === curEmail || curEmail.includes(dEmail) || dEmail.includes(curEmail))) ||
+        (curNom && (dNom.includes(curNom) || curNom.includes(dNom)))
       );
     });
-  }, [demandes, user?.id, user?.email, user?.nom, currentPersona]);
+  }, [demandes, currentPersona, user]);
 
   // Demandes en attente d'arbitrage selon le rôle actif
   const pendingForCurrentRoleDemandes = useMemo(() => {
@@ -744,7 +835,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentPersona,
         setCurrentPersona,
-        allPersonas: [],
+        allPersonas: DIRECTION_PERSONAS,
         isDemoDrawerOpen,
         setIsDemoDrawerOpen,
         demandes,

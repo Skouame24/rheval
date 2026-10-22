@@ -86,16 +86,27 @@ function mapBackendStatutToFrontend(status: string): StatutDemandeRH {
     case "BROUILLON":
       return "BROUILLON";
     case "EN_ATTENTE_N1":
+    case "EN_VALIDATION_N1":
       return "EN_VALIDATION_N1";
     case "EN_ATTENTE_DRH":
+    case "EN_VALIDATION_DRH":
       return "EN_VALIDATION_DRH";
     case "EN_ATTENTE_DG":
+    case "EN_VALIDATION_DG":
       return "EN_VALIDATION_DG";
     case "APPROUVEE":
       return "APPROUVEE";
+    case "PERMISSION_EDITEE":
+      return "PERMISSION_EDITEE";
+    case "ARCHIVEE":
+      return "ARCHIVEE";
+    case "RETOURNEE_EMPLOYE":
+    case "RETOURNEE_N1":
+    case "RETOURNEE_DRH":
     case "RETOURNEE":
       return "RETOURNEE_EMPLOYE";
     case "REFUSEE":
+    case "REFUSEE_DEFINITIVEMENT":
       return "REFUSEE_DEFINITIVEMENT";
     case "ANNULEE":
       return "ANNULEE";

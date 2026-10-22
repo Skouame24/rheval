@@ -22,8 +22,22 @@ const TITLES: [string, string][] = [
 
 export function AbsencesTopBar() {
   const pathname = usePathname();
-  const { currentPersona, pendingValidationsCount, isLoading, refreshDemandes } = useAbsences();
+  const { currentPersona, setCurrentPersona, allPersonas, pendingValidationsCount, isLoading, refreshDemandes } = useAbsences();
+  const [isSwitcherOpen, setIsSwitcherOpen] = React.useState(false);
+  const switcherRef = React.useRef<HTMLDivElement>(null);
+
   const title = TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Accueil";
+
+  // Fermeture du dropdown au clic en dehors
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (switcherRef.current && !switcherRef.current.contains(event.target as Node)) {
+        setIsSwitcherOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20 relative">
@@ -47,7 +61,101 @@ export function AbsencesTopBar() {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* ── TEST SWITCHER : DIRECTION JURIDIQUE & WORKFLOW DRAW.IO ── */}
+        <div className="relative" ref={switcherRef}>
+          <button
+            type="button"
+            onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-50/90 to-white hover:from-orange-100 hover:to-orange-50/80 border border-orange-300 text-xs px-2.5 py-1.5 transition-all shadow-2xs cursor-pointer rounded-xs"
+            title="Changer de rôle pour tester le workflow de validation Draw.io"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 hidden md:inline">
+              Testeur :
+            </span>
+            <span className="font-extrabold text-slate-900 truncate max-w-[130px] sm:max-w-none">
+              {currentPersona.prenom} {currentPersona.nom}
+            </span>
+            <span className="text-[10px] font-black px-1.5 py-0.2 bg-[#F0822A] text-white shadow-2xs shrink-0">
+              {currentPersona.labelRole}
+            </span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              className={`text-slate-500 transition-transform ${isSwitcherOpen ? "rotate-180" : ""}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {/* Menu Dropdown de sélection des acteurs Draw.io */}
+          {isSwitcherOpen && (
+            <div className="absolute right-0 mt-2 w-84 bg-white border border-slate-200 shadow-xl z-50 p-2 text-xs rounded-xs">
+              <div className="p-2 border-b border-orange-100 bg-gradient-to-r from-orange-50/60 to-white">
+                <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wider block">
+                  Direction Juridique & Conformité (Test Workflow)
+                </span>
+                <span className="text-[11px] text-slate-500 mt-0.5 block">
+                  Sélectionnez un acteur pour tester ses autorisations et ses validations :
+                </span>
+              </div>
+
+              <div className="py-1 divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                {allPersonas.map((p) => {
+                  const isSelected = p.id === currentPersona.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setCurrentPersona(p);
+                        setIsSwitcherOpen(false);
+                      }}
+                      className={`w-full text-left p-2.5 flex items-start gap-3 transition-colors cursor-pointer ${
+                        isSelected
+                          ? "bg-[#FFF4EB] border-l-4 border-l-[#F0822A]"
+                          : "hover:bg-slate-50 border-l-4 border-l-transparent"
+                      }`}
+                    >
+                      <div className={`w-8 h-8 ${p.avatarBg || "bg-[#F0822A]"} text-white text-xs font-black flex items-center justify-center shrink-0 shadow-2xs`}>
+                        {p.prenom.charAt(0)}{p.nom.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-extrabold text-slate-900 truncate">
+                            {p.prenom} {p.nom}
+                          </span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                            {p.role}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-500 block truncate">
+                          {p.poste}
+                        </span>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                          <span>{p.departement}</span>
+                          <span>•</span>
+                          <span className="font-mono">{p.matricule}</span>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <span className="text-[#F0822A] font-bold text-xs mt-1">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Bouton rafraîchir doux */}
         <button
           type="button"
