@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { DemandeRHItem } from "@/types/absences.types";
-import { PersonaUser } from "@/lib/mock/absences.mock";
+import { PersonaUser } from "@/types/absences.types";
 import { DemandeWorkflowStepper } from "./DemandeWorkflowStepper";
 
 interface ValidationModalProps {

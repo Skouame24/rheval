@@ -8,7 +8,7 @@
 
 import React from "react";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
-import { PersonaUser } from "@/lib/mock/absences.mock";
+import { PersonaUser } from "@/types/absences.types";
 
 export function DemoPersonaDrawer() {
   const { currentPersona, setCurrentPersona, allPersonas, isDemoDrawerOpen, setIsDemoDrawerOpen } =

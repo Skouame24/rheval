@@ -8,7 +8,6 @@ import React from "react";
 import { AbsencesProvider } from "@/features/absences/context/AbsencesContext";
 import { AbsencesSidebar } from "@/features/absences/components/AbsencesSidebar";
 import { AbsencesTopBar } from "@/features/absences/components/AbsencesTopBar";
-import { DemoPersonaDrawer } from "@/features/absences/components/DemoPersonaDrawer";
 
 export const metadata = {
   title: "Absences & Congés | Agilly Portails",
@@ -36,9 +35,6 @@ export default function AbsencesLayout({
             {children}
           </main>
         </div>
-
-        {/* Tiroir Mode Démo (escamotable) */}
-        <DemoPersonaDrawer />
       </div>
     </AbsencesProvider>
   );

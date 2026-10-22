@@ -186,72 +186,83 @@ export default function RegistreGedPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {archivedDocuments.map((doc) => (
-                <tr
-                  key={doc.id}
-                  onClick={() => setSelectedBulletin(doc)}
-                  className="hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  <td className="py-3.5 px-4">
-                    <span className="font-mono font-bold text-slate-900 block">
-                      {doc.documentPermission?.numeroUnique || "AGY-PERM-2026-00042"}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      Ref: {doc.codeReference}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-bold text-slate-900 block">
-                      {doc.demandeur.prenom} {doc.demandeur.nom}
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      Matr. {doc.demandeur.matricule} • {doc.demandeur.poste}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-medium text-slate-800">{doc.libelleType}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-mono text-slate-900 font-semibold block">
-                      {doc.nombreJoursOuvres} jours ouvrés
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      Du {formatDateFr(doc.dateDebut)} au {formatDateFr(doc.dateFin)}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="text-slate-800 block">
-                      {doc.documentPermission?.emetteurAgentNom || "Aïcha DIARRA"}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {formatDateFr(doc.documentPermission?.dateEmission || doc.dateDerniereAction)}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    {doc.statut === "ARCHIVEE" ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-slate-100 px-2 py-0.5 border border-slate-300">
-                        <span className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
-                        Archivé 10 ans
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#F0822A] bg-[#FFF4EB] px-2 py-0.5 border border-[#FDE3CC]">
-                        <span className="w-1.5 h-1.5 bg-[#F0822A] rounded-full" />
-                        Édité (Prêt GED)
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedBulletin(doc);
-                      }}
-                      className="px-2.5 py-1 text-xs font-semibold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 transition-colors"
-                    >
-                      Aperçu Bulletin
-                    </button>
+              {archivedDocuments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                    <p className="font-bold text-slate-700 text-sm">Aucun document dans le registre GED</p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Les titres d&apos;absences et permissions apparaîtront automatiquement ici dès leur validation et homologation.
+                    </p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                archivedDocuments.map((doc) => (
+                  <tr
+                    key={doc.id}
+                    onClick={() => setSelectedBulletin(doc)}
+                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <td className="py-3.5 px-4">
+                      <span className="font-mono font-bold text-slate-900 block">
+                        {doc.documentPermission?.numeroUnique || doc.codeReference}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Ref: {doc.codeReference}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-bold text-slate-900 block">
+                        {doc.demandeur.prenom} {doc.demandeur.nom}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Matr. {doc.demandeur.matricule} • {doc.demandeur.poste}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 font-medium text-slate-800">{doc.libelleType}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-mono text-slate-900 font-semibold block">
+                        {doc.nombreJoursOuvres} jours ouvrés
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Du {formatDateFr(doc.dateDebut)} au {formatDateFr(doc.dateFin)}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="text-slate-800 block">
+                        {doc.documentPermission?.emetteurAgentNom || "Agent DRH"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {formatDateFr(doc.documentPermission?.dateEmission || doc.dateDerniereAction)}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {doc.statut === "ARCHIVEE" ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-slate-100 px-2 py-0.5 border border-slate-300">
+                          <span className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
+                          Archivé 10 ans
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#F0822A] bg-[#FFF4EB] px-2 py-0.5 border border-[#FDE3CC]">
+                          <span className="w-1.5 h-1.5 bg-[#F0822A] rounded-full" />
+                          Édité (Prêt GED)
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedBulletin(doc);
+                        }}
+                        className="px-2.5 py-1 text-xs font-semibold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 transition-colors"
+                      >
+                        Aperçu Bulletin
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -304,7 +315,7 @@ export default function RegistreGedPage() {
 
                 <div className="text-right">
                   <div className="border border-slate-800 px-3 py-1 font-mono font-bold text-xs bg-slate-50">
-                    {selectedBulletin.documentPermission?.numeroUnique || "AGY-PERM-2026-00042"}
+                    {selectedBulletin.documentPermission?.numeroUnique || selectedBulletin.codeReference}
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-1">
                     Date : {formatDateFr(selectedBulletin.dateCreation)}
@@ -349,7 +360,7 @@ export default function RegistreGedPage() {
                   <div className="col-span-2 pt-1 border-t border-slate-200">
                     <span className="text-slate-500 block text-[10px]">N° CNSS :</span>
                     <span className="font-mono font-medium">
-                      {selectedBulletin.demandeur.numeroCnss || "CI-0019284729-A"}
+                      {selectedBulletin.demandeur.numeroCnss || "-"}
                     </span>
                   </div>
                 </div>
@@ -423,7 +434,7 @@ export default function RegistreGedPage() {
                     Adresse et contact téléphonique pendant l&apos;absence :
                   </span>
                   <p className="font-medium text-slate-800">
-                    {selectedBulletin.adresseContactPendantAbsence || "Abidjan Cocody"}
+                    {selectedBulletin.adresseContactPendantAbsence || "-"}
                   </p>
                 </div>
               </div>
@@ -443,7 +454,7 @@ export default function RegistreGedPage() {
                     Balance congés payés restants :
                   </span>
                   <span className="font-mono font-extrabold text-sm text-[#F0822A]">
-                    {selectedBulletin.documentPermission?.balanceCongesPayesSolde || 10.5} jours
+                    {selectedBulletin.documentPermission?.balanceCongesPayesSolde ?? "-"} jours
                   </span>
                 </div>
               </div>

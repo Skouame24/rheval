@@ -23,9 +23,7 @@ export default function ValidationsInboxPage() {
     setIsDemoDrawerOpen,
   } = useAbsences();
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    pendingForCurrentRoleDemandes[0]?.id || demandes[0]?.id || null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // État du modal de refus / motif obligatoire (RG-05)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -33,19 +31,18 @@ export default function ValidationsInboxPage() {
 
   // Modal de désignation de remplaçant (RG-07 / EF-13)
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
-  const [delegueNom, setDelegueNom] = useState("KOUASSI Samuel (Manager Adjoint)");
+  const [delegueNom, setDelegueNom] = useState("");
   const [delegationActive, setDelegationActive] = useState(false);
 
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
 
   const activeDemande = useMemo(() => {
-    return (
-      demandes.find((d) => d.id === selectedId) ||
-      pendingForCurrentRoleDemandes[0] ||
-      demandes[0] ||
-      null
-    );
-  }, [demandes, selectedId, pendingForCurrentRoleDemandes]);
+    if (selectedId) {
+      const found = pendingForCurrentRoleDemandes.find((d) => d.id === selectedId);
+      if (found) return found;
+    }
+    return pendingForCurrentRoleDemandes[0] || null;
+  }, [selectedId, pendingForCurrentRoleDemandes]);
 
   // Destination de retour selon les règles §3.2
   const getDestinationRetour = () => {
@@ -252,44 +249,46 @@ export default function ValidationsInboxPage() {
                 </div>
               </div>
 
-              {/* Contrôles automatiques (EF-16 : Solde, Quorum, Chevauchements) */}
+              {/* Contrôles automatiques (Nature, Continuité, Délais) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3 bg-slate-50 border border-slate-200 text-xs">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Solde Congés Payés (RG-02)
+                    Nature & Décompte
                   </span>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <span className="font-bold text-slate-900">14.5 j restants</span>
-                    <span className="text-emerald-700 font-bold text-[11px]">Suffisant</span>
+                    <span className="font-bold text-slate-900">{activeDemande.libelleType}</span>
+                    <span className="text-emerald-700 font-bold text-[11px]">Vérifié</span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Solde après validation : {14.5 - activeDemande.nombreJoursOuvres} j
+                    {activeDemande.typeDemande === "CONGES_ANNUELS"
+                      ? `${activeDemande.nombreJoursOuvres} j à décompter du solde annuel`
+                      : "Dispense de décompte du solde annuel"}
                   </p>
                 </div>
 
                 <div className="p-3 bg-slate-50 border border-slate-200 text-xs">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Effectif du service (RG-04)
+                    Disponibilité Service
                   </span>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <span className="font-bold text-slate-900">85.7% de présence</span>
-                    <span className="text-emerald-700 font-bold text-[11px]">Quorum OK</span>
+                    <span className="font-bold text-slate-900">{activeDemande.demandeur.departement || "Direction"}</span>
+                    <span className="text-emerald-700 font-bold text-[11px]">Continuité OK</span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Effectif minimum &gt; 50% garanti.
+                    Période : {formatDateFr(activeDemande.dateDebut)} au {formatDateFr(activeDemande.dateFin)}
                   </p>
                 </div>
 
                 <div className="p-3 bg-slate-50 border border-slate-200 text-xs">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Chevauchements (RG-03)
+                    Circuit & Délais
                   </span>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <span className="font-bold text-slate-900">0 conflit direct</span>
-                    <span className="text-emerald-700 font-bold text-[11px]">Conforme</span>
+                    <span className="font-bold text-slate-900">SLA 48h</span>
+                    <span className="text-blue-700 font-bold text-[11px]">En cours</span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Aucune absence concurrente dans l&apos;équipe.
+                    Visa attendu de : {currentPersona.labelRole}
                   </p>
                 </div>
               </div>
@@ -410,8 +409,12 @@ export default function ValidationsInboxPage() {
               </div>
             </>
           ) : (
-            <div className="p-12 text-center text-slate-400 text-xs">
-              Sélectionnez une demande dans la liste de gauche pour afficher le dossier.
+            <div className="p-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+              <span className="text-3xl">📋</span>
+              <p className="font-bold text-slate-700 text-sm">Aucun dossier en attente d&apos;arbitrage</p>
+              <p className="text-slate-400 max-w-sm">
+                Vous n&apos;avez aucune demande d&apos;absence à arbitrer pour le moment. Dès qu&apos;un collaborateur soumet une demande, elle s&apos;affichera automatiquement ici.
+              </p>
             </div>
           )}
         </div>
@@ -499,15 +502,13 @@ export default function ValidationsInboxPage() {
               <label className="block text-slate-700 font-bold mb-1">
                 Collaborateur remplaçant habilité
               </label>
-              <select
+              <input
+                type="text"
                 value={delegueNom}
                 onChange={(e) => setDelegueNom(e.target.value)}
+                placeholder="Nom du manager ou collaborateur délégué..."
                 className="w-full bg-slate-50 border border-slate-300 p-2 text-slate-900 font-medium"
-              >
-                <option value="KOUASSI Samuel (Manager Adjoint)">KOUASSI Samuel (Manager Adjoint)</option>
-                <option value="TOURE Marie-Claire (DRH)">TOURE Marie-Claire (DRH)</option>
-                <option value="DIABATE Ousmane (Lead Tech)">DIABATE Ousmane (Lead Tech)</option>
-              </select>
+              />
             </div>
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-200">

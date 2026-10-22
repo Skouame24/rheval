@@ -43,6 +43,21 @@ export type RoleActeurRH =
   | "AGENT_DRH"
   | "ADMIN";
 
+export interface PersonaUser {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  role: RoleActeurRH;
+  labelRole: string;
+  poste: string;
+  departement: string;
+  service: string;
+  matricule: string;
+  numeroCnss?: string;
+  avatarBg?: string;
+}
+
 export interface DemandeurInfo {
   id: string;
   matricule: string;

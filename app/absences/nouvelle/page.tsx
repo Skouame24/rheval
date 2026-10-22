@@ -89,38 +89,46 @@ export default function NouvelleDemandePage() {
   // Type sélectionné
   const [typeDemande, setTypeDemande] = useState<TypeDemandeRH>("CONGES_ANNUELS");
 
+  // Dates par défaut : demain ouvré à +3 jours
+  const defaultDates = useMemo(() => {
+    const d1 = new Date();
+    d1.setDate(d1.getDate() + 1);
+    const d2 = new Date(d1);
+    d2.setDate(d2.getDate() + 3);
+    return {
+      debut: d1.toISOString().split("T")[0],
+      fin: d2.toISOString().split("T")[0],
+    };
+  }, []);
+
   // Champs universels (Bulletin Individuel)
-  const [dateDebut, setDateDebut] = useState<string>("2026-11-09");
-  const [dateFin, setDateFin] = useState<string>("2026-11-13");
+  const [dateDebut, setDateDebut] = useState<string>(defaultDates.debut);
+  const [dateFin, setDateFin] = useState<string>(defaultDates.fin);
   const [motif, setMotif] = useState<string>("");
-  const [adresseContact, setAdresseContact] = useState<string>(
-    "Abidjan Cocody, Contact: +225 07 48 92 11 00"
-  );
+  const [adresseContact, setAdresseContact] = useState<string>("");
   const [engagementHonneur, setEngagementHonneur] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Champs SPÉCIFIQUES : Mission
-  const [destination, setDestination] = useState<string>("San Pedro, Zone Industrielle");
-  const [moyenTransport, setMoyenTransport] = useState<string>("Véhicule de société (4x4)");
-  const [budgetEstime, setBudgetEstime] = useState<string>("150 000 FCFA");
+  const [destination, setDestination] = useState<string>("");
+  const [moyenTransport, setMoyenTransport] = useState<string>("");
+  const [budgetEstime, setBudgetEstime] = useState<string>("");
 
   // Champs SPÉCIFIQUES : Intervention
-  const [clientSite, setClientSite] = useState<string>("Client Datacenter Orange / Wave");
-  const [natureTechnique, setNatureTechnique] = useState<string>("Maintenance réseau et baie de brassage");
+  const [clientSite, setClientSite] = useState<string>("");
+  const [natureTechnique, setNatureTechnique] = useState<string>("");
 
   // Champs SPÉCIFIQUES : Permission Exceptionnelle
-  const [natureEvenement, setNatureEvenement] = useState<string>("Mariage du salarié (3 jours légaux)");
+  const [natureEvenement, setNatureEvenement] = useState<string>("Mariage du salarié (3 jours)");
 
   // Champs SPÉCIFIQUES : Maladie
-  const [nomMedecin, setNomMedecin] = useState<string>("Dr. KOUAME - Clinique Médicale Cocody");
+  const [nomMedecin, setNomMedecin] = useState<string>("");
 
   // Champs SPÉCIFIQUES : Récupération
-  const [dateAstreinte, setDateAstreinte] = useState<string>("Astreinte du Samedi 17 et Dimanche 18 Octobre");
+  const [dateAstreinte, setDateAstreinte] = useState<string>("");
 
   // Pièces jointes
-  const [fichiers, setFichiers] = useState<string[]>([
-    "Justificatif_Officiel_Signe.pdf",
-  ]);
+  const [fichiers, setFichiers] = useState<string[]>([]);
 
   // Calcul automatique jours calendaires (mention Excel) et ouvrés (décompte)
   const { joursOuvres, joursCalendaires } = useMemo(() => {
@@ -152,7 +160,7 @@ export default function NouvelleDemandePage() {
 
   const configActive = TYPES_CONFIG.find((t) => t.id === typeDemande) || TYPES_CONFIG[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!motif.trim()) {
       alert("Le motif de la demande est obligatoire.");
@@ -164,21 +172,21 @@ export default function NouvelleDemandePage() {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
       let motifComplet = motif;
       if (typeDemande === "MISSION_DEPLACEMENT") {
-        motifComplet = `[MISSION à ${destination} via ${moyenTransport}] ${motif}`;
+        motifComplet = destination ? `[MISSION à ${destination}${moyenTransport ? ` via ${moyenTransport}` : ""}] ${motif}` : motif;
       } else if (typeDemande === "INTERVENTION_TERRAIN") {
-        motifComplet = `[INTERVENTION chez ${clientSite} - ${natureTechnique}] ${motif}`;
+        motifComplet = clientSite ? `[INTERVENTION chez ${clientSite}${natureTechnique ? ` - ${natureTechnique}` : ""}] ${motif}` : motif;
       } else if (typeDemande === "PERMISSION_EXCEPTIONNELLE") {
         motifComplet = `[ÉVÉNEMENT : ${natureEvenement}] ${motif}`;
       } else if (typeDemande === "CONGES_MALADIE") {
-        motifComplet = `[CERTIFICAT : ${nomMedecin}] ${motif}`;
+        motifComplet = nomMedecin ? `[CERTIFICAT : ${nomMedecin}] ${motif}` : motif;
       } else if (typeDemande === "RECUPERATION") {
-        motifComplet = `[RÉCUPÉRATION suite à : ${dateAstreinte}] ${motif}`;
+        motifComplet = dateAstreinte ? `[RÉCUPÉRATION suite à : ${dateAstreinte}] ${motif}` : motif;
       }
 
-      addDemande({
+      await addDemande({
         typeDemande,
         libelleType: configActive.titre,
         dateDebut,
@@ -191,9 +199,13 @@ export default function NouvelleDemandePage() {
         moyenTransport: typeDemande === "MISSION_DEPLACEMENT" ? moyenTransport : undefined,
       });
 
-      setIsSubmitting(false);
       router.push("/absences/demandes");
-    }, 400);
+    } catch (err: any) {
+      console.error("[NouvelleDemandePage] Erreur:", err);
+      alert(err?.message || "Erreur lors de la transmission de la demande au backend.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -447,6 +459,7 @@ export default function NouvelleDemandePage() {
               type="text"
               value={adresseContact}
               onChange={(e) => setAdresseContact(e.target.value)}
+              placeholder="Ex: Abidjan Cocody, +225 07 00 00 00 00"
               className="w-full bg-slate-50 border border-slate-300 p-2 text-slate-900 focus:bg-white focus:outline-none focus:border-[#F0822A]"
             />
           </div>

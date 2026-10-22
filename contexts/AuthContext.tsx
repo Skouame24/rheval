@@ -40,20 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Synchronisation dynamique avec la session Microsoft Entra ID
   useEffect(() => {
-    // 1. Priorité au profil simulé si actif pour les tests de parcours
+    // Nettoyage immédiat de tout compte simulé résiduel en session réelle
     if (typeof window !== "undefined") {
-      const simStored = localStorage.getItem("agilly_simulated_user");
-      if (simStored) {
-        try {
-          const simParsed = JSON.parse(simStored);
-          setUser(simParsed);
-          setIsSimulated(true);
-          setIsLoading(false);
-          return;
-        } catch {
-          localStorage.removeItem("agilly_simulated_user");
-        }
-      }
+      localStorage.removeItem("agilly_simulated_user");
+      localStorage.removeItem("agilly_user_role_override");
     }
 
     if (status === "loading") {

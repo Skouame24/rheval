@@ -216,7 +216,7 @@ export function AbsencesSidebar() {
         </nav>
       </div>
 
-      {/* ── BAS : RETOUR PORTAIL SANS DOUBLON D'IDENTITÉ ── */}
+      {/* ── BAS : RETOUR PORTAIL ── */}
       <div className="border-t border-slate-200 bg-slate-50/70 p-3 flex flex-col gap-2">
         <Link
           href="/portail"
@@ -227,17 +227,6 @@ export function AbsencesSidebar() {
           </svg>
           <span>Retour au Portail</span>
         </Link>
-
-        {/* Bouton de simulation démo uniquement en développement */}
-        {process.env.NODE_ENV !== "production" && (
-          <button
-            type="button"
-            onClick={() => setIsDemoDrawerOpen(true)}
-            className="w-full flex items-center justify-center gap-1.5 py-1 px-2 text-[10px] text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 border border-slate-200 transition-colors cursor-pointer"
-          >
-            <span>Simuler un rôle (Démo)</span>
-          </button>
-        )}
       </div>
     </aside>
   );

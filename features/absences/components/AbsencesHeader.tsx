@@ -6,7 +6,7 @@
 "use client";
 
 import Link from "next/link";
-import { PersonaUser } from "@/lib/mock/absences.mock";
+import { PersonaUser } from "@/types/absences.types";
 
 interface AbsencesHeaderProps {
   currentPersona: PersonaUser;

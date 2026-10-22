@@ -16,25 +16,31 @@ import {
   RoleActeurRH,
   EtapeValidationRH,
   StatutDemandeRH,
-} from "@/types/absences.types";
-import {
-  MOCK_PERSONAS,
   PersonaUser,
-} from "@/lib/mock/absences.mock";
+} from "@/types/absences.types";
 import { useAuth } from "@/contexts/AuthContext";
 import { demandesApi, mapFrontendTypeToBackend, onDataChanged } from "@/lib/api";
 
 function mapUserRoleToActeurRH(role?: string): RoleActeurRH {
-  switch (role) {
+  const normalized = (role || "").toUpperCase();
+  switch (normalized) {
     case "MANAGER":
+    case "N1":
+    case "SUPERIEUR_N1":
       return "SUPERIEUR_N1";
     case "HR":
+    case "DRH":
+    case "AGENT_DRH":
       return "DRH";
     case "DIRECTOR":
+    case "N2":
+    case "DG":
+    case "DIRECTION_DG":
       return "DIRECTION_DG";
     case "ADMIN":
       return "ADMIN";
     case "EMPLOYEE":
+    case "SALARIE":
     default:
       return "SALARIE";
   }
@@ -42,12 +48,12 @@ function mapUserRoleToActeurRH(role?: string): RoleActeurRH {
 
 const DEFAULT_SOLDE_CONGES: SoldeCongesInfo = {
   annee: new Date().getFullYear(),
-  joursAcquis: 26,
+  joursAcquis: 0,
   joursPris: 0,
   joursEnAttente: 0,
-  joursRestants: 26,
+  joursRestants: 0,
   repartition: {
-    congesPayes: { acquis: 26, pris: 0, solde: 26 },
+    congesPayes: { acquis: 0, pris: 0, solde: 0 },
     permissionsAnnuelles: { quotaTotal: 10, prises: 0, solde: 10 },
     recuperations: { acquises: 0, prises: 0, solde: 0 },
   },
@@ -87,7 +93,7 @@ interface AbsencesContextType {
   pendingForCurrentRoleDemandes: DemandeRHItem[];
 
   // Actions de workflow
-  addDemande: (newDemande: Partial<DemandeRHItem>) => DemandeRHItem;
+  addDemande: (newDemande: Partial<DemandeRHItem>) => Promise<DemandeRHItem>;
   validerDemande: (id: string, motif?: string) => void;
   refuserDemande: (id: string, motif: string) => void;
   editerPermission: (id: string) => void;
@@ -124,11 +130,24 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
             : r === "ADMIN"
             ? "Administrateur"
             : "Salarié",
-        numeroCnss: "CI-0019284729-A",
+        numeroCnss: "",
         avatarBg: "bg-[#D96F1D]",
       };
     }
-    return MOCK_PERSONAS[0];
+    return {
+      id: "",
+      matricule: "EMP-AGY",
+      nom: "Collaborateur",
+      prenom: "Agilly",
+      email: "",
+      poste: "Collaborateur",
+      departement: "Direction",
+      service: "Direction",
+      role: "SALARIE",
+      labelRole: "Salarié",
+      numeroCnss: "",
+      avatarBg: "bg-[#D96F1D]",
+    };
   });
 
   const [isDemoDrawerOpen, setIsDemoDrawerOpen] = useState(false);
@@ -159,7 +178,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
             : r === "ADMIN"
             ? "Administrateur"
             : "Salarié",
-        numeroCnss: "CI-0019284729-A",
+        numeroCnss: "",
         avatarBg: "bg-[#D96F1D]",
       });
     }
@@ -223,7 +242,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
       enAttenteValidation,
       approuveesMois,
       tauxRefusPourcent,
-      delaiMoyenHeures: 4.5,
+      delaiMoyenHeures: totalDemandesMois > 0 ? 4.5 : 0,
       permissionsEditees,
       archivesGedTotal,
     };
@@ -382,96 +401,30 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
 
   const pendingValidationsCount = pendingForCurrentRoleDemandes.length;
 
-  // Création d'une nouvelle demande (optimiste + synchro backend)
-  const addDemande = (payload: Partial<DemandeRHItem>): DemandeRHItem => {
-    const nextNum = demandes.length + 1;
-    const codeRef = `DEM-2026-${String(nextNum).padStart(5, "0")}`;
-    const nowIso = new Date().toISOString();
-    const tempId = `dem-${Date.now()}`;
+  // Création d'une nouvelle demande (enregistrement réel dans PostgreSQL dédié)
+  const addDemande = async (payload: Partial<DemandeRHItem>): Promise<DemandeRHItem> => {
+    const backendTypeCode = mapFrontendTypeToBackend(payload.typeDemande || "CONGES_ANNUELS");
 
-    const created: DemandeRHItem = {
-      id: tempId,
-      codeReference: codeRef,
-      typeDemande: payload.typeDemande || "CONGES_ANNUELS",
-      libelleType: payload.libelleType || "Congés Annuels",
-      statut: "EN_VALIDATION_N1",
-      etapeCourante: "SUPERIEUR_N1",
-      demandeur: payload.demandeur || {
-        id: currentPersona.id,
-        matricule: currentPersona.matricule,
-        nom: currentPersona.nom,
-        prenom: currentPersona.prenom,
-        email: currentPersona.email,
-        poste: currentPersona.poste,
-        departement: currentPersona.departement,
-        service: currentPersona.service,
-        telephone: "+225 07 48 92 11 00",
-        numeroCnss: currentPersona.numeroCnss,
-      },
-      dateDebut: payload.dateDebut || "2026-11-10",
-      dateFin: payload.dateFin || "2026-11-13",
-      estDemiJourneeDebut: payload.estDemiJourneeDebut || false,
-      estDemiJourneeFin: payload.estDemiJourneeFin || false,
-      nombreJoursOuvres: payload.nombreJoursOuvres || 4,
-      nombreJoursCalendaires: payload.nombreJoursCalendaires || 4,
-      motif: payload.motif || "",
-      adresseContactPendantAbsence: payload.adresseContactPendantAbsence || "",
+    const realCreated = await demandesApi.creerDemande({
+      typeCode: backendTypeCode,
+      dateDebut: payload.dateDebut!,
+      dateFin: payload.dateFin!,
+      demiJourneeDebut: payload.estDemiJourneeDebut,
+      demiJourneeFin: payload.estDemiJourneeFin,
+      motif: payload.motif || "Demande d'absence",
       destination: payload.destination,
       moyenTransport: payload.moyenTransport,
-      fraisPrevisionnels: payload.fraisPrevisionnels,
-      cycleRetoursCount: 0,
-      piecesJointes: payload.piecesJointes || [],
-      historique: [
-        {
-          id: `hist-${Date.now()}`,
-          etape: "SUPERIEUR_N1",
-          libelleEtape: "Dépôt de la demande",
-          acteurNom: `${currentPersona.prenom} ${currentPersona.nom}`,
-          acteurPoste: currentPersona.poste,
-          acteurRole: currentPersona.role,
-          decision: "VALIDE",
-          motif: "Formulaire renseigné et transmis pour validation N+1.",
-          dateAction: nowIso,
-        },
-      ],
-      dateCreation: nowIso,
-      dateDerniereAction: nowIso,
-    };
+      fraisEstimes: payload.fraisPrevisionnels,
+    });
 
-    setDemandes((prev) => [created, ...prev]);
+    setDemandes((prev) => [realCreated, ...prev.filter((d) => d.id !== realCreated.id)]);
 
-    // Décompte prévisionnel du solde de congés si c'est du congé annuel
-    if (payload.typeDemande === "CONGES_ANNUELS") {
-      setSoldeConges((prev) => ({
-        ...prev,
-        joursEnAttente: prev.joursEnAttente + (payload.nombreJoursOuvres || 4),
-        joursRestants: Math.max(0, prev.joursRestants - (payload.nombreJoursOuvres || 4)),
-      }));
-    }
+    // Recharger le solde réel après soumission
+    demandesApi.getMonSolde().then((s) => {
+      if (s) setSoldeConges(s);
+    }).catch(() => {});
 
-    // Appel asynchrone au backend pour insertion réelle dans PostgreSQL dédié
-    const backendTypeCode = mapFrontendTypeToBackend(payload.typeDemande || "CONGES_ANNUELS");
-    demandesApi
-      .creerDemande({
-        typeCode: backendTypeCode,
-        dateDebut: payload.dateDebut || "2026-11-10",
-        dateFin: payload.dateFin || "2026-11-13",
-        demiJourneeDebut: payload.estDemiJourneeDebut,
-        demiJourneeFin: payload.estDemiJourneeFin,
-        motif: payload.motif || "Demande d'absence",
-        destination: payload.destination,
-        moyenTransport: payload.moyenTransport,
-        fraisEstimes: payload.fraisPrevisionnels,
-      })
-      .then((realCreated) => {
-        setDemandes((prev) => prev.map((d) => (d.id === tempId ? realCreated : d)));
-        demandesApi.getMonSolde().then((s) => setSoldeConges(s)).catch(() => {});
-      })
-      .catch((err) => {
-        console.warn("[AbsencesContext] Enregistrement backend:", err);
-      });
-
-    return created;
+    return realCreated;
   };
 
   // Validation hiérarchique selon le circuit à 3 niveaux
@@ -719,7 +672,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentPersona,
         setCurrentPersona,
-        allPersonas: MOCK_PERSONAS,
+        allPersonas: [],
         isDemoDrawerOpen,
         setIsDemoDrawerOpen,
         demandes,

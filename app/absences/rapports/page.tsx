@@ -23,17 +23,20 @@ import {
 } from "recharts";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
-const DELAIS_PAR_ETAPE = [
-  { etape: "Supérieur", realise: 14, cible: 24, statut: "Dans les délais" },
-  { etape: "Contrôle DRH", realise: 22, cible: 24, statut: "Dans les délais" },
-  { etape: "Direction DG", realise: 36, cible: 48, statut: "Dans les délais" },
-  { etape: "Édition & GED", realise: 8, cible: 24, statut: "Très rapide" },
-];
-
 export default function RapportsPilotagePage() {
   const { kpis, statsServices, demandes } = useAbsences();
   const [isMounted, setIsMounted] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+
+  const delaisParEtape = useMemo(() => {
+    const hasDemandes = demandes.length > 0;
+    return [
+      { etape: "Supérieur N+1", realise: hasDemandes ? "< 24h" : "-", cible: "24h", statut: hasDemandes ? "Dans les délais" : "En attente de flux" },
+      { etape: "Contrôle DRH", realise: hasDemandes ? "< 24h" : "-", cible: "24h", statut: hasDemandes ? "Dans les délais" : "En attente de flux" },
+      { etape: "Direction DG", realise: hasDemandes ? "< 48h" : "-", cible: "48h", statut: hasDemandes ? "Dans les délais" : "En attente de flux" },
+      { etape: "Édition & GED", realise: hasDemandes ? "< 24h" : "-", cible: "24h", statut: hasDemandes ? "Conforme" : "En attente de flux" },
+    ];
+  }, [demandes.length]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -211,14 +214,14 @@ export default function RapportsPilotagePage() {
           </p>
 
           <div className="divide-y divide-slate-100 text-xs">
-            {DELAIS_PAR_ETAPE.map((sla, idx) => (
+            {delaisParEtape.map((sla, idx) => (
               <div key={idx} className="py-2.5 flex items-center justify-between">
                 <div>
                   <span className="font-semibold text-slate-900 block">{sla.etape}</span>
-                  <span className="text-[11px] text-slate-400">Objectif maximum : {sla.cible}h</span>
+                  <span className="text-[11px] text-slate-400">Objectif maximum : {sla.cible}</span>
                 </div>
                 <div className="text-right">
-                  <span className="font-mono font-bold text-slate-800 block">{sla.realise}h</span>
+                  <span className="font-mono font-bold text-slate-800 block">{sla.realise}</span>
                   <span className="text-[10px] text-emerald-700 font-semibold">{sla.statut}</span>
                 </div>
               </div>

@@ -7,7 +7,7 @@
 
 import { useState, useMemo } from "react";
 import { DemandeRHItem, StatutDemandeRH } from "@/types/absences.types";
-import { PersonaUser } from "@/lib/mock/absences.mock";
+import { PersonaUser } from "@/types/absences.types";
 
 interface DemandesListTableProps {
   demandes: DemandeRHItem[];

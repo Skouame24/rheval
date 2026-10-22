@@ -8,7 +8,7 @@
 
 import { useState, useMemo } from "react";
 import { TypeDemandeRH, DemandeRHItem } from "@/types/absences.types";
-import { PersonaUser } from "@/lib/mock/absences.mock";
+import { PersonaUser } from "@/types/absences.types";
 import { useAbsences } from "../context/AbsencesContext";
 
 interface NouvelleDemandeModalProps {
