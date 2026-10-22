@@ -328,6 +328,26 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
           </div>
         ))}
       </nav>
+      {/* ── RETOUR AU PORTAIL AGILLY ── */}
+      <div className="px-4 py-2 border-t border-slate-200/80 bg-slate-50/70">
+        <Link
+          href="/portail"
+          className={`
+            flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:text-[#F0822A] hover:bg-orange-50 border border-slate-200 hover:border-[#F0822A]/40 transition-all rounded-none
+            ${collapsed ? 'justify-center p-2.5' : 'justify-start'}
+          `}
+          title="Retourner au Portail des Applications Agilly"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-500 group-hover:text-[#F0822A] shrink-0">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          {!collapsed && <span>Portail Applications</span>}
+        </Link>
+      </div>
+
 
       {/* Pied de Sidebar */}
       <div className="p-4 border-t border-slate-200 bg-slate-50 shrink-0">

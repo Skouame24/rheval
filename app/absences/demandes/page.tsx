@@ -21,7 +21,7 @@ import { DemandeWorkflowStepper } from "@/features/absences/components/DemandeWo
 
 function MesDemandesContent() {
   const searchParams = useSearchParams();
-  const { myDemandes, annulerDemande } = useAbsences();
+  const { myDemandes, annulerDemande, isLoading } = useAbsences();
 
   // Filtres
   const [filterStatut, setFilterStatut] = useState<string>("TOUS");
@@ -164,30 +164,30 @@ function MesDemandesContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── EN-TÊTE DE LA PAGE (MINUSCULES EN USAGE FRANÇAIS) ── */}
-      <div className="bg-white border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ── EN-TÊTE HARMONISÉ AVEC IDENTITÉ AGILLY ORANGE ── */}
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-[#D96F1D]" />
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Mes demandes d&apos;absences & permissions
             </h1>
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            Historique complet, suivi des validations et téléchargement officiel des permissions scellées.
+            Historique complet officiel Agilly, suivi des validations et téléchargement des autorisations scellées.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
             href="/absences"
-            className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 px-3 py-1.5 bg-white transition-colors"
+            className="text-xs font-bold text-slate-700 hover:text-[#C25E00] border border-slate-300 hover:border-[#F0822A] px-3.5 py-1.5 bg-white transition-all shadow-2xs"
           >
             &larr; Tableau de bord
           </Link>
           <Link
             href="/absences/nouvelle"
-            className="inline-flex items-center gap-2 bg-[#D96F1D] hover:bg-[#B95914] text-white font-semibold text-xs py-2 px-3.5 transition-colors shadow-xs"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#F0822A] to-[#D96F1D] hover:from-[#D96F1D] hover:to-[#B95914] text-white font-black text-xs py-2 px-4 transition-all shadow-sm hover:shadow-md active:scale-[0.99]"
           >
             <span>+ Nouvelle demande</span>
           </Link>
@@ -199,27 +199,31 @@ function MesDemandesContent() {
         <button
           type="button"
           onClick={() => { setFilterStatut("TOUS"); setCurrentPage(1); }}
-          className={`p-3 text-left border cursor-pointer transition-colors ${
+          className={`p-3 text-left border cursor-pointer transition-all ${
             filterStatut === "TOUS"
-              ? "bg-slate-900 text-white border-slate-900"
-              : "bg-white text-slate-800 border-slate-200 hover:border-slate-300"
+              ? "bg-gradient-to-b from-[#FFF7ED] to-white border-2 border-[#F0822A] shadow-2xs"
+              : "bg-white text-slate-800 border-slate-200 hover:border-orange-300"
           }`}
         >
-          <span className="text-[10px] uppercase font-bold block opacity-80">Toutes les demandes</span>
-          <span className="text-xl font-bold font-mono mt-1 block">{myDemandes.length}</span>
+          <span className={`text-[10px] uppercase font-bold block ${filterStatut === "TOUS" ? "text-[#C25E00]" : "text-slate-500"}`}>
+            Toutes les demandes
+          </span>
+          <span className={`text-xl font-black font-mono mt-1 block ${filterStatut === "TOUS" ? "text-[#F0822A]" : "text-slate-900"}`}>
+            {myDemandes.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => { setFilterStatut("EN_COURS"); setCurrentPage(1); }}
-          className={`p-3 text-left border cursor-pointer transition-colors ${
+          className={`p-3 text-left border cursor-pointer transition-all ${
             filterStatut === "EN_COURS"
-              ? "bg-[#D96F1D] text-white border-[#D96F1D]"
-              : "bg-white text-slate-800 border-slate-200 hover:border-[#D96F1D]"
+              ? "bg-[#F0822A] text-white border-[#F0822A] shadow-2xs"
+              : "bg-white text-slate-800 border-slate-200 hover:border-[#F0822A]"
           }`}
         >
-          <span className="text-[10px] uppercase font-bold block opacity-80">En cours d&apos;instruction</span>
-          <span className="text-xl font-bold font-mono mt-1 block text-amber-600">
+          <span className="text-[10px] uppercase font-bold block opacity-90">En cours d&apos;instruction</span>
+          <span className={`text-xl font-black font-mono mt-1 block ${filterStatut === "EN_COURS" ? "text-white" : "text-[#C25E00]"}`}>
             {myDemandes.filter((d) => ["EN_VALIDATION_N1", "EN_VALIDATION_DRH", "EN_VALIDATION_DG"].includes(d.statut)).length}
           </span>
         </button>
@@ -356,7 +360,23 @@ function MesDemandesContent() {
 
       {/* ── TABLEAU CORPORATE DES DEMANDES ── */}
       <div className="bg-white border border-slate-200 overflow-hidden">
-        {paginatedDemandes.length === 0 ? (
+        {isLoading ? (
+          <div className="p-8 space-y-4 animate-pulse">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="h-4 w-48 bg-slate-200 rounded-sm" />
+              <div className="h-4 w-24 bg-slate-100 rounded-sm" />
+            </div>
+            {[1, 2, 3, 4, 5].map((idx) => (
+              <div key={idx} className="flex items-center justify-between py-3 border-b border-slate-100">
+                <div className="h-3 w-32 bg-slate-200 rounded-sm font-mono" />
+                <div className="h-3 w-40 bg-slate-100 rounded-sm" />
+                <div className="h-3 w-28 bg-slate-100 rounded-sm" />
+                <div className="h-5 w-20 bg-slate-200 rounded-full" />
+                <div className="h-6 w-16 bg-slate-100 rounded-sm" />
+              </div>
+            ))}
+          </div>
+        ) : paginatedDemandes.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500">
             <p className="font-bold text-slate-800 text-sm">Aucune demande trouvée</p>
             <p className="text-slate-500 mt-1">

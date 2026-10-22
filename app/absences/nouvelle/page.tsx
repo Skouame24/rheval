@@ -9,7 +9,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from "react";
+import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
@@ -291,7 +291,25 @@ function NouvelleDemandeForm() {
   const [adresseContact, setAdresseContact] = useState("");
   const [engagementHonneur, setEngagementHonneur] = useState(false);
   const [fichiers, setFichiers] = useState<string[]>([]);
+  const [fichiersList, setFichiersList] = useState<Array<{ nom: string; taille: string }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files).map((f) => ({
+        nom: f.name,
+        taille: `${Math.round(f.size / 1024)} Ko`,
+      }));
+      setFichiersList((prev) => [...prev, ...newFiles]);
+      setFichiers((prev) => [...prev, ...newFiles.map((f) => f.nom)]);
+    }
+  };
+
+  const removeFile = (idx: number) => {
+    setFichiersList((prev) => prev.filter((_, i) => i !== idx));
+    setFichiers((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   // Calcul dynamique durée en heures (pour permission de sortie)
   const dureeHeuresMinutes = useMemo(() => {
@@ -404,50 +422,52 @@ function NouvelleDemandeForm() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-      {/* ── EN-TÊTE HARMONISÉ ── */}
-      <div className="bg-white border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ── EN-TÊTE HARMONISÉ AVEC ACCENT ORANGE AGILLY ── */}
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-[#D96F1D]" />
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Nouvelle demande d&apos;absence ou mission
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Formulaire guidé Agilly • Sélecteur par famille, décompte en temps réel et respect des règles légales.
+            Formulaire officiel Agilly • Sélecteur par famille, décompte en temps réel et respect des règles légales.
           </p>
         </div>
 
         <Link
           href="/absences/demandes"
-          className="text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 px-3 py-1.5 bg-white transition-colors self-start sm:self-auto"
+          className="text-xs font-bold text-slate-600 hover:text-[#C25E00] border border-slate-300 hover:border-[#F0822A] px-3.5 py-1.5 bg-white transition-all self-start sm:self-auto shadow-2xs"
         >
           &larr; Retour à mes demandes
         </Link>
       </div>
 
-      {/* ── ÉTAPE 1 : SÉLECTEUR DE GRANDE FAMILLE (3 ONGLETS NETS) ── */}
-      <div className="bg-white border border-slate-200 p-5 flex flex-col gap-3">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+      {/* ── ÉTAPE 1 : SÉLECTEUR DE GRANDE FAMILLE (3 ONGLETS AVEC IDENTITÉ AGILLY ORANGE) ── */}
+      <div className="bg-white border border-slate-200 p-5 flex flex-col gap-3 shadow-2xs">
+        <span className="text-[10px] font-black uppercase tracking-wider text-[#C25E00] block">
           Étape 1 : Choisissez la nature de votre demande
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             type="button"
             onClick={() => setFamilleActive("CONGES")}
-            className={`p-4 border text-left cursor-pointer transition-all ${
+            className={`p-4 text-left cursor-pointer transition-all border ${
               familleActive === "CONGES"
-                ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                ? "bg-gradient-to-b from-[#FFF7ED] to-white border-2 border-[#F0822A] shadow-sm"
+                : "bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/20"
             }`}
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold uppercase tracking-wide">1. Congés</span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 ${familleActive === "CONGES" ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-600"}`}>
-                6 motifs
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={`text-xs font-black uppercase tracking-wide ${familleActive === "CONGES" ? "text-[#C25E00]" : "text-slate-800"}`}>
+                1. Congés
+              </span>
+              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${familleActive === "CONGES" ? "bg-[#F0822A] text-white shadow-2xs" : "bg-slate-100 text-slate-600"}`}>
+                6 motifs {familleActive === "CONGES" && "✓"}
               </span>
             </div>
-            <p className={`text-[11px] leading-tight ${familleActive === "CONGES" ? "text-slate-300" : "text-slate-500"}`}>
+            <p className="text-[11px] leading-relaxed text-slate-500">
               Congé annuel payé, maladie, maternité, paternité, sans solde, formation.
             </p>
           </button>
@@ -455,19 +475,21 @@ function NouvelleDemandeForm() {
           <button
             type="button"
             onClick={() => setFamilleActive("PERMISSIONS")}
-            className={`p-4 border text-left cursor-pointer transition-all ${
+            className={`p-4 text-left cursor-pointer transition-all border ${
               familleActive === "PERMISSIONS"
-                ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                ? "bg-gradient-to-b from-[#FFF7ED] to-white border-2 border-[#F0822A] shadow-sm"
+                : "bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/20"
             }`}
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold uppercase tracking-wide">2. Permissions</span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 ${familleActive === "PERMISSIONS" ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-600"}`}>
-                9 motifs
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={`text-xs font-black uppercase tracking-wide ${familleActive === "PERMISSIONS" ? "text-[#C25E00]" : "text-slate-800"}`}>
+                2. Permissions
+              </span>
+              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${familleActive === "PERMISSIONS" ? "bg-[#F0822A] text-white shadow-2xs" : "bg-slate-100 text-slate-600"}`}>
+                9 motifs {familleActive === "PERMISSIONS" && "✓"}
               </span>
             </div>
-            <p className={`text-[11px] leading-tight ${familleActive === "PERMISSIONS" ? "text-slate-300" : "text-slate-500"}`}>
+            <p className="text-[11px] leading-relaxed text-slate-500">
               Mariage, décès, naissance, médical, démarches, urgence, sortie en heures.
             </p>
           </button>
@@ -475,19 +497,21 @@ function NouvelleDemandeForm() {
           <button
             type="button"
             onClick={() => setFamilleActive("MISSIONS")}
-            className={`p-4 border text-left cursor-pointer transition-all ${
+            className={`p-4 text-left cursor-pointer transition-all border ${
               familleActive === "MISSIONS"
-                ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                ? "bg-gradient-to-b from-[#FFF7ED] to-white border-2 border-[#F0822A] shadow-sm"
+                : "bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/20"
             }`}
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold uppercase tracking-wide">3. Missions</span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 ${familleActive === "MISSIONS" ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-600"}`}>
-                2 motifs
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={`text-xs font-black uppercase tracking-wide ${familleActive === "MISSIONS" ? "text-[#C25E00]" : "text-slate-800"}`}>
+                3. Missions
+              </span>
+              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${familleActive === "MISSIONS" ? "bg-[#F0822A] text-white shadow-2xs" : "bg-slate-100 text-slate-600"}`}>
+                2 motifs {familleActive === "MISSIONS" && "✓"}
               </span>
             </div>
-            <p className={`text-[11px] leading-tight ${familleActive === "MISSIONS" ? "text-slate-300" : "text-slate-500"}`}>
+            <p className="text-[11px] leading-relaxed text-slate-500">
               Ordre de mission pro, déplacements externes et interventions techniques.
             </p>
           </button>
@@ -497,11 +521,11 @@ function NouvelleDemandeForm() {
       {/* ── ÉTAPE 2 : SÉLECTION DU MOTIF PRÉCIS ET FORMULAIRE DYNAMIQUE ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Colonne gauche (8 cols) : Saisie du dossier */}
-        <div className="lg:col-span-8 bg-white border border-slate-200 p-6 flex flex-col gap-5 text-xs">
-          {/* Identité du demandeur */}
-          <div className="p-3 bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="lg:col-span-8 bg-white border border-slate-200 p-6 flex flex-col gap-5 text-xs shadow-2xs">
+          {/* Identité du demandeur avec bandeau Agilly */}
+          <div className="p-3.5 bg-gradient-to-r from-orange-50/70 via-white to-slate-50 border border-orange-200/80 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <span className="text-slate-400 text-[10px] block uppercase font-medium">Demandeur</span>
+              <span className="text-[#C25E00] text-[10px] block uppercase font-bold">Demandeur</span>
               <span className="font-bold text-slate-900">{currentPersona.prenom} {currentPersona.nom}</span>
             </div>
             <div>
@@ -510,11 +534,11 @@ function NouvelleDemandeForm() {
             </div>
             <div>
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Fonction</span>
-              <span className="text-slate-800 font-medium">{currentPersona.poste}</span>
+              <span className="font-medium text-slate-800">{currentPersona.poste}</span>
             </div>
             <div>
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Département</span>
-              <span className="text-slate-800 font-medium">{currentPersona.departement}</span>
+              <span className="font-medium text-slate-800">{currentPersona.departement}</span>
             </div>
           </div>
 
@@ -717,43 +741,73 @@ function NouvelleDemandeForm() {
             />
           </div>
 
-          {/* JUSTIFICATIF (SI REQUIS OU CONSEILLÉ) */}
-          <div className="p-3 bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                Pièce justificative {motifActif.justificatifRequis ? "(Obligatoire)" : "(Facultatif)"}
-              </span>
-              {motifActif.justificatifLabel && (
-                <span className="text-[10px] text-amber-800 font-medium">
-                  {motifActif.justificatifLabel}
+          {/* PIÈCE JUSTIFICATIVE (FACULTATIF) */}
+          <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-800 block">
+                  Pièce justificative {motifActif.justificatifRequis ? "(Obligatoire)" : "(Facultatif)"}
                 </span>
-              )}
+                <span className="text-[11px] text-slate-500">
+                  {motifActif.justificatifLabel || "Certificat médical, convocation, billet, etc."}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">PDF, JPEG, PNG (max 5 Mo)</span>
             </div>
 
-            <div className="flex flex-col gap-2">
-              {fichiers.map((f, i) => (
-                <div key={i} className="flex items-center justify-between p-2 bg-white border border-slate-200">
-                  <span className="font-mono text-slate-800">{f}</span>
-                  <button
-                    type="button"
-                    onClick={() => setFichiers((prev) => prev.filter((_, idx) => idx !== i))}
-                    className="text-red-600 hover:text-red-900 font-bold"
-                  >
-                    Retirer
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  const n = prompt("Nom du fichier justificatif à attacher (ex: Certificat.pdf) :");
-                  if (n) setFichiers((prev) => [...prev, n]);
-                }}
-                className="self-start text-[11px] font-bold text-[#D96F1D] hover:underline"
-              >
-                + Joindre un document justificatif (PDF, JPEG)
-              </button>
-            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+              multiple
+              className="hidden"
+            />
+
+            {/* Liste des fichiers joints */}
+            {fichiersList.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {fichiersList.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between p-2.5 bg-white border border-slate-200">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500 shrink-0">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                      <span className="text-xs font-bold text-slate-800 truncate">{f.nom}</span>
+                      <span className="text-[10px] text-slate-400 shrink-0 font-mono">({f.taille})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="text-xs text-red-600 hover:text-red-800 font-bold px-2 py-0.5 hover:bg-red-50 cursor-pointer"
+                      title="Supprimer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Zone de clic douce pour importer */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full border-2 border-dashed border-slate-300 hover:border-[#D96F1D] bg-white hover:bg-orange-50/50 p-4 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#D96F1D]">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span className="text-xs font-bold text-slate-800">
+                Cliquez pour choisir un justificatif depuis votre ordinateur
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Format PDF, scan ou photo acceptés
+              </span>
+            </button>
           </div>
 
           {/* ENGAGEMENT SUR L'HONNEUR */}
@@ -774,94 +828,117 @@ function NouvelleDemandeForm() {
             </label>
           </div>
 
-          {/* BOUTON D'ENVOI */}
+          {/* BOUTON D'ENVOI AVEC GRADIENT AGILLY ORANGE */}
           <div className="pt-2 flex justify-end">
             <button
               type="button"
               disabled={isSubmitting || !engagementHonneur}
               onClick={handleSubmit}
-              className={`px-6 py-2.5 text-xs font-bold text-white shadow-xs cursor-pointer transition-colors ${
+              className={`inline-flex items-center justify-center gap-2 px-8 py-3 text-xs font-black text-white shadow-md cursor-pointer transition-all ${
                 isSubmitting || !engagementHonneur
-                  ? "bg-slate-300 cursor-not-allowed"
-                  : "bg-[#D96F1D] hover:bg-[#B95914]"
+                  ? "bg-slate-300 cursor-not-allowed shadow-none"
+                  : "bg-gradient-to-r from-[#F0822A] to-[#D96F1D] hover:from-[#D96F1D] hover:to-[#B95914] active:scale-[0.99] hover:shadow-lg"
               }`}
             >
-              {isSubmitting ? "Transmission en cours..." : "Soumettre la demande &rarr;"}
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <span>Transmission sécurisée en cours...</span>
+                </>
+              ) : (
+                <span>Transmettre ma demande →</span>
+              )}
             </button>
           </div>
         </div>
 
-        {/* Colonne droite (4 cols) : Synthèse dynamique en direct */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 p-5 flex flex-col gap-4 sticky top-20 text-xs">
-          <div className="pb-2 border-b border-slate-200">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Contrôle dynamique en temps réel
-            </span>
-            <h3 className="font-bold text-slate-900 text-sm mt-0.5">
-              {motifActif.titre}
-            </h3>
+        {/* Colonne droite : Récapitulatif avec identité visuelle Agilly */}
+        <div className="lg:col-span-4 bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-5 flex flex-col gap-4 sticky top-20 text-xs shadow-2xs">
+          <div className="pb-3 border-b border-orange-100 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#C25E00] block">
+                Récapitulatif de ma demande
+              </span>
+              <h3 className="font-extrabold text-slate-900 text-sm mt-0.5">
+                {motifActif.titre}
+              </h3>
+            </div>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F0822A] shadow-xs" />
           </div>
 
-          {/* Jauge Solde si congé annuel */}
-          {motifActif.impactSolde && (
-            <div className="p-3 bg-slate-50 border border-slate-200 flex flex-col gap-2">
-              <span className="text-[10px] font-bold uppercase text-slate-500">
-                Solde Congés Payés
+          {/* Durée & Dates */}
+          <div className="p-3.5 bg-gradient-to-br from-orange-50/40 via-white to-slate-50 border border-orange-200/80 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-700 font-bold">Durée totale :</span>
+              <span className="text-base font-black text-[#F0822A] font-mono">
+                {motifActif.isSortieHeures ? dureeHeuresMinutes?.text : `${joursOuvres} jour(s) ouvré(s)`}
               </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] pt-2 border-t border-orange-200/60">
+              <span className="text-slate-500 font-medium">Dates :</span>
+              <span className="font-mono font-bold text-slate-800">
+                {dateDebut} {dateFin && dateFin !== dateDebut ? `au ${dateFin}` : ""}
+              </span>
+            </div>
+          </div>
+
+          {/* Solde Congés */}
+          {motifActif.impactSolde && (
+            <div className="p-3.5 bg-[#FFF9F5] border-2 border-orange-200 flex flex-col gap-2 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span>Solde actuel :</span>
-                <span className="font-mono font-bold text-slate-900">{soldeConges.joursRestants} j</span>
+                <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wide">
+                  Solde de Congés Payés
+                </span>
+                <span className="text-[10px] font-bold text-[#F0822A] bg-orange-100 px-1.5 py-0.2 rounded-xs">
+                  Temps réel
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Déduction demandée :</span>
-                <span className="font-mono font-bold text-[#D96F1D]">- {joursOuvres} j</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium">Solde actuel disponible :</span>
+                <span className="font-mono font-extrabold text-slate-900 text-sm">{soldeConges.joursRestants} jours</span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200 font-bold">
-                <span>Nouveau solde prévu :</span>
-                <span className={`font-mono ${soldeSuffisant ? "text-emerald-700" : "text-red-700 font-extrabold"}`}>
-                  {soldeRestantApres} j
+              <div className="flex items-center justify-between pt-2 border-t border-orange-200/80 font-bold">
+                <span className="text-slate-800">Nouveau solde après cette demande :</span>
+                <span className={`font-mono text-base ${soldeSuffisant ? "text-[#C25E00] font-black" : "text-red-700 font-black"}`}>
+                  {soldeRestantApres} jours
                 </span>
               </div>
               {!soldeSuffisant && (
-                <div className="text-[10px] text-red-700 bg-red-50 p-1.5 border border-red-200 font-semibold mt-1">
-                  Solde insuffisant pour couvrir cette durée.
+                <div className="text-[10px] text-red-700 bg-red-50 p-2 border border-red-200 font-semibold mt-1">
+                  Attention : votre solde est insuffisant pour couvrir cette durée.
                 </div>
               )}
             </div>
           )}
 
-          {/* Résumé de durée */}
-          <div className="p-3 bg-slate-50 border border-slate-200 flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase text-slate-500">
-              Durée calculée
+          {/* Circuit d'approbation */}
+          <div className="p-3.5 bg-slate-50/80 border border-slate-200 flex flex-col gap-2">
+            <span className="text-[10px] font-black uppercase text-slate-600 tracking-wide">
+              Circuit de validation
             </span>
-            {motifActif.isSortieHeures ? (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Absence autorisée :</span>
-                <span className="font-mono font-bold text-slate-900">{dureeHeuresMinutes?.text}</span>
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-5 h-5 rounded-full bg-[#F0822A] text-white font-black flex items-center justify-center text-[10px] shadow-xs">1</span>
+                <span className="font-bold text-slate-900">Avis Responsable N+1</span>
               </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Durée ouvrée :</span>
-                <span className="font-mono font-bold text-slate-900">{joursOuvres} jour(s)</span>
+              <div className="ml-2.5 h-2.5 border-l-2 border-orange-300" />
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]">2</span>
+                <span className="text-slate-600 font-medium">Vérification Direction RH</span>
               </div>
-            )}
-            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200">
-              <span>Impact solde annuel :</span>
-              <span className="font-semibold">{motifActif.impactSolde ? "Décompté" : "Non décompté (0j)"}</span>
+              {!circuitCourt && (
+                <>
+                  <div className="ml-2.5 h-2.5 border-l-2 border-slate-200" />
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]">3</span>
+                    <span className="text-slate-600 font-medium">Accord final de la Direction</span>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-
-          {/* Circuit de décision */}
-          <div className="p-3 bg-slate-50 border border-slate-200 flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase text-slate-500">
-              Circuit de décision
-            </span>
-            <p className="font-semibold text-slate-800 text-[11px]">
-              {circuitCourt
-                ? "Circuit court : Validation directe Supérieur N+1 & Notification DRH"
-                : "Circuit standard : Supérieur N+1 &rarr; Contrôle DRH &rarr; Direction"}
-            </p>
           </div>
         </div>
       </div>

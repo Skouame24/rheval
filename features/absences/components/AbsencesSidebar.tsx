@@ -27,6 +27,12 @@ interface NavSection {
 export function AbsencesSidebar() {
   const pathname = usePathname();
   const { currentPersona, pendingValidationsCount, setIsDemoDrawerOpen } = useAbsences();
+  const [navigatingTo, setNavigatingTo] = React.useState<string | null>(null);
+
+  // Réinitialiser la transition dès que la route a changé
+  React.useEffect(() => {
+    setNavigatingTo(null);
+  }, [pathname]);
 
   const isRouteActive = (href: string) => {
     if (href === "/absences") {
@@ -149,32 +155,35 @@ export function AbsencesSidebar() {
 
   return (
     <aside className="w-60 bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col justify-between shrink-0 select-none z-30">
-      {/* ── EN-TÊTE AVEC LE VRAI LOGO AGILLY ── */}
+      {/* ── EN-TÊTE AVEC LE LOGO AGILLY ET IDENTITÉ ORANGE ── */}
       <div className="flex flex-col">
-        <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-orange-50/60 to-white">
           <Link href="/absences" className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 flex items-center justify-center">
+            <div className="relative w-8 h-8 flex items-center justify-center p-0.5 rounded-xs bg-white shadow-2xs border border-orange-100">
               <Image
                 src="/logo.png"
                 alt="Logo Agilly"
-                width={30}
-                height={30}
+                width={28}
+                height={28}
                 className="object-contain"
                 priority
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-slate-900 font-extrabold text-sm tracking-tight leading-none">
-                AGILLY
-              </span>
-              <span className="text-[10px] text-slate-500 font-medium mt-0.5">
-                Absences & Permissions
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-900 font-black text-sm tracking-tight leading-none">
+                  AGILLY
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F0822A]" />
+              </div>
+              <span className="text-[10px] text-[#C25E00] font-bold mt-0.5 tracking-tight">
+                Absences & Congés
               </span>
             </div>
           </Link>
         </div>
 
-        {/* ── NAVIGATION ADAPTÉE AU RÔLE ── */}
+        {/* ── NAVIGATION ADAPTÉE AU RÔLE AVEC TOUCHES AGILLY ORANGE ── */}
         <nav className="p-3 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-160px)] mt-2">
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="flex flex-col gap-1">
@@ -183,28 +192,41 @@ export function AbsencesSidebar() {
               </span>
               {section.items.map((item) => {
                 const active = isRouteActive(item.href);
+                const isNavigating = navigatingTo === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => {
+                      if (!active) setNavigatingTo(item.href);
+                    }}
                     className={`
-                      flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-colors
+                      flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-all
                       ${
                         active
-                          ? "bg-orange-50/80 text-[#B95914] font-bold border-l-2 border-[#D96F1D]"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-l-2 border-transparent"
+                          ? "bg-gradient-to-r from-orange-100/80 via-orange-50/60 to-transparent text-[#C25E00] font-extrabold border-l-4 border-[#F0822A] shadow-2xs"
+                          : isNavigating
+                          ? "bg-orange-50/50 text-[#F0822A] border-l-4 border-[#F0822A]/60"
+                          : "text-slate-600 hover:bg-orange-50/30 hover:text-slate-900 border-l-4 border-transparent"
                       }
                     `}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <span className={active ? "text-[#D96F1D]" : "text-slate-500"}>
-                        {item.icon}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={active || isNavigating ? "text-[#F0822A]" : "text-slate-500"}>
+                        {isNavigating ? (
+                          <svg className="animate-spin h-4 w-4 text-[#F0822A]" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                        ) : (
+                          item.icon
+                        )}
                       </span>
-                      <span>{item.label}</span>
+                      <span className="truncate">{item.label}</span>
                     </div>
 
-                    {item.badge !== undefined && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#D96F1D] text-white leading-tight">
+                    {item.badge !== undefined && !isNavigating && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#F0822A] text-white leading-tight shadow-2xs">
                         {item.badge}
                       </span>
                     )}

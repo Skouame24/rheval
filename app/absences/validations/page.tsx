@@ -21,6 +21,7 @@ export default function ValidationsInboxPage() {
     validerDemande,
     refuserDemande,
     setIsDemoDrawerOpen,
+    isLoading,
   } = useAbsences();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -89,15 +90,15 @@ export default function ValidationsInboxPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── EN-TÊTE DE LA BOÎTE D'ARBITRAGE ── */}
-      <div className="bg-white border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* ── EN-TÊTE DE LA BOÎTE D'ARBITRAGE AVEC ACCENT AGILLY ORANGE ── */}
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 bg-[#F0822A]" />
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Boîte d&apos;Arbitrage & Workflow de Décision
             </h1>
-            <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="text-xs font-bold px-2 py-0.5 bg-orange-50 text-[#C25E00] border border-orange-200">
               {currentPersona.labelRole}
             </span>
           </div>
@@ -163,7 +164,20 @@ export default function ValidationsInboxPage() {
           </div>
 
           <div className="divide-y divide-slate-100 max-h-[640px] overflow-y-auto">
-            {pendingForCurrentRoleDemandes.length === 0 ? (
+            {isLoading ? (
+              <div className="p-4 space-y-3 animate-pulse">
+                {[1, 2, 3].map((idx) => (
+                  <div key={idx} className="p-3 border border-slate-100 bg-slate-50/50 space-y-2">
+                    <div className="flex justify-between">
+                      <div className="h-3 w-24 bg-slate-200 rounded-sm font-mono" />
+                      <div className="h-4 w-14 bg-slate-200 rounded-sm" />
+                    </div>
+                    <div className="h-3.5 w-32 bg-slate-300 rounded-sm" />
+                    <div className="h-2.5 w-40 bg-slate-200 rounded-sm" />
+                  </div>
+                ))}
+              </div>
+            ) : pendingForCurrentRoleDemandes.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500">
                 <p className="font-bold text-slate-700">Aucun dossier en attente</p>
                 <p className="text-[11px] text-slate-400 mt-1">

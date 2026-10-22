@@ -252,7 +252,21 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
 
 
       {/* Droite — Cloche & Profil */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {/* Bouton direct Portail Applications */}
+        <Link
+          href="/portail"
+          className="hidden sm:inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:text-[#F0822A] bg-slate-50 hover:bg-orange-50 border border-slate-200 hover:border-[#F0822A]/40 transition-all rounded-none shadow-2xs"
+          title="Retourner au Portail des Applications Agilly"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-500">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Portail Agilly</span>
+        </Link>
         {/* Cloche de Notifications avec Boîte Déroulante */}
         <div className="relative" ref={notifRef}>
           <button
@@ -456,6 +470,20 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 )}
               </div>
 
+              
+                <Link
+                  href="/portail"
+                  className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-[#F0822A] hover:bg-orange-50 transition-colors border-b border-slate-100"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                  <span>Retour au Portail des Applications</span>
+                </Link>
+  
               <div className="py-1">
                 <Link
                   href="/dashboard/mon-espace/profil"

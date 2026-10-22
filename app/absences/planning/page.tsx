@@ -85,7 +85,7 @@ const MOIS_NOMS = [
 const JOURS_SEMAINE = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function CalendarPlanningPage() {
-  const { currentPersona, demandes } = useAbsences();
+  const { currentPersona, demandes, isLoading } = useAbsences();
 
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -204,12 +204,12 @@ export default function CalendarPlanningPage() {
 
   return (
     <div className="flex flex-col gap-5 max-w-6xl mx-auto">
-      {/* ── 1. EN-TÊTE ÉPURÉ DE L'AGENDA ── */}
-      <div className="bg-white border border-slate-200 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* ── 1. EN-TÊTE ÉPURÉ DE L'AGENDA AVEC IDENTITÉ AGILLY ORANGE ── */}
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-[#D96F1D]" />
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Agenda des Absences & Présences
             </h1>
           </div>
@@ -225,7 +225,7 @@ export default function CalendarPlanningPage() {
               type="button"
               onClick={() => setViewMode("MONTH")}
               className={`px-3 py-1 font-semibold cursor-pointer transition-colors ${
-                viewMode === "MONTH" ? "bg-white text-slate-900 shadow-2xs font-bold" : "text-slate-500 hover:text-slate-900"
+                viewMode === "MONTH" ? "bg-white text-[#C25E00] shadow-2xs font-bold" : "text-slate-500 hover:text-slate-900"
               }`}
             >
               Vue Mois
@@ -234,7 +234,7 @@ export default function CalendarPlanningPage() {
               type="button"
               onClick={() => setViewMode("TIMELINE")}
               className={`px-3 py-1 font-semibold cursor-pointer transition-colors ${
-                viewMode === "TIMELINE" ? "bg-white text-slate-900 shadow-2xs font-bold" : "text-slate-500 hover:text-slate-900"
+                viewMode === "TIMELINE" ? "bg-white text-[#C25E00] shadow-2xs font-bold" : "text-slate-500 hover:text-slate-900"
               }`}
             >
               Vue Liste
@@ -243,7 +243,7 @@ export default function CalendarPlanningPage() {
 
           <Link
             href="/absences/nouvelle"
-            className="bg-[#D96F1D] hover:bg-[#B95914] text-white text-xs font-semibold px-3 py-1.5 transition-colors"
+            className="bg-gradient-to-r from-[#F0822A] to-[#D96F1D] hover:from-[#D96F1D] hover:to-[#B95914] text-white text-xs font-black px-3.5 py-1.5 transition-all shadow-sm hover:shadow-md"
           >
             + Poser une absence
           </Link>
@@ -302,7 +302,23 @@ export default function CalendarPlanningPage() {
       </div>
 
       {/* ── 3. VRAI CALENDRIER MENSUEL (7 COLONNES : LUN À DIM) ── */}
-      {viewMode === "MONTH" && (
+      {isLoading ? (
+        <div className="bg-white border border-slate-200 overflow-hidden p-6 animate-pulse space-y-4">
+          <div className="grid grid-cols-7 gap-2">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="h-6 bg-slate-100 rounded-sm" />
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 28 }).map((_, i) => (
+              <div key={i} className="h-20 bg-slate-50 border border-slate-100 rounded-sm p-2 flex flex-col justify-between">
+                <div className="h-3 w-6 bg-slate-200 rounded-xs" />
+                <div className="h-3 w-full bg-slate-100 rounded-xs" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : viewMode === "MONTH" && (
         <div className="bg-white border border-slate-200 overflow-hidden shadow-2xs">
           {/* Ligne des jours de la semaine */}
           <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold text-slate-600 py-2">

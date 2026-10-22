@@ -14,7 +14,7 @@ import { DemandeWorkflowStepper } from "@/features/absences/components/DemandeWo
 const fr = (iso: string) => iso.split("T")[0].split("-").reverse().join("/");
 
 export default function AbsencesDashboardPage() {
-  const { currentPersona, myDemandes, soldeConges } = useAbsences();
+  const { currentPersona, myDemandes, soldeConges, isLoading } = useAbsences();
 
   // Demandes en cours de circuit
   const enCours = myDemandes.filter((d) =>
@@ -28,12 +28,12 @@ export default function AbsencesDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── 1. EN-TÊTE HARMONISÉ (MÊME PADDING P-6 ET BORDURES QUE TOUT LE PORTAIL) ── */}
-      <div className="bg-white border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ── 1. EN-TÊTE HARMONISÉ AVEC IDENTITÉ AGILLY ORANGE ── */}
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-[#D96F1D]" />
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Tableau de bord salarié — Absences & Missions
             </h1>
           </div>
@@ -45,13 +45,13 @@ export default function AbsencesDashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/absences/planning"
-            className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 px-3 py-2 bg-white transition-colors"
+            className="text-xs font-bold text-slate-700 hover:text-[#C25E00] border border-slate-300 hover:border-[#F0822A] px-3.5 py-2 bg-white transition-all shadow-2xs"
           >
             Planning d&apos;équipe
           </Link>
           <Link
             href="/absences/nouvelle"
-            className="inline-flex items-center gap-2 bg-[#D96F1D] hover:bg-[#B95914] text-white font-semibold text-xs py-2 px-3.5 transition-colors shadow-xs"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#F0822A] to-[#D96F1D] hover:from-[#D96F1D] hover:to-[#B95914] text-white font-black text-xs py-2 px-4 transition-all shadow-sm hover:shadow-md active:scale-[0.99]"
           >
             <span>+ Nouvelle demande</span>
           </Link>
@@ -60,20 +60,20 @@ export default function AbsencesDashboardPage() {
 
       {/* ── 2. CARTES D'ACCÈS RAPIDE PAR NATURE (CONGÉ, PERMISSION, MISSION, INTERVENTION) ── */}
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 px-1">
+        <span className="text-[10px] font-black uppercase tracking-wider text-[#C25E00] block mb-2 px-1">
           Déposer une nouvelle demande (Accès direct)
         </span>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link
             href="/absences/nouvelle?type=CONGES_ANNUELS"
-            className="bg-white border border-slate-200 hover:border-blue-600 p-4 transition-all group flex flex-col justify-between"
+            className="bg-gradient-to-br from-orange-50/70 to-white border-2 border-orange-200 hover:border-[#F0822A] p-4 transition-all group flex flex-col justify-between shadow-2xs"
           >
             <div>
-              <div className="w-1.5 h-6 bg-blue-600 mb-3" />
+              <div className="w-1.5 h-6 bg-[#F0822A] mb-3" />
               <span className="text-xs font-bold text-slate-900 block">Congés Payés</span>
               <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">Annuels ou maladie</span>
             </div>
-            <span className="text-[11px] font-semibold text-blue-600 mt-3 group-hover:translate-x-0.5 transition-transform inline-block">
+            <span className="text-[11px] font-bold text-[#C25E00] mt-3 group-hover:translate-x-1 transition-transform inline-block">
               Poser →
             </span>
           </Link>
@@ -132,31 +132,51 @@ export default function AbsencesDashboardPage() {
             Voir le relevé détaillé →
           </Link>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-slate-100 text-xs">
-          <div className="px-3 first:pl-0">
-            <span className="text-[10px] text-slate-500 block uppercase font-medium">Congés payés</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
-              {soldeConges.joursRestants} <span className="text-xs font-normal text-slate-500">j</span>
-            </p>
-            <span className="text-[10px] text-slate-400">{soldeConges.joursPris} j consommés sur {soldeConges.joursAcquis} j</span>
+        {isLoading ? (
+          <div className="grid grid-cols-3 divide-x divide-slate-100 text-xs animate-pulse">
+            <div className="px-3 first:pl-0 space-y-2">
+              <div className="h-3 w-20 bg-slate-200 rounded-sm" />
+              <div className="h-7 w-16 bg-slate-300 rounded-sm" />
+              <div className="h-2.5 w-28 bg-slate-100 rounded-sm" />
+            </div>
+            <div className="px-3 space-y-2">
+              <div className="h-3 w-28 bg-slate-200 rounded-sm" />
+              <div className="h-7 w-16 bg-slate-300 rounded-sm" />
+              <div className="h-2.5 w-28 bg-slate-100 rounded-sm" />
+            </div>
+            <div className="px-3 space-y-2">
+              <div className="h-3 w-24 bg-slate-200 rounded-sm" />
+              <div className="h-7 w-16 bg-slate-300 rounded-sm" />
+              <div className="h-2.5 w-28 bg-slate-100 rounded-sm" />
+            </div>
           </div>
+        ) : (
+          <div className="grid grid-cols-3 divide-x divide-slate-100 text-xs">
+            <div className="px-3 first:pl-0">
+              <span className="text-[10px] text-[#C25E00] block uppercase font-bold">Congés payés</span>
+              <p className="text-3xl font-black text-[#F0822A] mt-0.5 font-mono tracking-tight">
+                {soldeConges.joursRestants} <span className="text-xs font-semibold text-slate-500">j</span>
+              </p>
+              <span className="text-[10px] text-slate-400">{soldeConges.joursPris} j consommés sur {soldeConges.joursAcquis} j</span>
+            </div>
 
-          <div className="px-3">
-            <span className="text-[10px] text-slate-500 block uppercase font-medium">Permissions autorisées</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
-              {soldeConges.repartition.permissionsAnnuelles.solde} <span className="text-xs font-normal text-slate-500">j</span>
-            </p>
-            <span className="text-[10px] text-slate-400">Quota annuel restant</span>
-          </div>
+            <div className="px-3">
+              <span className="text-[10px] text-slate-500 block uppercase font-medium">Permissions autorisées</span>
+              <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
+                {soldeConges.repartition.permissionsAnnuelles.solde} <span className="text-xs font-normal text-slate-500">j</span>
+              </p>
+              <span className="text-[10px] text-slate-400">Quota annuel restant</span>
+            </div>
 
-          <div className="px-3">
-            <span className="text-[10px] text-slate-500 block uppercase font-medium">Récupérations</span>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
-              {soldeConges.repartition.recuperations.solde} <span className="text-xs font-normal text-slate-500">j</span>
-            </p>
-            <span className="text-[10px] text-slate-400">Heures sup & astreintes</span>
+            <div className="px-3">
+              <span className="text-[10px] text-slate-500 block uppercase font-medium">Récupérations</span>
+              <p className="text-2xl font-bold text-slate-900 mt-0.5 font-mono">
+                {soldeConges.repartition.recuperations.solde} <span className="text-xs font-normal text-slate-500">j</span>
+              </p>
+              <span className="text-[10px] text-slate-400">Heures sup & astreintes</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── 4. MES DEMANDES EN COURS AVEC CIRCUIT SCHÉMA OFFICIEL ── */}
