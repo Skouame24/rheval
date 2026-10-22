@@ -10,7 +10,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { ROLE_METADATA } from "@/lib/constants/roles";
 import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRoleSwitcher } from "@/components/shared/UserRoleSwitcher";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import { notificationsApi, type AppNotification } from "@/lib/api";
 
@@ -387,12 +386,8 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
           )}
         </div>
 
-        {/* Sélecteur de Rôles et d'Acteurs */}
-        <UserRoleSwitcher />
-
-        {/* Ligne séparatrice */}
-        <div className="w-px h-6 bg-slate-200" />
-
+        
+        
         {/* Profil Utilisateur avec Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
