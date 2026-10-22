@@ -44,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("agilly_simulated_user");
       localStorage.removeItem("agilly_user_role_override");
+      sessionStorage.clear();
     }
 
     if (status === "loading") {
@@ -89,12 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         assignedRole = detected.role;
       }
 
-      // Surcharge de rôle éventuelle
+      // Pas de surcharge manuelle : rôle 100% dynamique
       if (typeof window !== "undefined") {
-        const roleOverride = localStorage.getItem("agilly_user_role_override") as Role | null;
-        if (roleOverride) {
-          assignedRole = roleOverride;
-        }
+        localStorage.removeItem("agilly_user_role_override");
       }
 
       const realUser: User = {
@@ -121,9 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Synchronisation optimisée avec PostgreSQL (anti-tempête : max 1 fois par tranche de 5 min par utilisateur)
       const lastSyncKey = `agilly_last_sync_${realUser.id}`;
       const lastSyncTime = typeof window !== "undefined" ? sessionStorage.getItem(lastSyncKey) : null;
-      const isRecent = lastSyncTime && Date.now() - Number(lastSyncTime) < 300_000;
-
-      if (!isRecent) {
+      if (true) {
         if (typeof window !== "undefined") {
           sessionStorage.setItem(lastSyncKey, Date.now().toString());
         }
@@ -150,10 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const dbUser = resData.user;
               setUser((current) => {
                 if (!current) return current;
-                const roleOverride = typeof window !== "undefined" ? (localStorage.getItem("agilly_user_role_override") as Role | null) : null;
                 const updated: User = {
                   ...current,
-                  role: roleOverride || (dbUser.role as Role) || current.role,
+                  role: (dbUser.role as Role) || current.role,
                   n1: dbUser.n1 || current.n1,
                   n2: dbUser.n2 || current.n2,
                   drh: dbUser.drh || current.drh,

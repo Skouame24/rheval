@@ -178,7 +178,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 href="/dashboard/mon-espace"
                 className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-white text-slate-700 hover:text-[#F0822A] border border-slate-300 hover:border-[#F0822A] transition-all rounded-none shadow-2xs"
               >
-                <span>👤 Mon Espace Salarié</span>
+                <span>Mon Espace Salarié</span>
               </Link>
             )}
           </div>
@@ -420,62 +420,14 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                 </div>
               </div>
 
-              {/* Rôles rapides */}
-              <div className="p-2 border-b border-slate-100 bg-slate-50/50">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2 mb-1.5">
-                  Changer de rôle
-                </p>
-                <div className="grid grid-cols-2 gap-1 px-1">
-                  <button
-                    onClick={() => switchRole("SALARIE")}
-                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
-                      currentRole === "SALARIE"
-                        ? "bg-[#F0822A] text-white border-[#F0822A]"
-                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    👤 Salarié
-                  </button>
-                  <button
-                    onClick={() => switchRole("N1")}
-                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
-                      currentRole === "N1"
-                        ? "bg-[#F0822A] text-white border-[#F0822A]"
-                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    👔 Manager N+1
-                  </button>
-                  <button
-                    onClick={() => switchRole("N2")}
-                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
-                      currentRole === "N2"
-                        ? "bg-[#F0822A] text-white border-[#F0822A]"
-                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    👑 Direction N+2
-                  </button>
-                  <button
-                    onClick={() => switchRole("DRH")}
-                    className={`px-2 py-1 text-[11px] font-bold border text-left cursor-pointer transition-all ${
-                      currentRole === "DRH" || currentRole === "RH"
-                        ? "bg-[#F0822A] text-white border-[#F0822A]"
-                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    💼 Pilotage DRH
-                  </button>
-                </div>
-              </div>
-
+              
               <div className="py-1 border-b border-slate-100">
                 {(currentRole === "RH" || currentRole === "DRH") && (
                   <Link
                     href="/dashboard/pilotage-rh"
                     className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-[#F0822A] hover:bg-orange-50 transition-colors"
                   >
-                    <span>⚙️ Espace Pilotage RH</span>
+                    <span>Espace Pilotage RH</span>
                   </Link>
                 )}
                 {(currentRole === "N2") && (
@@ -483,7 +435,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                     href="/dashboard/mon-equipe"
                     className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-[#F0822A] hover:bg-orange-50 transition-colors"
                   >
-                    <span>👔 Espace Direction</span>
+                    <span>Espace Direction</span>
                   </Link>
                 )}
                 {(currentRole === "N1") && (
@@ -491,7 +443,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                     href="/dashboard/mon-equipe"
                     className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-[#F0822A] hover:bg-orange-50 transition-colors"
                   >
-                    <span>👥 Mon Équipe (Collaborateurs)</span>
+                    <span>Mon Équipe</span>
                   </Link>
                 )}
                 {(currentRole === "SALARIE" || currentRole === "N1" || currentRole === "N2" || currentRole === "RH" || currentRole === "DRH") && (
