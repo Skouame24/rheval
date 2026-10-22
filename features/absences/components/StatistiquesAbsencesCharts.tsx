@@ -5,11 +5,7 @@
 
 "use client";
 
-import {
-  MOCK_KPIS,
-  MOCK_STATS_SERVICES,
-  MOCK_REPARTITION_TYPES,
-} from "@/lib/mock/absences.mock";
+import { useAbsences } from "../context/AbsencesContext";
 
 interface StatistiquesAbsencesChartsProps {
   totalDemandesEnCours: number;
@@ -22,7 +18,14 @@ export function StatistiquesAbsencesCharts({
   totalApprouvees,
   totalArchives,
 }: StatistiquesAbsencesChartsProps) {
-  const tauxPresenceGlobal = 91.8;
+  const { statsServices, repartitionTypes } = useAbsences();
+
+  const totalEffectif = statsServices.reduce((acc, curr) => acc + curr.totalEffectif, 0);
+  const totalAbsents = statsServices.reduce((acc, curr) => acc + curr.enCongeActuellement, 0);
+  const tauxPresenceGlobal =
+    totalEffectif > 0 ? Math.round(((totalEffectif - totalAbsents) / totalEffectif) * 1000) / 10 : 100;
+
+  const totalDemandesCount = repartitionTypes.reduce((acc, curr) => acc + (curr.count || 0), 0);
   const circonference = 2 * Math.PI * 46;
 
   return (
@@ -208,7 +211,7 @@ export function StatistiquesAbsencesCharts({
 
             {/* Barres de Taux de Présence par Département */}
             <div className="space-y-3">
-              {MOCK_STATS_SERVICES.map((srv, idx) => (
+              {statsServices.map((srv, idx) => (
                 <div key={idx} className="space-y-1">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-semibold text-slate-800">{srv.service}</span>
@@ -252,12 +255,12 @@ export function StatistiquesAbsencesCharts({
                 </p>
               </div>
               <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                48 requêtes
+                {totalDemandesCount} requête(s)
               </span>
             </div>
 
             <div className="space-y-3">
-              {MOCK_REPARTITION_TYPES.map((t, idx) => (
+              {repartitionTypes.map((t, idx) => (
                 <div key={idx} className="bg-slate-50/70 rounded-lg p-3 border border-slate-100 space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">

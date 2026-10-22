@@ -6,7 +6,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
@@ -31,87 +31,6 @@ interface AbsenceCalendarEvent {
   motif: string;
   statut: string;
 }
-
-const CALENDAR_EVENTS: AbsenceCalendarEvent[] = [
-  {
-    id: "evt-1",
-    collaborateur: "KOUAME Ebenezer Samuel",
-    poste: "Directeur des Systèmes d'Information",
-    departement: "DSI",
-    isMe: true,
-    typeKey: "CONGES_ANNUELS",
-    startDate: "2026-11-03",
-    endDate: "2026-11-06",
-    motif: "Congé de détente annuel (Cluster Datacenter)",
-    statut: "En cours de validation",
-  },
-  {
-    id: "evt-2",
-    collaborateur: "KONE Aminata",
-    poste: "Analyste Fonctionnelle Applicatif",
-    departement: "DSI",
-    typeKey: "PERMISSION_EXCEPTIONNELLE",
-    startDate: "2026-11-12",
-    endDate: "2026-11-13",
-    motif: "Événement familial",
-    statut: "Approuvée",
-  },
-  {
-    id: "evt-3",
-    collaborateur: "DIABATE Ousmane",
-    poste: "Ingénieur Systèmes & Cloud",
-    departement: "DSI",
-    typeKey: "MISSION_DEPLACEMENT",
-    startDate: "2026-11-09",
-    endDate: "2026-11-11",
-    motif: "Mission technique San Pedro",
-    statut: "Approuvée",
-  },
-  {
-    id: "evt-4",
-    collaborateur: "YAO Kouassi Jean",
-    poste: "Développeur Fullstack",
-    departement: "DSI",
-    typeKey: "INTERVENTION_TERRAIN",
-    startDate: "2026-11-17",
-    endDate: "2026-11-18",
-    motif: "Intervention Datacenter client",
-    statut: "Approuvée",
-  },
-  {
-    id: "evt-5",
-    collaborateur: "TRAORE Fanta",
-    poste: "Administratrice Bases de Données",
-    departement: "DSI",
-    typeKey: "CONGES_MALADIE",
-    startDate: "2026-11-16",
-    endDate: "2026-11-18",
-    motif: "Arrêt maladie justifié",
-    statut: "Approuvée",
-  },
-  {
-    id: "evt-6",
-    collaborateur: "CISSE Ibrahim",
-    poste: "Technicien Réseaux & Support",
-    departement: "DSI",
-    typeKey: "RECUPERATION",
-    startDate: "2026-11-04",
-    endDate: "2026-11-05",
-    motif: "Récupération astreinte week-end",
-    statut: "Approuvée",
-  },
-  {
-    id: "evt-7",
-    collaborateur: "TOURE Marie-Claire",
-    poste: "Directrice Ressources Humaines",
-    departement: "DRH",
-    typeKey: "CONGES_ANNUELS",
-    startDate: "2026-11-23",
-    endDate: "2026-11-27",
-    motif: "Congé annuel RH",
-    statut: "Approuvée",
-  },
-];
 
 const COULEURS_NATURE: Record<string, { label: string; badge: string; dot: string; text: string; bgSoft: string }> = {
   CONGES_ANNUELS: {
@@ -166,14 +85,36 @@ const MOIS_NOMS = [
 const JOURS_SEMAINE = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function CalendarPlanningPage() {
-  const { currentPersona } = useAbsences();
+  const { currentPersona, demandes } = useAbsences();
 
-  // Navigation dans le temps (Par défaut : Novembre 2026)
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(10); // 10 = Novembre (0-indexé)
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [selectedNature, setSelectedNature] = useState<string>("ALL");
   const [viewMode, setViewMode] = useState<"MONTH" | "TIMELINE">("MONTH");
   const [activeDayDetail, setActiveDayDetail] = useState<{ dateStr: string; events: AbsenceCalendarEvent[]; ferie?: string } | null>(null);
+
+  // Transformation dynamique des demandes réelles en événements d'agenda
+  const events = useMemo<AbsenceCalendarEvent[]>(() => {
+    return demandes.map((d) => {
+      const typeKey = (
+        d.typeDemande in COULEURS_NATURE ? d.typeDemande : "CONGES_ANNUELS"
+      ) as AbsenceCalendarEvent["typeKey"];
+
+      return {
+        id: d.id,
+        collaborateur: `${d.demandeur.prenom} ${d.demandeur.nom}`,
+        poste: d.demandeur.poste || "Collaborateur",
+        departement: d.demandeur.departement || d.demandeur.service || "Direction",
+        isMe: d.demandeur.id === currentPersona.id || d.demandeur.email === currentPersona.email,
+        typeKey,
+        startDate: d.dateDebut,
+        endDate: d.dateFin,
+        motif: d.motif || "Demande d'absence",
+        statut: d.statut === "APPROUVEE" || d.statut === "PERMISSION_EDITEE" ? "Approuvée" : "En cours",
+      };
+    });
+  }, [demandes, currentPersona]);
 
   // Navigation mois
   const goToPrevMonth = () => {
@@ -195,8 +136,9 @@ export default function CalendarPlanningPage() {
   };
 
   const goToToday = () => {
-    setCurrentYear(2026);
-    setCurrentMonth(10);
+    const today = new Date();
+    setCurrentYear(today.getFullYear());
+    setCurrentMonth(today.getMonth());
   };
 
   // Construction de la grille mensuelle (7 colonnes x N semaines)
@@ -251,7 +193,7 @@ export default function CalendarPlanningPage() {
 
   // Helper pour vérifier si un événement couvre une date donnée (YYYY-MM-DD)
   const getEventsForDate = (dateStr: string) => {
-    return CALENDAR_EVENTS.filter((evt) => {
+    return events.filter((evt) => {
       if (selectedNature !== "ALL" && evt.typeKey !== selectedNature) return false;
       return dateStr >= evt.startDate && dateStr <= evt.endDate;
     });
@@ -348,7 +290,7 @@ export default function CalendarPlanningPage() {
             onChange={(e) => setSelectedNature(e.target.value)}
             className="bg-slate-50 border border-slate-300 font-bold text-slate-800 px-2 py-1 text-xs focus:outline-none cursor-pointer"
           >
-            <option value="ALL">Toutes les absences ({CALENDAR_EVENTS.length})</option>
+            <option value="ALL">Toutes les absences ({events.length})</option>
             <option value="CONGES_ANNUELS">🌴 Congés Annuels</option>
             <option value="PERMISSION_EXCEPTIONNELLE">✉️ Permissions Exceptionnelles</option>
             <option value="MISSION_DEPLACEMENT">✈️ Missions & Déplacements</option>
@@ -461,12 +403,12 @@ export default function CalendarPlanningPage() {
         <div className="bg-white border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-200 flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Absences déclarées en {MOIS_NOMS[currentMonth]} {currentYear} ({CALENDAR_EVENTS.length})
+              Absences déclarées en {MOIS_NOMS[currentMonth]} {currentYear} ({events.length})
             </h2>
           </div>
 
           <div className="divide-y divide-slate-100 text-xs">
-            {CALENDAR_EVENTS.map((evt) => {
+            {events.map((evt) => {
               const colorCfg = COULEURS_NATURE[evt.typeKey];
               return (
                 <div

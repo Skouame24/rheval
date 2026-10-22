@@ -7,65 +7,55 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
-const MOUVEMENTS_SOLDE = [
-  {
-    date: "2026-10-18",
-    nature: "Pose de congés annuels",
-    reference: "DEM-2026-00142",
-    variation: -4.0,
-    soldeApres: 14.5,
-    operateur: "Système (Réservation temporaire)",
-  },
-  {
-    date: "2026-09-30",
-    nature: "Acquisition mensuelle légale (2.2 j/mois)",
-    reference: "PAIE-2026-09",
-    variation: +2.2,
-    soldeApres: 18.5,
-    operateur: "Clôture Paie DRH",
-  },
-  {
-    date: "2026-08-31",
-    nature: "Acquisition mensuelle légale (2.2 j/mois)",
-    reference: "PAIE-2026-08",
-    variation: +2.2,
-    soldeApres: 16.3,
-    operateur: "Clôture Paie DRH",
-  },
-  {
-    date: "2026-08-14",
-    nature: "Congé principal d'été",
-    reference: "DEM-2026-00088",
-    variation: -8.0,
-    soldeApres: 14.1,
-    operateur: "Validation Gérant (Christian BAMBA)",
-  },
-  {
-    date: "2026-07-31",
-    nature: "Acquisition mensuelle légale (2.2 j/mois)",
-    reference: "PAIE-2026-07",
-    variation: +2.2,
-    soldeApres: 22.1,
-    operateur: "Clôture Paie DRH",
-  },
-];
-
 export default function SoldesCongesPage() {
-  const { currentPersona, soldeConges } = useAbsences();
+  const { currentPersona, soldeConges, myDemandes } = useAbsences();
   const [selectedYear, setSelectedYear] = useState(2026);
 
-  const totalAcquis = soldeConges.joursAcquis; // 26.0
-  const totalPris = soldeConges.joursPris; // 8.0
-  const totalEnAttente = soldeConges.joursEnAttente; // 3.5
-  const totalRestant = soldeConges.joursRestants; // 14.5
+  const totalAcquis = soldeConges.joursAcquis;
+  const totalPris = soldeConges.joursPris;
+  const totalEnAttente = soldeConges.joursEnAttente;
+  const totalRestant = soldeConges.joursRestants;
 
-  const pctPris = (totalPris / totalAcquis) * 100;
-  const pctAttente = (totalEnAttente / totalAcquis) * 100;
-  const pctRestant = (totalRestant / totalAcquis) * 100;
+  const pctPris = totalAcquis > 0 ? (totalPris / totalAcquis) * 100 : 0;
+  const pctAttente = totalAcquis > 0 ? (totalEnAttente / totalAcquis) * 100 : 0;
+  const pctRestant = totalAcquis > 0 ? (totalRestant / totalAcquis) * 100 : 100;
+
+  // Calcul dynamique des mouvements depuis les demandes réelles
+  const mouvements = useMemo(() => {
+    const list = [];
+    const running = soldeConges.joursRestants;
+
+    for (const d of myDemandes) {
+      if (d.typeDemande === "CONGES_ANNUELS") {
+        list.push({
+          date: d.dateCreation ? d.dateCreation.split("T")[0] : "2026-10-01",
+          nature: `Demande de congés (${d.nombreJoursOuvres}j)`,
+          reference: d.codeReference,
+          variation: -Number(d.nombreJoursOuvres),
+          soldeApres: running,
+          operateur:
+            d.statut === "APPROUVEE" || d.statut === "PERMISSION_EDITEE"
+              ? "Direction / DRH"
+              : "Système (En cours)",
+        });
+      }
+    }
+
+    list.push({
+      date: `${soldeConges.annee || 2026}-01-01`,
+      nature: "Droits annuels légaux de congés payés",
+      reference: `ACQUIS-${soldeConges.annee || 2026}`,
+      variation: +soldeConges.joursAcquis,
+      soldeApres: soldeConges.joursAcquis,
+      operateur: "Clôture Paie DRH / Agilly",
+    });
+
+    return list;
+  }, [myDemandes, soldeConges]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -295,7 +285,7 @@ export default function SoldesCongesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {MOUVEMENTS_SOLDE.map((m, idx) => (
+              {mouvements.map((m, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/70">
                   <td className="py-3 px-4 font-mono text-slate-600">
                     {m.date.split("-").reverse().join("/")}

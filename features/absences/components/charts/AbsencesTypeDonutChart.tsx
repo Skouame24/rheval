@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { MOCK_REPARTITION_TYPES } from "@/lib/mock/absences.mock";
+import { useAbsences } from "../../context/AbsencesContext";
 
 const COLORS = [
   "#2563EB", // Congés annuels
@@ -48,13 +48,14 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 }
 
 export function AbsencesTypeDonutChart() {
+  const { repartitionTypes } = useAbsences();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const totalDemandes = MOCK_REPARTITION_TYPES.reduce((acc, curr) => acc + curr.count, 0);
+  const totalDemandes = repartitionTypes.reduce((acc, curr) => acc + curr.count, 0);
 
   if (!isMounted) {
     return (
@@ -72,7 +73,7 @@ export function AbsencesTypeDonutChart() {
           <PieChart>
             <Tooltip content={<CustomTooltip />} />
             <Pie
-              data={MOCK_REPARTITION_TYPES}
+              data={repartitionTypes}
               dataKey="count"
               nameKey="type"
               cx="50%"
@@ -83,7 +84,7 @@ export function AbsencesTypeDonutChart() {
               strokeWidth={2}
               paddingAngle={2}
             >
-              {MOCK_REPARTITION_TYPES.map((entry, index) => (
+              {repartitionTypes.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
@@ -103,7 +104,7 @@ export function AbsencesTypeDonutChart() {
 
       {/* Légende structurée compacte */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 pt-2 border-t border-slate-100 text-xs">
-        {MOCK_REPARTITION_TYPES.map((item, idx) => (
+        {repartitionTypes.map((item, idx) => (
           <div key={item.type} className="flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-1.5 min-w-0">
               <span

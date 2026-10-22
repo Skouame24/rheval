@@ -128,45 +128,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("agilly_token", u.accessToken);
       }
 
-      // Synchronisation avec la base de données PostgreSQL via /api/proxy (HTTPS, même domaine, pas de Mixed Content ni CORS)
-      const syncUrl = typeof window !== "undefined" ? "/api/proxy/auth/sync-session" : `${process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api"}/auth/sync-session`;
-      fetch(syncUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_microsoft: realUser.id,
-          nom: realUser.nom,
-          prenom: realUser.prenom,
-          email: realUser.email,
-          poste: realUser.poste,
-          departement: realUser.departement,
-          telephone: realUser.telephone,
-          role: realUser.role,
-        }),
-      })
-        .then(async (res) => {
-          if (!res.ok) return;
-          const resData = await res.json().catch(() => null);
-          if (resData?.user) {
-            const dbUser = resData.user;
-            setUser((current) => {
-              if (!current) return current;
-              const roleOverride = typeof window !== "undefined" ? (localStorage.getItem("agilly_user_role_override") as Role | null) : null;
-              const updated: User = {
-                ...current,
-                role: roleOverride || (dbUser.role as Role) || current.role,
-                n1: dbUser.n1 || current.n1,
-                n2: dbUser.n2 || current.n2,
-                drh: dbUser.drh || current.drh,
-              };
-              if (typeof window !== "undefined") {
-                localStorage.setItem("agilly_user", JSON.stringify(updated));
-              }
-              return updated;
-            });
-          }
+      // Synchronisation optimisée avec PostgreSQL (anti-tempête : max 1 fois par tranche de 5 min par utilisateur)
+      const lastSyncKey = `agilly_last_sync_${realUser.id}`;
+      const lastSyncTime = typeof window !== "undefined" ? sessionStorage.getItem(lastSyncKey) : null;
+      const isRecent = lastSyncTime && Date.now() - Number(lastSyncTime) < 300_000;
+
+      if (!isRecent) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(lastSyncKey, Date.now().toString());
+        }
+
+        const syncUrl = typeof window !== "undefined" ? "/api/proxy/auth/sync-session" : `${process.env.NEXT_PUBLIC_API_URL ?? "http://10.5.6.8:3001/api"}/auth/sync-session`;
+        fetch(syncUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_microsoft: realUser.id,
+            nom: realUser.nom,
+            prenom: realUser.prenom,
+            email: realUser.email,
+            poste: realUser.poste,
+            departement: realUser.departement,
+            telephone: realUser.telephone,
+            role: realUser.role,
+          }),
         })
-        .catch((e) => console.warn("[AuthContext] sync-session non bloquant:", e));
+          .then(async (res) => {
+            if (!res.ok) return;
+            const resData = await res.json().catch(() => null);
+            if (resData?.user) {
+              const dbUser = resData.user;
+              setUser((current) => {
+                if (!current) return current;
+                const roleOverride = typeof window !== "undefined" ? (localStorage.getItem("agilly_user_role_override") as Role | null) : null;
+                const updated: User = {
+                  ...current,
+                  role: roleOverride || (dbUser.role as Role) || current.role,
+                  n1: dbUser.n1 || current.n1,
+                  n2: dbUser.n2 || current.n2,
+                  drh: dbUser.drh || current.drh,
+                };
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("agilly_user", JSON.stringify(updated));
+                }
+                return updated;
+              });
+            }
+          })
+          .catch((e) => console.warn("[AuthContext] sync-session non bloquant:", e));
+      }
 
       setIsLoading(false);
       return;

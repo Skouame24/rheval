@@ -27,6 +27,7 @@ import {
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDefinirObjectifs";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
+import { client } from "@/lib/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
@@ -47,8 +48,15 @@ export default function EvaluationsEquipePage() {
     (user?.poste || "").toLowerCase().includes("pdg") ||
     (user?.email || "").toLowerCase().includes("christian.bamba");
 
-  const [evaluations, setEvaluations] = useState<EvaluationCycle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const isN2 = user?.role === "N2" || user?.role === "ADMIN";
+  const userRole = isN2 ? "N2" : "N1";
+
+  const [evaluations, setEvaluations] = useState<EvaluationCycle[]>(() => {
+    return client.peekCache<EvaluationCycle[]>(isN2 ? "/n2/evaluations" : "/n1/evaluations") || [];
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    return !client.peekCache<EvaluationCycle[]>(isN2 ? "/n2/evaluations" : "/n1/evaluations");
+  });
   const [error, setError] = useState<string | null>(null);
   
   // Modales
@@ -60,15 +68,12 @@ export default function EvaluationsEquipePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<string>("TOUS");
 
-  const isN2 = user?.role === "N2" || user?.role === "ADMIN";
-  const userRole = isN2 ? "N2" : "N1";
-
   const displayName = user
     ? `${user.prenom ? user.prenom + " " : ""}${user.nom}`.trim()
     : "Manager";
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     setError(null);
     try {
       const data = isN2
@@ -79,12 +84,21 @@ export default function EvaluationsEquipePage() {
       console.error("[EvaluationsEquipePage] Erreur chargement:", err);
       setError("Impossible de charger les fiches d'évaluation de l'équipe.");
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
   }, [isN2]);
 
   useEffect(() => {
-    loadData();
+    const hasCache = client.peekCache(isN2 ? "/n2/evaluations" : "/n1/evaluations");
+    loadData(!!hasCache);
+  }, [loadData, isN2]);
+
+  // Écoute automatique des changements de données dans toute l'application
+  useEffect(() => {
+    const unsubscribe = client.onDataChanged(() => {
+      loadData(true);
+    });
+    return unsubscribe;
   }, [loadData]);
 
   // Séparation des fiches par phase
@@ -252,7 +266,7 @@ export default function EvaluationsEquipePage() {
               variant="secondary"
               size="sm"
               leftIcon={<ArrowPathIcon size={14} />}
-              onClick={loadData}
+              onClick={() => loadData()}
               disabled={isLoading}
             >
               Actualiser
@@ -413,7 +427,7 @@ export default function EvaluationsEquipePage() {
                   title="Erreur de chargement"
                   description={error}
                   action={
-                    <Button variant="secondary" size="sm" onClick={loadData}>
+                    <Button variant="secondary" size="sm" onClick={() => loadData()}>
                       Réessayer
                     </Button>
                   }

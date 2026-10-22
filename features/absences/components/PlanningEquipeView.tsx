@@ -1,11 +1,14 @@
 // ============================================================
 // features/absences/components/PlanningEquipeView.tsx
-// Planning d'équipe moderne et serein — Clean Design
+// Planning d'équipe connecté aux données réelles de l'annuaire et des demandes
+// Clean Light Design Agilly
 // ============================================================
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useAbsences } from "@/features/absences/context/AbsencesContext";
+import { employeesApi } from "@/lib/api/employees.api";
 
 interface CollaborateurPlanning {
   id: string;
@@ -15,51 +18,123 @@ interface CollaborateurPlanning {
   jours: { [jour: number]: "PRESENT" | "CONGE" | "MISSION" | "MALADIE" | "WEEKEND" };
 }
 
-const MOCK_TEAM_PLANNING: CollaborateurPlanning[] = [
-  {
-    id: "collab-1",
-    nom: "Ebenezer Samuel KOUAME",
-    poste: "Développeur",
-    service: "DSI Applicatif",
-    jours: { 1: "PRESENT", 2: "PRESENT", 3: "CONGE", 4: "CONGE", 5: "CONGE", 6: "CONGE", 7: "WEEKEND", 8: "WEEKEND", 9: "PRESENT", 10: "PRESENT" },
-  },
-  {
-    id: "collab-2",
-    nom: "Ange-Patrick YAO",
-    poste: "Consultant ERP",
-    service: "Projets Clients",
-    jours: { 1: "PRESENT", 2: "PRESENT", 3: "PRESENT", 4: "PRESENT", 5: "PRESENT", 6: "PRESENT", 7: "WEEKEND", 8: "WEEKEND", 9: "PRESENT", 10: "MISSION" },
-  },
-  {
-    id: "collab-3",
-    nom: "Estelle KOFFI",
-    poste: "Dir. Clientèle",
-    service: "Commercial",
-    jours: { 1: "PRESENT", 2: "PRESENT", 3: "PRESENT", 4: "PRESENT", 5: "PRESENT", 6: "PRESENT", 7: "WEEKEND", 8: "WEEKEND", 9: "PRESENT", 10: "PRESENT" },
-  },
-  {
-    id: "collab-4",
-    nom: "Bakary CISSE",
-    poste: "Lead Dev",
-    service: "DSI Applicatif",
-    jours: { 1: "PRESENT", 2: "PRESENT", 3: "PRESENT", 4: "PRESENT", 5: "PRESENT", 6: "PRESENT", 7: "WEEKEND", 8: "WEEKEND", 9: "PRESENT", 10: "PRESENT" },
-  },
-  {
-    id: "collab-5",
-    nom: "Aïcha DIARRA",
-    poste: "Agent DRH",
-    service: "Ressources Humaines",
-    jours: { 1: "PRESENT", 2: "PRESENT", 3: "PRESENT", 4: "MALADIE", 5: "MALADIE", 6: "PRESENT", 7: "WEEKEND", 8: "WEEKEND", 9: "PRESENT", 10: "PRESENT" },
-  },
-];
-
 export function PlanningEquipeView() {
+  const { currentPersona, demandes } = useAbsences();
   const [selectedService, setSelectedService] = useState("TOUS");
+  const [teamUsers, setTeamUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    employeesApi
+      .getMyTeam()
+      .then((res) => {
+        if (res && res.length > 0) {
+          setTeamUsers(res);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const daysInView = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-  const filteredTeam = selectedService === "TOUS" 
-    ? MOCK_TEAM_PLANNING 
-    : MOCK_TEAM_PLANNING.filter((c) => c.service === selectedService);
+  // Construction dynamique des collaborateurs à partir des profils réels
+  const teamMembers = useMemo<CollaborateurPlanning[]>(() => {
+    const list: CollaborateurPlanning[] = [];
+    const seen = new Set<string>();
+
+    // 1. Utilisateur connecté
+    list.push({
+      id: currentPersona.id,
+      nom: `${currentPersona.prenom} ${currentPersona.nom}`,
+      poste: currentPersona.poste,
+      service: currentPersona.departement || currentPersona.service || "DSI",
+      jours: {},
+    });
+    seen.add(currentPersona.id);
+    if (currentPersona.email) seen.add(currentPersona.email.toLowerCase());
+
+    // 2. Équipe réelle issue du backend NestJS
+    for (const u of teamUsers) {
+      if (!seen.has(u.id) && !seen.has((u.email || "").toLowerCase())) {
+        list.push({
+          id: u.id,
+          nom: `${u.prenom || ""} ${u.nom || ""}`.trim() || u.email,
+          poste: u.poste || "Collaborateur",
+          service: u.departement || "DSI",
+          jours: {},
+        });
+        seen.add(u.id);
+        if (u.email) seen.add(u.email.toLowerCase());
+      }
+    }
+
+    // 3. Autres demandeurs réels présents dans la base
+    for (const d of demandes) {
+      const dId = d.demandeur.id;
+      const dEmail = (d.demandeur.email || "").toLowerCase();
+      if (!seen.has(dId) && !seen.has(dEmail)) {
+        list.push({
+          id: dId,
+          nom: `${d.demandeur.prenom} ${d.demandeur.nom}`,
+          poste: d.demandeur.poste,
+          service: d.demandeur.departement || d.demandeur.service || "DSI",
+          jours: {},
+        });
+        seen.add(dId);
+        if (dEmail) seen.add(dEmail);
+      }
+    }
+
+    // Calcul des présences/absences sur les 15 jours
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    for (const member of list) {
+      const memberDemandes = demandes.filter(
+        (d) =>
+          d.demandeur.id === member.id ||
+          (d.demandeur.email && member.id && d.demandeur.email.toLowerCase() === member.id.toLowerCase())
+      );
+
+      for (const d of daysInView) {
+        const dateObj = new Date(curYear, curMonth, d);
+        const dayOfWeek = dateObj.getDay();
+        const dateIso = `${curYear}-${String(curMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          member.jours[d] = "WEEKEND";
+          continue;
+        }
+
+        const match = memberDemandes.find(
+          (m) =>
+            m.dateDebut <= dateIso &&
+            m.dateFin >= dateIso &&
+            ["APPROUVEE", "PERMISSION_EDITEE", "EN_VALIDATION_N1", "EN_VALIDATION_DRH", "EN_VALIDATION_DG"].includes(m.statut)
+        );
+
+        if (match) {
+          if (match.typeDemande === "CONGES_ANNUELS" || match.typeDemande === "CONGES_MATERNITE") {
+            member.jours[d] = "CONGE";
+          } else if (match.typeDemande === "MISSION_DEPLACEMENT" || match.typeDemande === "INTERVENTION_TERRAIN") {
+            member.jours[d] = "MISSION";
+          } else if (match.typeDemande === "CONGES_MALADIE") {
+            member.jours[d] = "MALADIE";
+          } else {
+            member.jours[d] = "CONGE";
+          }
+        } else {
+          member.jours[d] = "PRESENT";
+        }
+      }
+    }
+
+    return list;
+  }, [currentPersona, teamUsers, demandes]);
+
+  const filteredTeam = selectedService === "TOUS"
+    ? teamMembers
+    : teamMembers.filter((c) => c.service === selectedService);
 
   const getStatusBadge = (status?: string) => {
     switch (status) {

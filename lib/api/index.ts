@@ -13,6 +13,7 @@ export { rhApi } from "./rh.api";
 export { adminApi } from "./admin.api";
 export { notificationsApi } from "./notifications.api";
 export { demandesApi, mapFrontendTypeToBackend } from "./demandes.api";
+export { client, clearApiCache, peekApiCache, onDataChanged } from "./client";
 
 // Re-export des types utiles
 export type { LoginDto, AuthResponse } from "./auth.api";

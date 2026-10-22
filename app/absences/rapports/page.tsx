@@ -9,7 +9,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   BarChart,
@@ -23,14 +23,6 @@ import {
 } from "recharts";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
-const STATS_PAR_DEPARTEMENT = [
-  { service: "DSI", conges: 18, missions: 6, permissions: 4, maladie: 2 },
-  { service: "Projets", conges: 22, missions: 8, permissions: 5, maladie: 3 },
-  { service: "Finance", conges: 10, missions: 2, permissions: 2, maladie: 1 },
-  { service: "RH", conges: 8, missions: 3, permissions: 3, maladie: 1 },
-  { service: "Commercial", conges: 14, missions: 12, permissions: 3, maladie: 2 },
-];
-
 const DELAIS_PAR_ETAPE = [
   { etape: "Supérieur", realise: 14, cible: 24, statut: "Dans les délais" },
   { etape: "Contrôle DRH", realise: 22, cible: 24, statut: "Dans les délais" },
@@ -39,13 +31,37 @@ const DELAIS_PAR_ETAPE = [
 ];
 
 export default function RapportsPilotagePage() {
-  const { kpis, statsServices } = useAbsences();
+  const { kpis, statsServices, demandes } = useAbsences();
   const [isMounted, setIsMounted] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const statsParDepartement = useMemo(() => {
+    const map: Record<string, { conges: number; missions: number; permissions: number; maladie: number }> = {
+      DSI: { conges: 0, missions: 0, permissions: 0, maladie: 0 },
+      Projets: { conges: 0, missions: 0, permissions: 0, maladie: 0 },
+      Finance: { conges: 0, missions: 0, permissions: 0, maladie: 0 },
+      RH: { conges: 0, missions: 0, permissions: 0, maladie: 0 },
+      Commercial: { conges: 0, missions: 0, permissions: 0, maladie: 0 },
+    };
+
+    for (const d of demandes) {
+      const dept = d.demandeur.departement || "DSI";
+      const key = Object.keys(map).find((k) => dept.toLowerCase().includes(k.toLowerCase())) || "DSI";
+      if (d.typeDemande === "CONGES_ANNUELS") map[key].conges += 1;
+      else if (d.typeDemande === "MISSION_DEPLACEMENT" || d.typeDemande === "INTERVENTION_TERRAIN") map[key].missions += 1;
+      else if (d.typeDemande === "CONGES_MALADIE") map[key].maladie += 1;
+      else map[key].permissions += 1;
+    }
+
+    return Object.entries(map).map(([service, counts]) => ({
+      service,
+      ...counts,
+    }));
+  }, [demandes]);
 
   const handleExport = (format: "EXCEL" | "PDF") => {
     setExportNotice(`Génération du rapport ${format} officiel en cours...`);
@@ -138,7 +154,7 @@ export default function RapportsPilotagePage() {
         <div className="h-64 w-full">
           {isMounted && (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={STATS_PAR_DEPARTEMENT} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={statsParDepartement} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="service" tick={{ fontSize: 11, fill: "#64748b" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />

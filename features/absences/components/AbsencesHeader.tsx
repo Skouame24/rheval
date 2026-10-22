@@ -6,7 +6,7 @@
 "use client";
 
 import Link from "next/link";
-import { PersonaUser, MOCK_PERSONAS } from "@/lib/mock/absences.mock";
+import { PersonaUser } from "@/lib/mock/absences.mock";
 
 interface AbsencesHeaderProps {
   currentPersona: PersonaUser;
@@ -68,25 +68,15 @@ export function AbsencesHeader({
           {/* DROITE : SIMULATION DU RÔLE & ACTION PRINCIPALE */}
           <div className="flex items-center gap-3">
             
-            {/* Sélecteur de rôle discret */}
+            {/* Profil utilisateur connecté */}
             <div className="flex items-center bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 rounded-lg px-2.5 py-1.5 transition-colors">
-              <span className="text-[11px] font-medium text-slate-500 mr-2 hidden lg:inline">
-                Rôle simulé :
+              <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 shrink-0" />
+              <span className="text-xs font-semibold text-slate-800 mr-1.5">
+                {currentPersona.prenom} {currentPersona.nom}
               </span>
-              <select
-                value={currentPersona.id}
-                onChange={(e) => {
-                  const found = MOCK_PERSONAS.find((p) => p.id === e.target.value);
-                  if (found) onSelectPersona(found);
-                }}
-                className="bg-transparent text-xs font-semibold text-slate-800 outline-none cursor-pointer pr-1"
-              >
-                {MOCK_PERSONAS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.labelRole} ({p.prenom} {p.nom})
-                  </option>
-                ))}
-              </select>
+              <span className="text-[10px] text-slate-500 font-medium bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                {currentPersona.labelRole}
+              </span>
             </div>
 
             {/* Badge des tâches en attente */}

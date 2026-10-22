@@ -92,70 +92,100 @@ function mapBackendStatutToFrontend(status: string): StatutDemandeRH {
 
 // Transformateur d'une entité backend vers DemandeRHItem
 export function transformBackendDemande(b: any): DemandeRHItem {
+  const typeCode = b.typeDemande?.code || b.typeCode || "CONGE_ANNUEL";
+  const libelleType = b.typeDemande?.libelle || b.type?.libelle || b.typeCode || "Congé / Absence";
+  const nbJours = Number(b.nombreJours ?? b.nombreJoursOuvres ?? 0);
+
+  const etapeCourante =
+    b.etapeCourante === 1 || b.etapeValidation === "N1"
+      ? "SUPERIEUR_N1"
+      : b.etapeCourante === 2 || b.etapeValidation === "DRH"
+      ? "DRH"
+      : b.etapeCourante === 3 || b.etapeValidation === "DG"
+      ? "DIRECTION_DG"
+      : "CLOTURE";
+
+  const salNom = b.salarieNom || "";
+  const nameParts = salNom.trim().split(/\s+/);
+  const prenom = nameParts.length > 1 ? nameParts[0] : (salNom || "Collaborateur");
+  const nom = nameParts.length > 1 ? nameParts.slice(1).join(" ") : (salNom || "Agilly");
+
+  // Historique unifié (validations + table historique)
+  const histFromValidations = (b.validations || []).map((v: any) => ({
+    id: v.id,
+    etape: (v.etape === 1 || v.etape === "N1"
+      ? "SUPERIEUR_N1"
+      : v.etape === 2 || v.etape === "DRH"
+      ? "DRH"
+      : "DIRECTION_DG") as EtapeValidationRH,
+    libelleEtape: `Visa Étape ${v.etape}`,
+    acteurNom: v.valideurNom || "Manager Responsable",
+    acteurPoste: v.valideurRole || "Validateur RH",
+    acteurRole: (v.etape === 1 || v.etape === "N1"
+      ? "SUPERIEUR_N1"
+      : v.etape === 2 || v.etape === "DRH"
+      ? "DRH"
+      : "DIRECTION_DG") as any,
+    decision: (v.decision === "APPROUVE" ? "VALIDE" : v.decision === "RETOURNE" ? "REFUSE_RETOUR" : "REFUSE_DEFINITIF") as any,
+    motif: v.motif || v.commentaire || undefined,
+    dateAction: v.dateDecision || v.createdAt || new Date().toISOString(),
+  }));
+
+  const histFromLogs = (b.historique || []).map((h: any) => ({
+    id: h.id,
+    etape: "SUPERIEUR_N1" as EtapeValidationRH,
+    libelleEtape: h.action || "Action sur demande",
+    acteurNom: h.auteurNom || "Collaborateur",
+    acteurPoste: "Système",
+    acteurRole: "SALARIE" as any,
+    decision: (h.nouveauStatut === "REFUSEE" ? "REFUSE_DEFINITIF" : "VALIDE") as any,
+    motif: h.commentaire || undefined,
+    dateAction: h.createdAt || new Date().toISOString(),
+  }));
+
+  const combinedHist = histFromValidations.length > 0 ? histFromValidations : histFromLogs;
+
   return {
     id: b.id,
-    codeReference: b.numeroDemande || `DEM-${b.id.substring(0, 6)}`,
-    typeDemande: mapBackendTypeToFrontend(b.typeCode),
-    libelleType: b.type?.libelle || b.typeCode,
+    codeReference: b.numeroDemande || `DEM-${b.id.substring(0, 8)}`,
+    typeDemande: mapBackendTypeToFrontend(typeCode),
+    libelleType: libelleType,
     statut: mapBackendStatutToFrontend(b.statut),
-    etapeCourante: (b.etapeValidation === "N1"
-      ? "SUPERIEUR_N1"
-      : b.etapeValidation === "DRH"
-      ? "DRH"
-      : b.etapeValidation === "DG"
-      ? "DIRECTION_DG"
-      : "CLOTURE") as EtapeValidationRH,
+    etapeCourante: etapeCourante as EtapeValidationRH,
     demandeur: {
       id: b.salarieId,
-      matricule: b.salarieMatricule || "EMP-AGY",
-      nom: b.salarieNom ? b.salarieNom.split(" ").slice(1).join(" ") : "",
-      prenom: b.salarieNom ? b.salarieNom.split(" ")[0] : "Collaborateur",
+      matricule: b.salarieMatricule || `EMP-${(b.salarieId || "").substring(0, 6).toUpperCase()}`,
+      nom: nom,
+      prenom: prenom,
       email: b.salarieEmail || "",
-      poste: b.salariePoste || "Collaborateur",
+      poste: b.salariePoste || "Collaborateur Agilly",
       departement: b.salarieDirection || "Direction Générale",
-      service: b.salarieDirection || "",
+      service: b.salarieDirection || "Direction Générale",
       telephone: "+225 07 00 00 00 00",
     },
     dateDebut: b.dateDebut ? new Date(b.dateDebut).toISOString().split("T")[0] : "",
     dateFin: b.dateFin ? new Date(b.dateFin).toISOString().split("T")[0] : "",
     estDemiJourneeDebut: b.demiJourneeDebut || false,
     estDemiJourneeFin: b.demiJourneeFin || false,
-    nombreJoursOuvres: Number(b.nombreJoursOuvres || 0),
+    nombreJoursOuvres: nbJours,
+    nombreJoursCalendaires: nbJours,
     motif: b.motif || "",
     adresseContactPendantAbsence: b.adresseContact || "Abidjan, Côte d'Ivoire",
     destination: b.destination || undefined,
     moyenTransport: b.moyenTransport || undefined,
     fraisPrevisionnels: b.fraisEstimes ? Number(b.fraisEstimes) : undefined,
-    cycleRetoursCount: 0,
+    cycleRetoursCount: b.cycleRejetCount || 0,
     piecesJointes: (b.piecesJointes || []).map((pj: any) => ({
       id: pj.id,
-      nomOriginal: pj.nomOriginal,
-      taille: `${Math.round(pj.tailleOctets / 1024)} Ko`,
-      typeMime: pj.typeMime,
+      nomOriginal: pj.nomFichier || pj.nomOriginal || "Document.pdf",
+      taille: `${Math.round((pj.tailleOctets || 1024) / 1024)} Ko`,
+      typeMime: pj.mimeType || pj.typeMime || "application/pdf",
       urlFichier: pj.cheminFichier,
-      dateUpload: pj.createdAt,
+      dateUpload: pj.createdAt || new Date().toISOString(),
     })),
-    historique: (b.validations || []).map((v: any) => ({
-      id: v.id,
-      etape: (v.etape === "N1"
-        ? "SUPERIEUR_N1"
-        : v.etape === "DRH"
-        ? "DRH"
-        : "DIRECTION_DG") as EtapeValidationRH,
-      libelleEtape: `Validation ${v.etape}`,
-      acteurNom: v.valideurNom || "Manager",
-      acteurPoste: v.valideurPoste || "Responsable",
-      acteurRole: (v.etape === "N1"
-        ? "SUPERIEUR_N1"
-        : v.etape === "DRH"
-        ? "DRH"
-        : "DIRECTION_DG"),
-      decision: v.decision === "APPROUVE" ? "VALIDE" : v.decision === "RETOURNE" ? "REFUSE_RETOUR" : "REFUSE_DEFINITIF",
-      motif: v.commentaire || undefined,
-      dateAction: v.createdAt,
-    })),
-    dateCreation: b.createdAt,
-    dateDerniereAction: b.updatedAt,
+    historique: combinedHist,
+    dateCreation: b.createdAt || new Date().toISOString(),
+    dateDerniereAction: b.updatedAt || b.createdAt || new Date().toISOString(),
   };
 }
 
@@ -168,7 +198,13 @@ export const demandesApi = {
   // Mes demandes
   async getMesDemandes(): Promise<DemandeRHItem[]> {
     const raw = await client.get<any[]>("/demandes-rh/mes-demandes");
-    return raw.map(transformBackendDemande);
+    return (raw || []).map(transformBackendDemande);
+  },
+
+  // Toutes les demandes (registre RH / Direction / planning)
+  async getAllDemandes(): Promise<DemandeRHItem[]> {
+    const raw = await client.get<any[]>("/demandes-rh");
+    return (raw || []).map(transformBackendDemande);
   },
 
   // Détail d'une demande
@@ -225,30 +261,41 @@ export const demandesApi = {
   // Soldes collaborateur connecté
   async getMonSolde(): Promise<SoldeCongesInfo> {
     const s = await client.get<any>("/soldes-conges/mon-solde");
+    const annee = s?.annee || new Date().getFullYear();
+    const acquis = Number(s?.joursAcquis || 0) + Number(s?.reliquatN1 || 0);
+    const pris = Number(s?.joursPris || 0);
+    const enAttente = Number(s?.joursEnAttente || 0);
+    const restants = Number(s?.soldeRestantNet ?? Math.max(0, acquis - pris - enAttente));
+
     return {
-      annee: s.annee,
-      joursAcquis: Number(s.joursAcquis),
-      joursPris: Number(s.joursPris),
-      joursEnAttente: Number(s.joursEnAttente),
-      joursRestants: Number(s.joursRestants),
+      annee,
+      joursAcquis: acquis,
+      joursPris: pris,
+      joursEnAttente: enAttente,
+      joursRestants: restants,
       repartition: {
         congesPayes: {
-          acquis: Number(s.joursAcquis),
-          pris: Number(s.joursPris),
-          solde: Number(s.joursRestants),
+          acquis,
+          pris,
+          solde: restants,
         },
         permissionsAnnuelles: {
           quotaTotal: 10,
-          prises: 2,
-          solde: 8,
+          prises: Math.min(pris, 10),
+          solde: Math.max(0, 10 - pris),
         },
         recuperations: {
-          acquises: Number(s.reliquatN1 || 0),
+          acquises: Number(s?.reliquatN1 || 0),
           prises: 0,
-          solde: Number(s.reliquatN1 || 0),
+          solde: Number(s?.reliquatN1 || 0),
         },
       },
     };
+  },
+
+  // Édition officielle de permission et clôture
+  async editerPermission(id: string): Promise<any> {
+    return client.post(`/validations-rh/${id}/editer-permission`, {});
   },
 
   // Liste globale de tous les soldes pour RH

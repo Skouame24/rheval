@@ -7,6 +7,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
+import { client } from "@/lib/api/client";
 import type {
   EvaluationCycle,
   StatutEvaluation,
@@ -23,16 +24,21 @@ interface UseCurrentEvaluationReturn {
 }
 
 /**
- * Récupère l'évaluation en cours du salarié connecté.
+ * Récupère l'évaluation en cours du salarié connecté avec SWR et réactivité temps réel.
  * Endpoint: GET /api/evaluations/me/current
  */
 export function useCurrentEvaluation(): UseCurrentEvaluationReturn {
-  const [evaluation, setEvaluation] = useState<EvaluationCycle | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Lecture instantanée du cache si déjà présent (0ms de chargement au montage)
+  const [evaluation, setEvaluation] = useState<EvaluationCycle | null>(() => {
+    return client.peekCache<EvaluationCycle>("/evaluations/me/current") || null;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    return !client.peekCache<EvaluationCycle>("/evaluations/me/current");
+  });
   const [error, setError] = useState<string | null>(null);
 
-  const fetch = useCallback(async () => {
-    setIsLoading(true);
+  const fetch = useCallback(async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     setError(null);
     try {
       const data = await evaluationsApi.getMyCurrent();
@@ -40,13 +46,33 @@ export function useCurrentEvaluation(): UseCurrentEvaluationReturn {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erreur lors du chargement de l'évaluation.");
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  // Chargement initial
+  useEffect(() => {
+    fetch(!!client.peekCache("/evaluations/me/current"));
+  }, [fetch]);
 
-  return { evaluation, isLoading, error, refetch: fetch };
+  // Écoute automatique des changements de données dans toute l'application (fixation d'objectifs, validations RH, etc.)
+  useEffect(() => {
+    const unsubscribe = client.onDataChanged(() => {
+      fetch(true); // Rafraîchissement silencieux instantané sans spinner
+    });
+
+    const handleFocus = () => {
+      fetch(true);
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [fetch]);
+
+  return { evaluation, isLoading, error, refetch: () => fetch(false) };
 }
 
 // ─── useEvaluationHistory ────────────────────────────────────

@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
@@ -20,6 +20,7 @@ import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEval
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { employeesApi } from "@/lib/api/employees.api";
 import { cyclesApi } from "@/lib/api/cycles.api";
+import { client } from "@/lib/api/client";
 import {
   UsersIcon,
   CheckCircleIcon,
@@ -39,10 +40,21 @@ export function DashboardManager() {
     (user?.poste || "").toLowerCase().includes("pdg") ||
     (user?.email || "").toLowerCase().includes("christian.bamba");
 
-  const [fiches, setFiches] = useState<EvaluationCycle[]>([]);
-  const [team, setTeam] = useState<User[]>([]);
-  const [activeCycle, setActiveCycle] = useState<Cycle | null | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  // Initialisation instantanée depuis le cache synchrone (0ms de chargement si déjà visité)
+  const [fiches, setFiches] = useState<EvaluationCycle[]>(() => {
+    return client.peekCache<EvaluationCycle[]>(isPdg ? "/n2/evaluations" : "/n1/evaluations") || [];
+  });
+  const [team, setTeam] = useState<User[]>(() => {
+    return client.peekCache<User[]>("/employees/my-team") || client.peekCache<User[]>("/n1/collaborateurs") || [];
+  });
+  const [activeCycle, setActiveCycle] = useState<Cycle | null | undefined>(() => {
+    return client.peekCache<Cycle>("/rh/cycles/actif") || undefined;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const cachedFiches = client.peekCache<EvaluationCycle[]>(isPdg ? "/n2/evaluations" : "/n1/evaluations");
+    const cachedTeam = client.peekCache<User[]>("/employees/my-team") || client.peekCache<User[]>("/n1/collaborateurs");
+    return !cachedFiches && !cachedTeam;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"TOUS" | "A_FIXER" | "A_NOTER" | "EN_COURS">("TOUS");
 
@@ -59,8 +71,8 @@ export function DashboardManager() {
   } | null>(null);
   const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     try {
       const [fichesData, teamData, cycleData] = await Promise.all([
         (isPdg ? evaluationsApi.getN2TeamEvaluations() : evaluationsApi.getN1TeamEvaluations()).catch(() => []),
@@ -73,13 +85,22 @@ export function DashboardManager() {
     } catch (err) {
       console.error("[DashboardManager] Erreur chargement:", err);
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
-  };
+  }, [isPdg]);
 
   useEffect(() => {
-    loadData();
-  }, [user?.id, isPdg]);
+    const hasCache = client.peekCache(isPdg ? "/n2/evaluations" : "/n1/evaluations");
+    loadData(!!hasCache);
+  }, [user?.id, isPdg, loadData]);
+
+  // Écoute automatique des changements de données dans toute l'application (fixation d'objectifs, validations RH, etc.)
+  useEffect(() => {
+    const unsubscribe = client.onDataChanged(() => {
+      loadData(true); // Rafraîchissement silencieux instantané sans bloquer l'UI
+    });
+    return unsubscribe;
+  }, [loadData]);
 
   // Carte de correspondance collaborateur -> fiche d'évaluation
   const evaluationsMap = useMemo(() => {
@@ -288,10 +309,11 @@ export function DashboardManager() {
           salariedId={selectedCollabForObjectifs.id}
           salariedName={selectedCollabForObjectifs.nom}
           salariedPoste={selectedCollabForObjectifs.poste}
+          evaluationId={evaluationsMap[selectedCollabForObjectifs.id]?.id}
+          statut={evaluationsMap[selectedCollabForObjectifs.id]?.statut}
           readOnly={selectedCollabForObjectifs.readOnly}
           onSaved={() => {
-            setSelectedCollabForObjectifs(null);
-            loadData();
+            loadData(true);
           }}
         />
       )}
@@ -350,7 +372,7 @@ export function DashboardManager() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={loadData}
+            onClick={() => loadData()}
             leftIcon={<ArrowPathIcon size={14} className={isLoading ? "animate-spin" : ""} />}
           >
             Actualiser

@@ -8,7 +8,8 @@
 
 import { useState, useMemo } from "react";
 import { TypeDemandeRH, DemandeRHItem } from "@/types/absences.types";
-import { PersonaUser, MOCK_SOLDE_CONGES } from "@/lib/mock/absences.mock";
+import { PersonaUser } from "@/lib/mock/absences.mock";
+import { useAbsences } from "../context/AbsencesContext";
 
 interface NouvelleDemandeModalProps {
   isOpen: boolean;
@@ -59,7 +60,8 @@ export function NouvelleDemandeModal({
     }
   }, [dateDebut, dateFin]);
 
-  const depassementSolde = typeDemande === "CONGES_ANNUELS" && joursOuvres > MOCK_SOLDE_CONGES.joursRestants;
+  const { soldeConges } = useAbsences();
+  const depassementSolde = typeDemande === "CONGES_ANNUELS" && joursOuvres > soldeConges.joursRestants;
   const estCircuitCourt = typeDemande === "PERMISSION_EXCEPTIONNELLE" && joursOuvres <= 2;
 
   const handleSubmit = (isBrouillon: boolean = false) => {
@@ -314,11 +316,11 @@ export function NouvelleDemandeModal({
 
               {depassementSolde ? (
                 <span className="text-rose-700 font-semibold text-xs bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                  ⚠️ Solde insuffisant ({MOCK_SOLDE_CONGES.joursRestants}j disponibles)
+                  ⚠️ Solde insuffisant ({soldeConges.joursRestants}j disponibles)
                 </span>
               ) : (
                 <span className="text-emerald-700 font-semibold text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                  ✓ Solde conforme ({MOCK_SOLDE_CONGES.joursRestants}j restants)
+                  ✓ Solde conforme ({soldeConges.joursRestants}j restants)
                 </span>
               )}
             </div>
