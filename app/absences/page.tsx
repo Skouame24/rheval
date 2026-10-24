@@ -34,7 +34,7 @@ export default function AbsencesDashboardPage() {
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              Tableau de bord salarié — Absences & Missions
+              Tableau de bord 
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">

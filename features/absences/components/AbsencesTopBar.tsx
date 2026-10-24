@@ -16,8 +16,9 @@ const TITLES: [string, string][] = [
   ["/absences/validations", "À valider"],
   ["/absences/planning", "Agenda"],
   ["/absences/soldes", "Mes soldes"],
-  ["/absences/registre", "Archives"],
-  ["/absences/rapports", "Rapports"],
+  ["/absences/workflows", "Circuits & Workflows RH"],
+  ["/absences/registre", "Archives & GED"],
+  ["/absences/rapports", "Rapports & SLA"],
 ];
 
 export function AbsencesTopBar() {

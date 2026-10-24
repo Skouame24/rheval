@@ -125,6 +125,18 @@ export function AbsencesSidebar() {
               ...(isRhOrAdmin
                 ? [
                     {
+                      label: "Circuits & Workflows",
+                      href: "/absences/workflows",
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="6" height="6" rx="1" />
+                          <rect x="15" y="15" width="6" height="6" rx="1" />
+                          <path d="M6 9v3a3 3 0 0 0 3 3h6" />
+                          <polyline points="12 12 15 15 12 18" />
+                        </svg>
+                      ),
+                    },
+                    {
                       label: "Registre & GED",
                       href: "/absences/registre",
                       icon: (

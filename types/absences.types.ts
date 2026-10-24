@@ -204,3 +204,22 @@ export interface KPIOverview {
   permissionsEditees: number;
   archivesGedTotal: number;
 }
+
+export interface TypeDemandeConfig {
+  id: string;
+  code: string;
+  libelle: string;
+  categorie: string;
+  necessiteSolde: boolean;
+  pieceRequise: boolean;
+  delaiMinJours: number;
+  dureeMaxJours?: number | null;
+  workflowN1: boolean;
+  workflowDrh: boolean;
+  workflowDg: boolean;
+  seuilDgJours: number;
+  description?: string | null;
+  actif: boolean;
+  createdAt?: string;
+}
+

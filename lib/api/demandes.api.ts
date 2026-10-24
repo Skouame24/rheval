@@ -11,6 +11,7 @@ import {
   TypeDemandeRH,
   StatutDemandeRH,
   EtapeValidationRH,
+  TypeDemandeConfig,
 } from "@/types/absences.types";
 
 export interface CreateDemandeInput {
@@ -331,6 +332,16 @@ export const demandesApi = {
   // Ajustement manuel solde (RH)
   async ajusterSolde(salarieId: string, payload: { champ: string; valeur: number; motif: string }): Promise<any> {
     return client.put(`/soldes-conges/collaborateur/${salarieId}/ajuster`, payload);
+  },
+
+  // Récupérer tous les types de demande avec leur configuration de workflow
+  async getTypesDemande(): Promise<TypeDemandeConfig[]> {
+    return client.get<TypeDemandeConfig[]>("/demandes-rh/types");
+  },
+
+  // Mettre à jour la configuration du workflow d'un type de demande (DRH)
+  async updateTypeWorkflow(idOrCode: string, payload: Partial<TypeDemandeConfig>): Promise<TypeDemandeConfig> {
+    return client.put<TypeDemandeConfig>(`/demandes-rh/types/${idOrCode}`, payload);
   },
 };
 
