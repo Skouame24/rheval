@@ -851,74 +851,76 @@ function NouvelleDemandeForm() {
             />
           </div>
 
-          {/* PIÈCE JUSTIFICATIVE (FACULTATIF) */}
-          <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-slate-800 block">
-                  Pièce justificative {motifActif.justificatifRequis ? "(Obligatoire)" : "(Facultatif)"}
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  {motifActif.justificatifLabel || "Certificat médical, convocation, billet, etc."}
-                </span>
+          {/* PIÈCE JUSTIFICATIVE (UNIQUEMENT LORSQUE PERTINENT OU EXIGÉ PAR LA RÉGLEMENTATION - MASQUÉ POUR MISSIONS ET CONGÉS ANNUELS) */}
+          {motifActif.famille !== "MISSIONS" && motifActif.id !== "CONGES_ANNUELS" && (motifActif.justificatifRequis || Boolean(motifActif.justificatifLabel)) && (
+            <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">
+                    Pièce justificative {motifActif.justificatifRequis ? "(Obligatoire)" : "(Facultatif)"}
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    {motifActif.justificatifLabel || "Certificat médical, convocation, etc."}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-medium">PDF, JPEG, PNG (max 5 Mo)</span>
               </div>
-              <span className="text-[10px] text-slate-400 font-medium">PDF, JPEG, PNG (max 5 Mo)</span>
-            </div>
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-              multiple
-              className="hidden"
-            />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                multiple
+                className="hidden"
+              />
 
-            {/* Liste des fichiers joints */}
-            {fichiersList.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {fichiersList.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between p-2.5 bg-white border border-slate-200">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500 shrink-0">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                      </svg>
-                      <span className="text-xs font-bold text-slate-800 truncate">{f.nom}</span>
-                      <span className="text-[10px] text-slate-400 shrink-0 font-mono">({f.taille})</span>
+              {/* Liste des fichiers joints */}
+              {fichiersList.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {fichiersList.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 bg-white border border-slate-200">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500 shrink-0">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span className="text-xs font-bold text-slate-800 truncate">{f.nom}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0 font-mono">({f.taille})</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="text-xs text-red-600 hover:text-red-800 font-bold px-2 py-0.5 hover:bg-red-50 cursor-pointer"
+                        title="Supprimer"
+                      >
+                        ✕
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(i)}
-                      className="text-xs text-red-600 hover:text-red-800 font-bold px-2 py-0.5 hover:bg-red-50 cursor-pointer"
-                      title="Supprimer"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
-            {/* Zone de clic douce pour importer */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-slate-300 hover:border-[#D96F1D] bg-white hover:bg-orange-50/50 p-4 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#D96F1D]">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <span className="text-xs font-bold text-slate-800">
-                Cliquez pour choisir un justificatif depuis votre ordinateur
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Format PDF, scan ou photo acceptés
-              </span>
-            </button>
-          </div>
+              {/* Zone de clic douce pour importer */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-slate-300 hover:border-[#D96F1D] bg-white hover:bg-orange-50/50 p-4 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#D96F1D]">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span className="text-xs font-bold text-slate-800">
+                  Cliquez pour choisir un justificatif depuis votre ordinateur
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Format PDF, scan ou photo acceptés
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* ENGAGEMENT SUR L'HONNEUR */}
           <div className="p-3 border border-slate-300 bg-white">
