@@ -44,7 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("agilly_simulated_user");
       localStorage.removeItem("agilly_user_role_override");
-      sessionStorage.clear();
     }
 
     if (status === "loading") {
@@ -119,7 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Synchronisation optimisée avec PostgreSQL (anti-tempête : max 1 fois par tranche de 5 min par utilisateur)
       const lastSyncKey = `agilly_last_sync_${realUser.id}`;
       const lastSyncTime = typeof window !== "undefined" ? sessionStorage.getItem(lastSyncKey) : null;
-      if (true) {
+      const shouldSync = !lastSyncTime || (Date.now() - Number(lastSyncTime) > 5 * 60 * 1000);
+      if (shouldSync) {
         if (typeof window !== "undefined") {
           sessionStorage.setItem(lastSyncKey, Date.now().toString());
         }

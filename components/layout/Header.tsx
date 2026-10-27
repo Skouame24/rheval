@@ -98,8 +98,14 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
       }
     }
     setIsNotifOpen(false);
-    if (notif.lien) {
-      router.push(notif.lien);
+    let targetLink = notif.lien;
+    if (targetLink === "/dashboard/mon-espace/demandes") {
+      targetLink = "/absences/demandes";
+    } else if (targetLink === "/dashboard/mon-equipe/demandes") {
+      targetLink = "/absences/validations";
+    }
+    if (targetLink) {
+      router.push(targetLink);
     }
   };
 
@@ -375,9 +381,20 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                           <p className="text-[11px] text-slate-600 line-clamp-2 m-0 mt-0.5 leading-snug">
                             {notif.message}
                           </p>
-                          <p className="text-[9px] text-slate-400 m-0 mt-1">
-                            {formatRelativeTime(notif.createdAt)}
-                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {notif.lien?.startsWith("/absences") || notif.titre?.toLowerCase().includes("demande rh") || notif.message?.toLowerCase().includes("demande de") ? (
+                              <span className="text-[9px] font-black px-1.5 py-0.2 bg-orange-100 text-[#D96F1D] border border-orange-200">
+                                🏖️ Absence / Congé
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-black px-1.5 py-0.2 bg-blue-100 text-blue-700 border border-blue-200">
+                                🎯 Évaluation
+                              </span>
+                            )}
+                            <p className="text-[9px] text-slate-400 m-0">
+                              {formatRelativeTime(notif.createdAt)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );

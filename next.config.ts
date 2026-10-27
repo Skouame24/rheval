@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/mon-espace/demandes",
+        destination: "/absences/demandes",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/mon-equipe/demandes",
+        destination: "/absences/validations",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

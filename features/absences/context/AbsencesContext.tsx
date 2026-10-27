@@ -211,7 +211,12 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
 
   const [isDemoDrawerOpen, setIsDemoDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !localStorage.getItem("agilly_cached_demandes");
+    }
+    return true;
+  });
 
   // Switcher de persona actif pour tests hiérarchiques Draw.io
   const setCurrentPersona = useCallback((p: PersonaUser) => {
@@ -264,7 +269,15 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Données réactives — VRAIES données de la base dédiée PostgreSQL
-  const [demandes, setDemandes] = useState<DemandeRHItem[]>([]);
+  const [demandes, setDemandes] = useState<DemandeRHItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("agilly_cached_demandes");
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
   const [soldeConges, setSoldeConges] = useState<SoldeCongesInfo>(DEFAULT_SOLDE_CONGES);
 
   // ── Calcul dynamique des statistiques de service ──
@@ -379,9 +392,9 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   }, [demandes]);
 
   // ── Chargement des données réelles depuis le Backend dédié ──
-  const refreshDemandes = useCallback(async () => {
+  const refreshDemandes = useCallback(async (isSilent = false) => {
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
 
       // 1. Solde réel si disponible
       const soldePromise = demandesApi.getMonSolde().catch(() => null);
@@ -401,6 +414,11 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
       }
       if (realDemandes && realDemandes.length > 0) {
         setDemandes(realDemandes);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("agilly_cached_demandes", JSON.stringify(realDemandes));
+          } catch {}
+        }
       }
     } catch (e) {
       console.warn("[AbsencesContext] Erreur refreshDemandes:", e);
@@ -409,15 +427,18 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Rechargement au montage et au changement d'utilisateur
+  // Rechargement au montage et au changement d'utilisateur (silencieux si données déjà en cache)
   useEffect(() => {
-    refreshDemandes();
+    const hasData = typeof window !== "undefined" && !!localStorage.getItem("agilly_cached_demandes");
+    refreshDemandes(hasData);
   }, [refreshDemandes, user?.id]);
 
-  // Écoute des mutations distantes via le bus SWR
+  // Écoute des mutations distantes via le bus SWR ciblé
   useEffect(() => {
-    return onDataChanged(() => {
-      refreshDemandes();
+    return onDataChanged((prefix) => {
+      if (!prefix || prefix.includes("demande") || prefix.includes("solde")) {
+        refreshDemandes(true);
+      }
     });
   }, [refreshDemandes]);
 
