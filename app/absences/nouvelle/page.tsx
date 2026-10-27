@@ -15,6 +15,52 @@ import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { TypeDemandeRH, FamilleDemandeRH } from "@/types/absences.types";
 
+export interface BaremeMission {
+  id: string;
+  nom: string;
+  distance: string;
+  tarifJour: number;
+  description: string;
+}
+
+export const BAREMES_MISSION: BaremeMission[] = [
+  {
+    id: "GRAND_ABIDJAN",
+    nom: "Zone 1 : Grand Abidjan & Périphérie",
+    distance: "< 50 km (Abidjan, Bassam, Bingerville, Songon)",
+    tarifJour: 15000,
+    description: "Repas de midi et transport local",
+  },
+  {
+    id: "INTERIEUR",
+    nom: "Zone 2 : Intérieur du pays / Province",
+    distance: "50 à 500 km (Bouaké, San Pedro, Yamoussoukro, Korhogo)",
+    tarifJour: 40000,
+    description: "Hébergement standard, repas & per diem journalier",
+  },
+  {
+    id: "SOUS_REGION",
+    nom: "Zone 3 : Sous-région CEDEAO / UEMOA",
+    distance: "Dakar, Bamako, Ouaga, Cotonou, Lomé, etc.",
+    tarifJour: 75000,
+    description: "Per diem international Afrique de l'Ouest & hébergement",
+  },
+  {
+    id: "INTERNATIONAL",
+    nom: "Zone 4 : International Hors Afrique",
+    distance: "Europe, Amérique, Asie",
+    tarifJour: 120000,
+    description: "Per diem international complet",
+  },
+  {
+    id: "PERSONNALISE",
+    nom: "Autre / Forfait personnalisé client",
+    distance: "Selon devis ou conditions particulières",
+    tarifJour: 0,
+    description: "Montant libre saisi selon accord",
+  },
+];
+
 export interface MotifConfig {
   id: TypeDemandeRH;
   famille: FamilleDemandeRH;
@@ -199,8 +245,8 @@ export const MOTIFS_CATALOGUE: MotifConfig[] = [
   {
     id: "MISSION_DEPLACEMENT",
     famille: "MISSIONS",
-    titre: "Ordre de mission & déplacement",
-    sousTitre: "Mission professionnelle externe, voyage client ou formation externe",
+    titre: "Ordre de mission & intervention",
+    sousTitre: "Intervention sur site client, mission province/international ou astreinte",
     badgeLegal: "Professionnel",
     decompteLabel: "Période de mission professionnelle (prise en charge Agilly)",
     impactSolde: false,
@@ -288,6 +334,8 @@ function NouvelleDemandeForm() {
   const [clientProjet, setClientProjet] = useState("");
   const [avanceDemandee, setAvanceDemandee] = useState(false);
   const [montantAvance, setMontantAvance] = useState("");
+  const [baremeId, setBaremeId] = useState<string>("INTERIEUR");
+  const [distanceKm, setDistanceKm] = useState<string>("");
 
   // Motif & contact
   const [motif, setMotif] = useState("");
@@ -397,9 +445,12 @@ function NouvelleDemandeForm() {
       if (motifActif.isSortieHeures) {
         motifFinal = `[SORTIE de ${heureDebut} à ${heureFin} (${dureeHeuresMinutes?.text})] ${motif}`;
       } else if (motifActif.famille === "MISSIONS") {
-        const clientPart = clientProjet ? ` [Client/Projet: ${clientProjet}]` : "";
-        const avancePart = avanceDemandee && montantAvance ? ` [Avance demandée: ${Number(montantAvance).toLocaleString("fr-FR")} FCFA]` : "";
-        motifFinal = `[MISSION à ${destination || "Site externe"}${moyenTransport ? ` via ${moyenTransport}` : ""}${clientPart}${avancePart}] ${motif}`;
+        const clientPart = clientProjet ? ` [Client: ${clientProjet}]` : "";
+        const b = BAREMES_MISSION.find((x) => x.id === baremeId);
+        const baremePart = b ? ` [Barème: ${b.nom}]` : "";
+        const distPart = distanceKm ? ` [Distance: ${distanceKm} km]` : "";
+        const avancePart = avanceDemandee && montantAvance ? ` [Avance caisse: ${Number(montantAvance).toLocaleString("fr-FR")} FCFA]` : "";
+        motifFinal = `[INTERVENTION/MISSION à ${destination || "Site externe"}${moyenTransport ? ` via ${moyenTransport}` : ""}${clientPart}${distPart}${baremePart}${avancePart}] ${motif}`;
       }
 
       await addDemande({

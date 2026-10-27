@@ -173,7 +173,7 @@ export default function AbsencesDashboardPage() {
           }`}
         >
           <BriefcaseSvg className={activeTab === "MISSIONS" ? "w-4 h-4 text-[#F0822A]" : "w-4 h-4 text-slate-400"} />
-          <span>Missions & Déplacements</span>
+          <span>Missions & Interventions</span>
           {enCoursMissions.length > 0 && (
             <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700">
               {enCoursMissions.length}
@@ -394,7 +394,7 @@ export default function AbsencesDashboardPage() {
         </div>
       )}
 
-      {/* ── 3B. UNIVERS 2 : MISSIONS & DÉPLACEMENTS (IMPACT FINANCIER) ── */}
+      {/* ── 3B. UNIVERS 2 : MISSIONS & INTERVENTIONS (IMPACT FINANCIER) ── */}
       {activeTab === "MISSIONS" && (
         <div className="flex flex-col gap-6">
           {/* Métriques Missions & Engagements */}
@@ -449,9 +449,9 @@ export default function AbsencesDashboardPage() {
               >
                 <div>
                   <div className="w-6 h-0.5 bg-[#F0822A] mb-3" />
-                  <span className="text-xs font-bold text-slate-900 block">Ordre de Mission & Déplacement</span>
+                  <span className="text-xs font-bold text-slate-900 block">Ordre de Mission & Intervention</span>
                   <span className="text-[11px] text-slate-500 leading-tight block mt-1">
-                    Déplacement province, international ou séminaire client • Validation budgétaire
+                    Intervention site client, province ou international • Validation budgétaire
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#F0822A] mt-4">
@@ -564,3 +564,4 @@ export default function AbsencesDashboardPage() {
     </div>
   );
 }
+
