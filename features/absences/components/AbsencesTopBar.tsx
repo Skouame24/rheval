@@ -63,22 +63,19 @@ export function AbsencesTopBar() {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* ── TEST SWITCHER : DIRECTION JURIDIQUE & WORKFLOW DRAW.IO ── */}
+        {/* ── SÉLECTEUR DE COMPTE CONNECTÉ ── */}
         <div className="relative" ref={switcherRef}>
           <button
             type="button"
             onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-50/90 to-white hover:from-orange-100 hover:to-orange-50/80 border border-orange-300 text-xs px-2.5 py-1.5 transition-all shadow-2xs cursor-pointer rounded-xs"
-            title="Changer de rôle pour tester le workflow de validation Draw.io"
+            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-xs px-3 py-1.5 transition-all shadow-2xs cursor-pointer"
+            title="Profil actif"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 hidden md:inline">
-              Testeur :
-            </span>
-            <span className="font-extrabold text-slate-900 truncate max-w-[130px] sm:max-w-none">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className="font-bold text-slate-900 truncate max-w-[140px] sm:max-w-none">
               {currentPersona.prenom} {currentPersona.nom}
             </span>
-            <span className="text-[10px] font-black px-1.5 py-0.2 bg-[#F0822A] text-white shadow-2xs shrink-0">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
               {currentPersona.labelRole}
             </span>
             <svg
@@ -88,7 +85,7 @@ export function AbsencesTopBar() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
-              className={`text-slate-500 transition-transform ${isSwitcherOpen ? "rotate-180" : ""}`}
+              className={`text-slate-400 transition-transform ${isSwitcherOpen ? "rotate-180" : ""}`}
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
