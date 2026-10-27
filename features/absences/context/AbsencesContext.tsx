@@ -108,7 +108,7 @@ export const DIRECTION_PERSONAS: PersonaUser[] = [
     nom: "KOUAME",
     prenom: "Ebenezer Samuel",
     email: "ebenezer.kouame@agilly.net",
-    poste: "Ingénieur Développeur Fullstack",
+    poste: "Développeur",
     departement: "Direction Juridique & Digital",
     service: "Digital & Systèmes",
     role: "SALARIE",

@@ -285,6 +285,9 @@ function NouvelleDemandeForm() {
   const [destination, setDestination] = useState("");
   const [moyenTransport, setMoyenTransport] = useState("");
   const [fraisPrevisionnels, setFraisPrevisionnels] = useState("");
+  const [clientProjet, setClientProjet] = useState("");
+  const [avanceDemandee, setAvanceDemandee] = useState(false);
+  const [montantAvance, setMontantAvance] = useState("");
 
   // Motif & contact
   const [motif, setMotif] = useState("");
@@ -393,8 +396,10 @@ function NouvelleDemandeForm() {
       let motifFinal = motif;
       if (motifActif.isSortieHeures) {
         motifFinal = `[SORTIE de ${heureDebut} à ${heureFin} (${dureeHeuresMinutes?.text})] ${motif}`;
-      } else if (motifActif.famille === "MISSIONS" && destination) {
-        motifFinal = `[MISSION à ${destination}${moyenTransport ? ` via ${moyenTransport}` : ""}] ${motif}`;
+      } else if (motifActif.famille === "MISSIONS") {
+        const clientPart = clientProjet ? ` [Client/Projet: ${clientProjet}]` : "";
+        const avancePart = avanceDemandee && montantAvance ? ` [Avance demandée: ${Number(montantAvance).toLocaleString("fr-FR")} FCFA]` : "";
+        motifFinal = `[MISSION à ${destination || "Site externe"}${moyenTransport ? ` via ${moyenTransport}` : ""}${clientPart}${avancePart}] ${motif}`;
       }
 
       await addDemande({
@@ -677,38 +682,92 @@ function NouvelleDemandeForm() {
             </div>
           )}
 
-          {/* ── CHAMPS COMPLÉMENTAIRES SELON LA MISSION ── */}
+          {/* ── CHAMPS COMPLÉMENTAIRES SELON LA MISSION (IMPACT FINANCIER & PROJETS) ── */}
           {motifActif.famille === "MISSIONS" && (
-            <div className="p-4 bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Ville / Destination *</label>
-                <input
-                  type="text"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="Ex: San Pedro, Bouaké..."
-                  className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none"
-                />
+            <div className="p-4 bg-purple-50/60 border border-purple-200 flex flex-col gap-3">
+              <div className="flex items-center justify-between pb-2 border-b border-purple-200">
+                <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+                  <span>💼</span> Paramètres de mission & Engagement financier
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-100 text-purple-800 border border-purple-200">
+                  Temps de travail (0j déduit de vos congés)
+                </span>
               </div>
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Moyen de transport</label>
-                <input
-                  type="text"
-                  value={moyenTransport}
-                  onChange={(e) => setMoyenTransport(e.target.value)}
-                  placeholder="Ex: Véhicule de service, Avion..."
-                  className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none"
-                />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Client ou Projet concerné</label>
+                  <input
+                    type="text"
+                    value={clientProjet}
+                    onChange={(e) => setClientProjet(e.target.value)}
+                    placeholder="Ex: Projet Digital, Banque Atlantique, Interne Agilly..."
+                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Ville / Pays de destination <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    placeholder="Ex: San Pedro, Bouaké, Dakar..."
+                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none focus:border-purple-600"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Frais estimés (FCFA)</label>
-                <input
-                  type="text"
-                  value={fraisPrevisionnels}
-                  onChange={(e) => setFraisPrevisionnels(e.target.value)}
-                  placeholder="Ex: 100000"
-                  className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none"
-                />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Moyen de transport</label>
+                  <input
+                    type="text"
+                    value={moyenTransport}
+                    onChange={(e) => setMoyenTransport(e.target.value)}
+                    placeholder="Ex: Véhicule de service, Avion, Car..."
+                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Frais prévisionnels totaux (FCFA)</label>
+                  <input
+                    type="number"
+                    value={fraisPrevisionnels}
+                    onChange={(e) => setFraisPrevisionnels(e.target.value)}
+                    placeholder="Ex: 150000"
+                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              {/* Demande d'avance de caisse */}
+              <div className="pt-2 border-t border-purple-200">
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <input
+                    type="checkbox"
+                    checked={avanceDemandee}
+                    onChange={(e) => setAvanceDemandee(e.target.checked)}
+                    className="accent-purple-600 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-800">
+                    Solliciter une avance de trésorerie / décharge de caisse avant le départ
+                  </span>
+                </label>
+
+                {avanceDemandee && (
+                  <div className="pl-6 pt-1 max-w-xs">
+                    <label className="block text-[11px] text-slate-600 mb-1 font-semibold">
+                      Montant de l&apos;avance demandée (FCFA) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={montantAvance}
+                      onChange={(e) => setMontantAvance(e.target.value)}
+                      placeholder="Ex: 75000"
+                      className="w-full bg-white border border-purple-300 p-2 text-slate-900 font-mono text-xs focus:outline-none"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -885,12 +944,12 @@ function NouvelleDemandeForm() {
             </div>
           </div>
 
-          {/* Solde Congés */}
+          {/* 1. Solde Congés (Uniquement si congé déductible du solde) */}
           {motifActif.impactSolde && (
             <div className="p-3.5 bg-[#FFF9F5] border-2 border-orange-200 flex flex-col gap-2 shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wide">
-                  Solde de Congés Payés
+                  ⚖️ Solde de Congés Payés
                 </span>
                 <span className="text-[10px] font-bold text-[#F0822A] bg-orange-100 px-1.5 py-0.2 rounded-xs">
                   Temps réel
@@ -914,10 +973,64 @@ function NouvelleDemandeForm() {
             </div>
           )}
 
-          {/* Circuit d'approbation */}
-          <div className="p-3.5 bg-slate-50/80 border border-slate-200 flex flex-col gap-2">
+          {/* 2. Permissions (Quota légal 10 jours - Solde annuel préservé) */}
+          {motifActif.famille === "PERMISSIONS" && (
+            <div className="p-3.5 bg-emerald-50/70 border-2 border-emerald-200 flex flex-col gap-2 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-emerald-900 tracking-wide">
+                  ⚖️ Quota Légal Conventionnel
+                </span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5">
+                  Solde CP intact
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium">Impact sur vos congés payés :</span>
+                <span className="font-bold text-emerald-700">0 jour déduit</span>
+              </div>
+              <p className="text-[10px] text-emerald-800 leading-tight mt-0.5 m-0">
+                Cette autorisation exceptionnelle relève du quota légal de 10 jours ouvrés avec maintien de salaire intégral.
+              </p>
+            </div>
+          )}
+
+          {/* 3. Missions & Déplacements (Impact Financier & ODM) */}
+          {motifActif.famille === "MISSIONS" && (
+            <div className="p-3.5 bg-purple-50/80 border-2 border-purple-200 flex flex-col gap-2 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-purple-950 tracking-wide">
+                  💼 Impact Financier & Déplacement
+                </span>
+                <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-1.5 py-0.5">
+                  Prise en charge Agilly
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium">Frais prévisionnels :</span>
+                <span className="font-mono font-extrabold text-purple-950 text-sm">
+                  {fraisPrevisionnels ? `${Number(fraisPrevisionnels).toLocaleString("fr-FR")} FCFA` : "Non spécifiés"}
+                </span>
+              </div>
+              {avanceDemandee && montantAvance && (
+                <div className="flex items-center justify-between text-xs text-purple-800 font-bold">
+                  <span>Avance de caisse demandée :</span>
+                  <span className="font-mono">{Number(montantAvance).toLocaleString("fr-FR")} FCFA</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-2 border-t border-purple-200 text-xs font-bold text-emerald-700">
+                <span>Impact sur votre solde CP :</span>
+                <span>0 jour déduit (Temps de travail)</span>
+              </div>
+              <div className="text-[10px] text-purple-900 bg-purple-100/70 p-2 border border-purple-200 leading-tight mt-1">
+                📄 Un <strong>Ordre de Mission (ODM)</strong> officiel signé par la Direction Générale sera délivré pour vos déplacements.
+              </div>
+            </div>
+          )}
+
+          {/* Circuit d'approbation contextuel */}
+          <div className="p-3.5 bg-slate-50/80 border border-slate-200 flex flex-col gap-2 shadow-2xs">
             <span className="text-[10px] font-black uppercase text-slate-600 tracking-wide">
-              Circuit de validation
+              Circuit de validation prévu
             </span>
             <div className="flex flex-col gap-2 mt-1">
               <div className="flex items-center gap-2 text-xs">
@@ -927,14 +1040,18 @@ function NouvelleDemandeForm() {
               <div className="ml-2.5 h-2.5 border-l-2 border-orange-300" />
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]">2</span>
-                <span className="text-slate-600 font-medium">Vérification Direction RH</span>
+                <span className="text-slate-700 font-medium">
+                  {motifActif.famille === "MISSIONS" ? "Visa Budgétaire & Caisse (Finance / DAF)" : "Vérification Direction RH"}
+                </span>
               </div>
               {!circuitCourt && (
                 <>
                   <div className="ml-2.5 h-2.5 border-l-2 border-slate-200" />
                   <div className="flex items-center gap-2 text-xs">
                     <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]">3</span>
-                    <span className="text-slate-600 font-medium">Accord final de la Direction</span>
+                    <span className="text-slate-700 font-medium">
+                      {motifActif.famille === "MISSIONS" ? "Signature Ordre de Mission (DG)" : "Accord final de la Direction"}
+                    </span>
                   </div>
                 </>
               )}
