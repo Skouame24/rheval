@@ -8,10 +8,11 @@
 
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { DemandeRHItem } from "@/types/absences.types";
+import { demandesApi } from "@/lib/api";
 
 export default function ValidationsInboxPage() {
   const {
@@ -34,8 +35,91 @@ export default function ValidationsInboxPage() {
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
   const [delegueNom, setDelegueNom] = useState("");
   const [delegationActive, setDelegationActive] = useState(false);
+  const [activeDelegation, setActiveDelegation] = useState<any | null>(null);
+  const [eligibleInterims, setEligibleInterims] = useState<any[]>([]);
+  const [selectedInterimId, setSelectedInterimId] = useState("");
+  const [delegationMotif, setDelegationMotif] = useState("");
+  const [delegationDateFin, setDelegationDateFin] = useState("");
+  const [isSavingDelegation, setIsSavingDelegation] = useState(false);
+  const [isRevokingDelegation, setIsRevokingDelegation] = useState(false);
 
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+
+  // Charger la délégation active et les collaborateurs éligibles
+  const loadDelegationData = useCallback(async () => {
+    try {
+      const [del, eligibles] = await Promise.all([
+        demandesApi.getMyDelegation().catch(() => null),
+        demandesApi.getEligibleInterims().catch(() => []),
+      ]);
+      setActiveDelegation(del);
+      setDelegationActive(!!(del && del.actif));
+      if (del?.interimNom) setDelegueNom(del.interimNom);
+      setEligibleInterims(eligibles || []);
+      if (eligibles && eligibles.length > 0) {
+        setSelectedInterimId(eligibles[0].id_microsoft);
+      }
+    } catch (err) {
+      console.warn("Erreur chargement délégation:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDelegationData();
+  }, [loadDelegationData]);
+
+  const handleSaveDelegation = async () => {
+    if (!selectedInterimId) {
+      alert("Veuillez sélectionner un collaborateur intérimaire.");
+      return;
+    }
+    setIsSavingDelegation(true);
+    try {
+      const saved = await demandesApi.setDelegation({
+        interimId: selectedInterimId,
+        motif: delegationMotif || "Absence temporaire du responsable",
+        dateFin: delegationDateFin || null,
+      });
+      setActiveDelegation(saved);
+      setDelegationActive(true);
+      setDelegueNom(saved.interimNom);
+      setIsDelegateModalOpen(false);
+      setActionSuccessMessage(
+        `Délégation activée avec succès pour ${saved.interimNom}. Il est désormais habilité à valider pour vous.`
+      );
+      setTimeout(() => setActionSuccessMessage(null), 4000);
+    } catch (err: any) {
+      alert("Erreur lors de la mise en place de la délégation : " + (err?.message || "Erreur serveur"));
+    } finally {
+      setIsSavingDelegation(false);
+    }
+  };
+
+  const handleRevokeDelegation = async () => {
+    if (
+      !confirm(
+        "Voulez-vous révoquer l'intérim et reprendre immédiatement la main sur vos validations ?"
+      )
+    ) {
+      return;
+    }
+    setIsRevokingDelegation(true);
+    try {
+      await demandesApi.revokeDelegation();
+      setActiveDelegation(null);
+      setDelegationActive(false);
+      setDelegueNom("");
+      setIsDelegateModalOpen(false);
+      setActionSuccessMessage(
+        "Délégation révoquée. Vous avez repris l'intégralité de vos droits de validation."
+      );
+      setTimeout(() => setActionSuccessMessage(null), 4000);
+    } catch (err: any) {
+      alert("Erreur lors de la révocation : " + (err?.message || "Erreur serveur"));
+    } finally {
+      setIsRevokingDelegation(false);
+    }
+  };
 
   const activeDemande = useMemo(() => {
     if (selectedId) {
@@ -112,14 +196,22 @@ export default function ValidationsInboxPage() {
           <button
             type="button"
             onClick={() => setIsDelegateModalOpen(true)}
-            className={`px-3 py-1.5 border font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+            className={`px-3.5 py-2 border font-bold flex items-center gap-2 cursor-pointer transition-colors shadow-xs ${
               delegationActive
                 ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${delegationActive ? "bg-emerald-600" : "bg-slate-400"}`} />
-            <span>{delegationActive ? "Remplaçant actif" : "Désigner un remplaçant (RG-07)"}</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                delegationActive ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+              }`}
+            />
+            <span>
+              {delegationActive
+                ? `Intérim actif : ${delegueNom}`
+                : "Désigner un intérimaire (RG-07)"}
+            </span>
           </button>
 
           <Link
@@ -201,9 +293,16 @@ export default function ValidationsInboxPage() {
                     `}
                   >
                     <div className="flex items-start justify-between mb-1">
-                      <span className="font-mono font-bold text-slate-900">
-                        {dem.codeReference}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-bold text-slate-900">
+                          {dem.codeReference}
+                        </span>
+                        {dem.estDelegation && (
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 px-1.5 py-0.2 border border-amber-300">
+                            ⚡ Par intérim ({dem.delegueParNom})
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 border border-amber-200">
                         À valider
                       </span>
@@ -262,6 +361,21 @@ export default function ValidationsInboxPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Mention spéciale si validation par délégation */}
+              {activeDemande.estDelegation && (
+                <div className="p-3.5 bg-amber-50 border border-amber-300 text-amber-950 text-xs font-semibold flex items-center gap-3">
+                  <span className="text-base">⚡</span>
+                  <div>
+                    <span className="font-extrabold block">
+                      Validation par délégation / intérim :
+                    </span>
+                    <span className="text-[11px] text-amber-800">
+                      Vous arbitrez ce dossier au nom de <strong>{activeDemande.delegueParNom}</strong>. Votre décision sera enregistrée avec mention officielle d&apos;intérimaire habilité.
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Contrôles automatiques (Nature, Continuité, Délais) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -495,62 +609,154 @@ export default function ValidationsInboxPage() {
 
       {/* ── MODAL DÉSIGNATION DE REMPLAÇANT (RG-07 / EF-13) ── */}
       {isDelegateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white border border-slate-300 shadow-2xl max-w-md w-full p-6 text-xs flex flex-col gap-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <span className="font-bold text-slate-900 text-sm">
-                Délégation de validation (RG-07)
-              </span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white border border-slate-300 shadow-2xl max-w-lg w-full p-6 text-xs flex flex-col gap-5 rounded-none font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-[#F0822A]" />
+                <span className="font-black text-slate-900 text-sm tracking-tight">
+                  Délégation de Validation & Intérim (RG-07)
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsDelegateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 text-lg"
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold"
               >
                 &times;
               </button>
             </div>
 
-            <p className="text-slate-600">
-              Désignez un collaborateur pour arbitrer vos demandes en votre absence afin de ne pas bloquer le circuit.
-            </p>
+            {delegationActive && activeDelegation ? (
+              /* Statut actif avec option de révocation immédiate */
+              <div className="flex flex-col gap-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-none">
+                  <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-xs mb-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Délégation actuellement active</span>
+                  </div>
+                  <p className="text-slate-800 text-xs m-0 mt-1">
+                    Les demandes d&apos;absence de votre équipe sont actuellement arbitrables par :
+                  </p>
+                  <div className="mt-2 p-2.5 bg-white border border-emerald-200">
+                    <span className="text-xs font-black text-slate-900 block">
+                      {activeDelegation.interimNom}
+                    </span>
+                    <span className="text-[11px] text-slate-500 block">
+                      {activeDelegation.interimEmail || "Collaborateur désigné"}
+                    </span>
+                    {activeDelegation.motif && (
+                      <span className="text-[10px] text-slate-400 block mt-1 italic">
+                        Motif : &ldquo;{activeDelegation.motif}&rdquo;
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">
-                Collaborateur remplaçant habilité
-              </label>
-              <input
-                type="text"
-                value={delegueNom}
-                onChange={(e) => setDelegueNom(e.target.value)}
-                placeholder="Nom du manager ou collaborateur délégué..."
-                className="w-full bg-slate-50 border border-slate-300 p-2 text-slate-900 font-medium"
-              />
-            </div>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  Si vous êtes de retour ou souhaitez reprendre immédiatement la main sur l&apos;intégralité de vos validations, vous pouvez révoquer cette délégation en un clic.
+                </p>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={() => {
-                  setDelegationActive(false);
-                  setIsDelegateModalOpen(false);
-                }}
-                className="text-slate-500 hover:text-slate-800"
-              >
-                Désactiver
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDelegationActive(true);
-                  setIsDelegateModalOpen(false);
-                  setActionSuccessMessage(`Délégation active confiée à ${delegueNom}.`);
-                  setTimeout(() => setActionSuccessMessage(null), 3000);
-                }}
-                className="px-4 py-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold"
-              >
-                Enregistrer la délégation
-              </button>
-            </div>
+                <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setIsDelegateModalOpen(false)}
+                    className="px-4 py-2 bg-white text-slate-700 border border-slate-300 font-bold rounded-none hover:bg-slate-50"
+                  >
+                    Fermer
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRevokeDelegation}
+                    disabled={isRevokingDelegation}
+                    className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-extrabold rounded-none shadow-sm transition-all"
+                  >
+                    {isRevokingDelegation ? "Révocation..." : "Mettre fin à l'intérim (Révoquer)"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Formulaire de désignation d'un nouvel intérimaire */
+              <div className="flex flex-col gap-4">
+                <p className="text-slate-600 leading-relaxed">
+                  Désignez un collaborateur de votre équipe pour arbitrer et valider vos demandes pendant votre absence. Il sera immédiatement éligible à traiter les dossiers de vos collaborateurs.
+                </p>
+
+                <div>
+                  <label className="block text-slate-800 font-extrabold uppercase tracking-wider text-[10px] mb-1.5">
+                    Collaborateur de l&apos;équipe désigné comme intérimaire
+                  </label>
+                  {eligibleInterims.length > 0 ? (
+                    <select
+                      value={selectedInterimId}
+                      onChange={(e) => setSelectedInterimId(e.target.value)}
+                      className="w-full bg-white border border-slate-300 p-2.5 text-xs text-slate-900 font-bold rounded-none focus:border-[#F0822A] outline-none"
+                    >
+                      {eligibleInterims.map((collab) => (
+                        <option key={collab.id_microsoft} value={collab.id_microsoft}>
+                          {collab.nom} · {collab.poste || "Collaborateur"} ({collab.departement || "Équipe"})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={selectedInterimId}
+                      onChange={(e) => setSelectedInterimId(e.target.value)}
+                      placeholder="Identifiant ou email du collaborateur..."
+                      className="w-full bg-white border border-slate-300 p-2.5 text-xs text-slate-900 rounded-none focus:border-[#F0822A] outline-none"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-slate-800 font-extrabold uppercase tracking-wider text-[10px] mb-1.5">
+                    Motif de la suppléance
+                  </label>
+                  <input
+                    type="text"
+                    value={delegationMotif}
+                    onChange={(e) => setDelegationMotif(e.target.value)}
+                    placeholder="Ex: Congé annuel, déplacement client, mission terrain..."
+                    className="w-full bg-white border border-slate-300 p-2.5 text-xs text-slate-900 rounded-none focus:border-[#F0822A] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-800 font-extrabold uppercase tracking-wider text-[10px] mb-1.5">
+                    Date de fin prévue (Optionnel)
+                  </label>
+                  <input
+                    type="date"
+                    value={delegationDateFin}
+                    onChange={(e) => setDelegationDateFin(e.target.value)}
+                    className="w-full bg-white border border-slate-300 p-2 text-xs text-slate-900 rounded-none focus:border-[#F0822A] outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Laisser vide pour une délégation sans date de fin (révocable manuellement à tout moment).
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setIsDelegateModalOpen(false)}
+                    className="px-4 py-2 bg-white text-slate-700 border border-slate-300 font-bold rounded-none hover:bg-slate-50"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveDelegation}
+                    disabled={isSavingDelegation}
+                    className="px-5 py-2.5 bg-[#F0822A] hover:bg-[#D96B16] disabled:opacity-50 text-white font-black text-xs rounded-none shadow-sm transition-all"
+                  >
+                    {isSavingDelegation ? "Activation..." : "Activer la délégation"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

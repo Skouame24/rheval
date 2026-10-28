@@ -170,6 +170,11 @@ export interface DemandeRHItem {
   historique: HistoriqueValidation[];
   documentPermission?: DocumentPermissionPDF;
 
+  // Intérim & Délégation de validation (RG-07)
+  estDelegation?: boolean;
+  delegueParNom?: string;
+  delegueMotif?: string;
+
   dateCreation: string;
   dateDerniereAction: string;
 }

@@ -210,6 +210,9 @@ export function transformBackendDemande(b: any): DemandeRHItem {
       dateUpload: pj.createdAt || new Date().toISOString(),
     })),
     historique: combinedHist,
+    estDelegation: Boolean(b.estDelegation),
+    delegueParNom: b.delegueParNom || undefined,
+    delegueMotif: b.delegueMotif || undefined,
     dateCreation: b.createdAt || new Date().toISOString(),
     dateDerniereAction: b.updatedAt || b.createdAt || new Date().toISOString(),
   };
@@ -342,6 +345,32 @@ export const demandesApi = {
   // Mettre à jour la configuration du workflow d'un type de demande (DRH)
   async updateTypeWorkflow(idOrCode: string, payload: Partial<TypeDemandeConfig>): Promise<TypeDemandeConfig> {
     return client.put<TypeDemandeConfig>(`/demandes-rh/types/${idOrCode}`, payload);
+  },
+
+  // ── Gestion de l'Intérim & Délégation de validation ──────────
+  async getMyDelegation(): Promise<any> {
+    try {
+      return await client.get("/validations-rh/delegation");
+    } catch {
+      return null;
+    }
+  },
+
+  async setDelegation(payload: { interimId: string; motif?: string; dateDebut?: string; dateFin?: string | null }): Promise<any> {
+    return client.post("/validations-rh/delegation", payload);
+  },
+
+  async revokeDelegation(): Promise<any> {
+    return client.delete("/validations-rh/delegation");
+  },
+
+  async getEligibleInterims(): Promise<any[]> {
+    try {
+      const res = await client.get<any[]>("/validations-rh/collaborateurs-eligibles");
+      return Array.isArray(res) ? res : [];
+    } catch {
+      return [];
+    }
   },
 };
 
