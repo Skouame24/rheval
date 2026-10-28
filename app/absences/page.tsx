@@ -185,6 +185,65 @@ export default function AbsencesDashboardPage() {
       {/* ── 3A. UNIVERS 1 : CONGÉS & PERMISSIONS (IMPACT SOLDE) ── */}
       {activeTab === "CONGES" && (
         <div className="flex flex-col gap-6">
+          {/* Accès rapide aux types de congés */}
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">
+              Types de demandes fréquents
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Link
+                href="/absences/nouvelle?type=CONGES_ANNUELS"
+                className="bg-white border border-slate-200 hover:border-[#F0822A] p-4 transition-all group flex flex-col justify-between shadow-2xs"
+              >
+                <div>
+                  <div className="w-6 h-0.5 bg-[#F0822A] mb-3" />
+                  <span className="text-xs font-bold text-slate-900 block">Congés Annuels</span>
+                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
+                    Repos légal rémunéré • Décompté du solde
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#F0822A] mt-4">
+                  <span>Déposer</span>
+                  <ArrowRightSvg />
+                </div>
+              </Link>
+
+              <Link
+                href="/absences/nouvelle?type=PERMISSION_FAMILIALE"
+                className="bg-white border border-slate-200 hover:border-slate-400 p-4 transition-all group flex flex-col justify-between shadow-2xs"
+              >
+                <div>
+                  <div className="w-6 h-0.5 bg-slate-600 mb-3" />
+                  <span className="text-xs font-bold text-slate-900 block">Permissions Exceptionnelles</span>
+                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
+                    Mariage, naissance, obsèques • Quota de 10 jours
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 mt-4">
+                  <span>Demander</span>
+                  <ArrowRightSvg />
+                </div>
+              </Link>
+
+              <Link
+                href="/absences/nouvelle?type=CONGES_MALADIE"
+                className="bg-white border border-slate-200 hover:border-slate-400 p-4 transition-all group flex flex-col justify-between shadow-2xs"
+              >
+                <div>
+                  <div className="w-6 h-0.5 bg-slate-600 mb-3" />
+                  <span className="text-xs font-bold text-slate-900 block">Arrêt Maladie</span>
+                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
+                    Certificat médical à fournir sous 48h
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 mt-4">
+                  <span>Transmettre</span>
+                  <ArrowRightSvg />
+                </div>
+              </Link>
+            </div>
+          </div>
+
           {/* Métriques Soldes RH */}
           <div className="bg-white border border-slate-200 p-5 shadow-2xs">
             <div className="flex items-center justify-between mb-3">
@@ -244,65 +303,6 @@ export default function AbsencesDashboardPage() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Accès rapide aux types de congés */}
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">
-              Types de demandes fréquents
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Link
-                href="/absences/nouvelle?type=CONGES_ANNUELS"
-                className="bg-white border border-slate-200 hover:border-[#F0822A] p-4 transition-all group flex flex-col justify-between shadow-2xs"
-              >
-                <div>
-                  <div className="w-6 h-0.5 bg-[#F0822A] mb-3" />
-                  <span className="text-xs font-bold text-slate-900 block">Congés Annuels</span>
-                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
-                    Repos légal rémunéré • Décompté du solde
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#F0822A] mt-4">
-                  <span>Déposer</span>
-                  <ArrowRightSvg />
-                </div>
-              </Link>
-
-              <Link
-                href="/absences/nouvelle?type=PERMISSION_FAMILIALE"
-                className="bg-white border border-slate-200 hover:border-slate-400 p-4 transition-all group flex flex-col justify-between shadow-2xs"
-              >
-                <div>
-                  <div className="w-6 h-0.5 bg-slate-600 mb-3" />
-                  <span className="text-xs font-bold text-slate-900 block">Permissions Exceptionnelles</span>
-                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
-                    Mariage, naissance, obsèques • Quota de 10 jours
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 mt-4">
-                  <span>Demander</span>
-                  <ArrowRightSvg />
-                </div>
-              </Link>
-
-              <Link
-                href="/absences/nouvelle?type=CONGES_MALADIE"
-                className="bg-white border border-slate-200 hover:border-slate-400 p-4 transition-all group flex flex-col justify-between shadow-2xs"
-              >
-                <div>
-                  <div className="w-6 h-0.5 bg-slate-600 mb-3" />
-                  <span className="text-xs font-bold text-slate-900 block">Arrêt Maladie</span>
-                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
-                    Certificat médical à fournir sous 48h
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 mt-4">
-                  <span>Transmettre</span>
-                  <ArrowRightSvg />
-                </div>
-              </Link>
-            </div>
           </div>
 
           {/* Liste des demandes de congés en cours */}
