@@ -18,6 +18,7 @@ import {
   AlertTriangleIcon,
   ArrowPathIcon,
   FileSpreadsheetIcon,
+  ClockIcon,
 } from "@/components/ui/Icons";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { rhApi, type RhDashboardStats } from "@/lib/api/rh.api";
@@ -35,6 +36,8 @@ export default function RhDashboardPage() {
   const [dossiers, setDossiers] = useState<EvaluationCycle[]>([]);
   const [stats, setStats] = useState<RhDashboardStats | null>(null);
   const [activeCycle, setActiveCycle] = useState<Cycle | null>(null);
+  const [cronStatus, setCronStatus] = useState<any | null>(null);
+  const [isTriggeringRelance, setIsTriggeringRelance] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,14 +48,16 @@ export default function RhDashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [evalsRes, statsRes, cycleRes] = await Promise.all([
+      const [evalsRes, statsRes, cycleRes, statusRes] = await Promise.all([
         evaluationsApi.getAllForRh().catch(() => []),
         rhApi.getDashboardStats().catch(() => null),
         cyclesApi.getActif().catch(() => null),
+        evaluationsApi.getRelancesStatus().catch(() => null),
       ]);
       setDossiers(evalsRes);
       setStats(statsRes);
       setActiveCycle(cycleRes);
+      setCronStatus(statusRes);
     } catch (err: any) {
       console.error("[RhDashboardPage] Error fetching data:", err);
       setError("Erreur de chargement des fiches d'évaluation.");
@@ -60,6 +65,28 @@ export default function RhDashboardPage() {
       setIsLoading(false);
     }
   }, []);
+
+  const handleTriggerRelances = async () => {
+    if (
+      !confirm(
+        "Voulez-vous déclencher immédiatement une vague de relances automatiques (In-App + E-mails) pour tous les dossiers en attente depuis au moins 5 jours ?"
+      )
+    ) {
+      return;
+    }
+    setIsTriggeringRelance(true);
+    try {
+      const res = await evaluationsApi.triggerRelances(5);
+      alert(
+        `✅ Relances envoyées avec succès !\n\n• ${res.relancesEnvoyees} notification(s) & e-mail(s) Brevo transmis.\n• ${res.details?.length || 0} dossier(s) en attente traités.\n\nLe cron quotidien continuera automatiquement chaque matin à 08h30.`
+      );
+      await loadData();
+    } catch (err: any) {
+      alert("Erreur lors du déclenchement des relances : " + (err?.message || "Erreur serveur"));
+    } finally {
+      setIsTriggeringRelance(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -239,6 +266,16 @@ export default function RhDashboardPage() {
             >
               <FileSpreadsheetIcon size={15} color="#FFFFFF" />
               <span>Exporter le Point RH (.xlsx)</span>
+            </button>
+
+            <button
+              onClick={handleTriggerRelances}
+              disabled={isTriggeringRelance}
+              title="Déclencher une vague de relances pour les évaluations en attente depuis >= 5 jours"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+            >
+              <ClockIcon size={15} color="#FFFFFF" />
+              <span>{isTriggeringRelance ? "Envoi en cours..." : "Relancer les Retards"}</span>
             </button>
 
             {activeCycle && activeCycle.statut === "ACTIF" ? (

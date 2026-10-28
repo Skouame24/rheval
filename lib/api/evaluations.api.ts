@@ -329,4 +329,30 @@ export const evaluationsApi = {
       throw err;
     }
   },
+
+  /**
+   * GET /api/evaluations/relances/status
+   * Statut du planificateur automatique de relances.
+   */
+  getRelancesStatus: async (): Promise<any> => {
+    try {
+      return await client.get("/evaluations/relances/status");
+    } catch (err) {
+      console.error("[evaluationsApi.getRelancesStatus] Backend error:", err);
+      return null;
+    }
+  },
+
+  /**
+   * POST /api/evaluations/relances/execute
+   * Déclenche manuellement une vague de relances pour les fiches en retard.
+   */
+  triggerRelances: async (seuilJours = 5): Promise<any> => {
+    try {
+      return await client.post("/evaluations/relances/execute", { seuilJours });
+    } catch (err) {
+      console.error("[evaluationsApi.triggerRelances] Backend error:", err);
+      throw err;
+    }
+  },
 };
