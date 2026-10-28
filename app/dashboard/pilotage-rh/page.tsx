@@ -104,7 +104,18 @@ export default function RhDashboardPage() {
   const fichesN1Done = dossiers.filter((d) => !["FIXATION_OBJECTIFS", "EN_ATTENTE_N1", "VALIDATION_OBJECTIFS_N2", "VALIDATION_OBJECTIFS_SALARIE"].includes(d.statut)).length;
   const fichesN2Done = dossiers.filter((d) => ["ACCORD_SALARIE", "VALIDATION_DRH", "EN_ATTENTE_RH", "VALIDE", "CLOTURE", "CLOTUREE"].includes(d.statut)).length;
 
-  const handleArbitrageSuccess = async () => {
+  const handleArbitrageSuccess = async (dossierId?: string, noteFinale?: number, commentaire?: string) => {
+    if (dossierId && noteFinale !== undefined) {
+      try {
+        await rhApi.resolveArbitrage(dossierId, {
+          noteFinale,
+          decision: commentaire || "Arbitrage résolu par la Direction des Ressources Humaines",
+        });
+      } catch (err: any) {
+        console.error("[RhDashboardPage] Erreur arbitrage:", err);
+        alert(err?.message || "Erreur lors de l'enregistrement de l'arbitrage");
+      }
+    }
     setArbitrageModalItem(null);
     await loadData();
   };
