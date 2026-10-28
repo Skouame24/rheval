@@ -34,6 +34,18 @@ export const employeesApi = {
   },
 
   /**
+   * PUT /api/employees/me
+   */
+  updateMe: async (data: { telephone?: string }): Promise<User> => {
+    try {
+      return await client.put<User>("/employees/me", data);
+    } catch (err) {
+      console.error("[employeesApi.updateMe] Backend error:", err);
+      throw err;
+    }
+  },
+
+  /**
    * GET /api/n1/collaborateurs
    */
   getMyTeam: async (): Promise<User[]> => {

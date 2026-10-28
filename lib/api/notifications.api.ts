@@ -69,6 +69,10 @@ export const notificationsApi = {
    * POST /api/notifications/read-all
    * Marque toutes les notifications comme lues.
    */
+  sendTestMail: async (to: string): Promise<any> => {
+    return await client.post("/mail/test", { to });
+  },
+
   markAllAsRead: async (): Promise<number> => {
     try {
       const res = await client.post<{ success: boolean; count?: number }>("/notifications/read-all", {});
