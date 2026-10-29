@@ -14,6 +14,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { TypeDemandeRH, FamilleDemandeRH } from "@/types/absences.types";
+import {
+  VILLES_CI_CATALOGUE,
+  MOYENS_TRANSPORT_CATALOGUE,
+  BAREMES_ZONE_CATALOGUE,
+  calculerFraisMissionClient,
+  VilleMissionItem,
+  MoyenTransportItem,
+  CalculFraisMissionResult,
+} from "@/lib/api/missions.api";
 
 export interface BaremeMission {
   id: string;
@@ -327,15 +336,14 @@ function NouvelleDemandeForm() {
   const [heureDebut, setHeureDebut] = useState("10:00");
   const [heureFin, setHeureFin] = useState("12:30");
 
-  // Champs spécifiques mission
-  const [destination, setDestination] = useState("");
-  const [moyenTransport, setMoyenTransport] = useState("");
-  const [fraisPrevisionnels, setFraisPrevisionnels] = useState("");
+  // Champs spécifiques mission enrichis (Référentiel CI & Transports)
+  const [villeId, setVilleId] = useState<string>("BOUAKE");
+  const [transportCode, setTransportCode] = useState<string>("VEHICULE_SERVICE");
+  const [ajustementManuelFrais, setAjustementManuelFrais] = useState(false);
+  const [fraisPrevisionnelsManuels, setFraisPrevisionnelsManuels] = useState("");
   const [clientProjet, setClientProjet] = useState("");
   const [avanceDemandee, setAvanceDemandee] = useState(false);
   const [montantAvance, setMontantAvance] = useState("");
-  const [baremeId, setBaremeId] = useState<string>("INTERIEUR");
-  const [distanceKm, setDistanceKm] = useState<string>("");
 
   // Motif & contact
   const [motif, setMotif] = useState("");
@@ -420,6 +428,26 @@ function NouvelleDemandeForm() {
   // Circuit applicable
   const circuitCourt = motifActif.famille === "PERMISSIONS" && joursOuvres <= 2;
 
+  // ── MOTEUR OFFICIEL DE CALCUL AUTOMATIQUE DES FRAIS DE MISSION (CI & INTERNATIONAL) ──
+  const calculMission = useMemo(() => {
+    return calculerFraisMissionClient(villeId, transportCode, joursOuvres);
+  }, [villeId, transportCode, joursOuvres]);
+
+  // Montant effectif des frais prévisionnels (automatique ou ajusté par dérogation)
+  const fraisPrevisionnelsEffectifs = useMemo(() => {
+    if (ajustementManuelFrais && fraisPrevisionnelsManuels !== "") {
+      return Math.max(0, Number(fraisPrevisionnelsManuels) || 0);
+    }
+    return calculMission.totalFraisPrevisionnels;
+  }, [ajustementManuelFrais, fraisPrevisionnelsManuels, calculMission.totalFraisPrevisionnels]);
+
+  // Synchronisation suggestion d'avance de caisse
+  useEffect(() => {
+    if (avanceDemandee && !montantAvance) {
+      setMontantAvance(String(calculMission.avanceSuggeree80));
+    }
+  }, [avanceDemandee, calculMission.avanceSuggeree80, montantAvance]);
+
   // Soumission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,11 +474,11 @@ function NouvelleDemandeForm() {
         motifFinal = `[SORTIE de ${heureDebut} à ${heureFin} (${dureeHeuresMinutes?.text})] ${motif}`;
       } else if (motifActif.famille === "MISSIONS") {
         const clientPart = clientProjet ? ` [Client: ${clientProjet}]` : "";
-        const b = BAREMES_MISSION.find((x) => x.id === baremeId);
-        const baremePart = b ? ` [Barème: ${b.nom}]` : "";
-        const distPart = distanceKm ? ` [Distance: ${distanceKm} km]` : "";
+        const villePart = ` [Lieu: ${calculMission.ville.nom} (${calculMission.ville.districtOuRegion}, ${calculMission.distanceKmAR} km A/R)]`;
+        const transportPart = ` [Transport: ${calculMission.transport.libelle}]`;
+        const fraisPart = ` [Budget prévisionnel: ${fraisPrevisionnelsEffectifs.toLocaleString("fr-FR")} FCFA (Per diem: ${calculMission.nombreJours}j × ${calculMission.perDiemJournalier.toLocaleString("fr-FR")} FCFA/j + Transport: ${calculMission.fraisTransportEstimes.toLocaleString("fr-FR")} FCFA)]`;
         const avancePart = avanceDemandee && montantAvance ? ` [Avance caisse: ${Number(montantAvance).toLocaleString("fr-FR")} FCFA]` : "";
-        motifFinal = `[INTERVENTION/MISSION à ${destination || "Site externe"}${moyenTransport ? ` via ${moyenTransport}` : ""}${clientPart}${distPart}${baremePart}${avancePart}] ${motif}`;
+        motifFinal = `[ORDRE DE MISSION / INTERVENTION à ${calculMission.ville.nom}${clientPart}${transportPart}${villePart}${fraisPart}${avancePart}] ${motif}`;
       }
 
       await addDemande({
@@ -462,9 +490,9 @@ function NouvelleDemandeForm() {
         nombreJoursCalendaires: joursCalendaires,
         motif: motifFinal,
         adresseContactPendantAbsence: adresseContact,
-        destination: destination || undefined,
-        moyenTransport: moyenTransport || undefined,
-        fraisPrevisionnels: fraisPrevisionnels ? Number(fraisPrevisionnels) : undefined,
+        destination: calculMission.ville.nom,
+        moyenTransport: calculMission.transport.libelle,
+        fraisPrevisionnels: fraisPrevisionnelsEffectifs,
       });
 
       router.push("/absences/demandes");
@@ -733,72 +761,248 @@ function NouvelleDemandeForm() {
             </div>
           )}
 
-          {/* ── CHAMPS COMPLÉMENTAIRES SELON LA MISSION (IMPACT FINANCIER & PROJETS) ── */}
+          {/* ── CHAMPS COMPLÉMENTAIRES SELON LA MISSION (RÉFÉRENTIEL CI, TRANSPORTS & BUDGET) ── */}
           {motifActif.famille === "MISSIONS" && (
-            <div className="p-4 bg-purple-50/60 border border-purple-200 flex flex-col gap-3">
+            <div className="p-4 bg-purple-50/50 border border-purple-200 flex flex-col gap-4">
               <div className="flex items-center justify-between pb-2 border-b border-purple-200">
                 <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
-                  <span>💼</span> Paramètres de mission & Engagement financier
+                  <span>💼</span> Paramètres de mission, Destination CI & Frais prévisionnels
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-100 text-purple-800 border border-purple-200">
                   Temps de travail (0j déduit de vos congés)
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Client ou Projet concerné</label>
-                  <input
-                    type="text"
-                    value={clientProjet}
-                    onChange={(e) => setClientProjet(e.target.value)}
-                    placeholder="Ex: Projet Digital, Banque Atlantique, Interne Agilly..."
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none focus:border-purple-600"
-                  />
+              {/* Ligne 1 : Projet & Client */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  Projet ou Client concerné
+                </label>
+                <input
+                  type="text"
+                  value={clientProjet}
+                  onChange={(e) => setClientProjet(e.target.value)}
+                  placeholder="Ex: Banque Atlantique, Projet ERP Agilly, Ministère de l'Économie, Maintenance..."
+                  className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none focus:border-purple-600 rounded-none"
+                />
+              </div>
+
+              {/* Ligne 2 : Sélecteur de Ville (Toutes les villes de CI & International) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="select-ville-ci" className="text-slate-800 font-bold">
+                    Lieu / Ville de destination <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    Référentiel des villes de Côte d&apos;Ivoire & International
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Ville / Pays de destination <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    placeholder="Ex: San Pedro, Bouaké, Dakar..."
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none focus:border-purple-600"
-                  />
+                <div className="relative">
+                  <select
+                    id="select-ville-ci"
+                    value={villeId}
+                    onChange={(e) => setVilleId(e.target.value)}
+                    className="w-full h-10 px-3 pr-8 text-xs font-bold text-slate-900 bg-white border border-slate-300 focus:border-purple-600 focus:outline-none cursor-pointer appearance-none rounded-none"
+                  >
+                    <optgroup label="📍 Grand Abidjan & Périphérie (< 50 km)">
+                      {VILLES_CI_CATALOGUE.filter((v) => v.zone === "GRAND_ABIDJAN").map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.nom} — {v.districtOuRegion} ({v.distanceKmDepuisAbidjan} km)
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🏛️ Intérieur Zone 1 : Centre & Sud-Est (50 à 250 km)">
+                      {VILLES_CI_CATALOGUE.filter((v) => v.zone === "INTERIEUR_1").map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.nom} — {v.districtOuRegion} ({v.distanceKmDepuisAbidjan} km)
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🌾 Intérieur Zone 2 : Pôles Économiques & Ouest (250 à 450 km)">
+                      {VILLES_CI_CATALOGUE.filter((v) => v.zone === "INTERIEUR_2").map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.nom} — {v.districtOuRegion} ({v.distanceKmDepuisAbidjan} km)
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="⛰️ Intérieur Zone 3 : Grand Nord & Extrême Ouest (> 450 km)">
+                      {VILLES_CI_CATALOGUE.filter((v) => v.zone === "INTERIEUR_3").map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.nom} — {v.districtOuRegion} ({v.distanceKmDepuisAbidjan} km)
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🌍 Sous-Région CEDEAO / UEMOA">
+                      {VILLES_CI_CATALOGUE.filter((v) => v.zone === "SOUS_REGION").map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.nom} ({v.pays}) — {v.distanceKmDepuisAbidjan} km
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="✈️ International Hors Afrique">
+                      {VILLES_CI_CATALOGUE.filter((v) => v.zone === "INTERNATIONAL").map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.nom} ({v.pays})
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 font-bold">
+                    ▼
+                  </div>
+                </div>
+
+                {/* Badge d'informations géographiques & barème officiel */}
+                <div className="mt-2 p-2.5 bg-white border border-purple-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="font-bold text-purple-950">
+                      📍 {calculMission.ville.nom}
+                    </span>
+                    <span className="text-slate-500 font-mono text-[11px]">
+                      • Distance : <strong>{calculMission.ville.distanceKmDepuisAbidjan} km</strong> ({calculMission.distanceKmAR} km A/R)
+                    </span>
+                    <span className="text-slate-500 text-[11px]">
+                      • Région : <strong>{calculMission.ville.districtOuRegion}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-900 px-2 py-0.5 border border-purple-200">
+                      Barème : {calculMission.perDiemJournalier.toLocaleString("fr-FR")} FCFA / j
+                    </span>
+                    {calculMission.ville.desserteAerienne && (
+                      <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 border border-blue-200">
+                        ✈️ Desserte Air CI
+                      </span>
+                    )}
+                    {calculMission.ville.desserteFerroviaire && (
+                      <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 border border-emerald-200">
+                        🚆 Axe SITARAIL
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Moyen de transport</label>
-                  <input
-                    type="text"
-                    value={moyenTransport}
-                    onChange={(e) => setMoyenTransport(e.target.value)}
-                    placeholder="Ex: Véhicule de service, Avion, Car..."
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs focus:outline-none focus:border-purple-600"
-                  />
+              {/* Ligne 3 : Moyen de Transport Officiel */}
+              <div>
+                <label htmlFor="select-transport" className="block text-slate-800 font-bold mb-1">
+                  Moyen de transport officiel <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="select-transport"
+                    value={transportCode}
+                    onChange={(e) => setTransportCode(e.target.value)}
+                    className="w-full h-10 px-3 pr-8 text-xs font-bold text-slate-900 bg-white border border-slate-300 focus:border-purple-600 focus:outline-none cursor-pointer appearance-none rounded-none"
+                  >
+                    {MOYENS_TRANSPORT_CATALOGUE.map((t) => (
+                      <option key={t.code} value={t.code}>
+                        {t.libelle} — {t.description}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 font-bold">
+                    ▼
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Frais prévisionnels totaux (FCFA)</label>
-                  <input
-                    type="number"
-                    value={fraisPrevisionnels}
-                    onChange={(e) => setFraisPrevisionnels(e.target.value)}
-                    placeholder="Ex: 150000"
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none focus:border-purple-600"
-                  />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {calculMission.transport.description}
+                </p>
+              </div>
+
+              {/* Ligne 4 : CALCULATEUR DYNAMIQUE EN TEMPS RÉEL DU COÛT DE LA MISSION */}
+              <div className="bg-white border-2 border-purple-200 p-3.5 flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-purple-100 pb-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-950 flex items-center gap-1.5">
+                    <span>⚡</span> Calcul automatique des frais prévisionnels
+                  </span>
+                  <span className="text-[11px] font-mono text-purple-700 font-bold">
+                    {joursOuvres} jour(s) de mission
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  {/* Carte 1 : Per Diem */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                      1. Per Diem (Hôtel + Repas)
+                    </span>
+                    <span className="font-mono text-sm font-black text-slate-900">
+                      {calculMission.totalPerDiem.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[10px] text-slate-500 mt-1">
+                      {joursOuvres} j × {calculMission.perDiemJournalier.toLocaleString("fr-FR")} FCFA/j
+                    </span>
+                  </div>
+
+                  {/* Carte 2 : Transport */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                      2. Transport prévisionnel
+                    </span>
+                    <span className="font-mono text-sm font-black text-slate-900">
+                      {calculMission.fraisTransportEstimes.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[10px] text-slate-500 mt-1 truncate" title={calculMission.transport.libelle}>
+                      {calculMission.transport.libelle.split("(")[0]} ({calculMission.distanceKmAR} km A/R)
+                    </span>
+                  </div>
+
+                  {/* Carte 3 : Total Prévisionnel */}
+                  <div className="p-2.5 bg-gradient-to-br from-purple-100/70 to-orange-50 border-2 border-[#F0822A] flex flex-col justify-between">
+                    <span className="text-[10px] font-black text-[#C25E00] uppercase block mb-1">
+                      3. Budget Total Garanti
+                    </span>
+                    <span className="font-mono text-base font-black text-slate-900">
+                      {fraisPrevisionnelsEffectifs.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[10px] font-bold text-purple-800 mt-1">
+                      Prise en charge intégrale Agilly
+                    </span>
+                  </div>
+                </div>
+
+                {/* Option d'ajustement exceptionnel / manuel si dérogation */}
+                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 text-[11px]">
+                    <input
+                      type="checkbox"
+                      checked={ajustementManuelFrais}
+                      onChange={(e) => {
+                        setAjustementManuelFrais(e.target.checked);
+                        if (e.target.checked && !fraisPrevisionnelsManuels) {
+                          setFraisPrevisionnelsManuels(String(calculMission.totalFraisPrevisionnels));
+                        }
+                      }}
+                      className="accent-[#F0822A] rounded-none cursor-pointer"
+                    />
+                    <span>Ajustement exceptionnel du montant (sur accord préalable du responsable)</span>
+                  </label>
+
+                  {ajustementManuelFrais && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-700">Montant dérogatoire :</span>
+                      <input
+                        type="number"
+                        value={fraisPrevisionnelsManuels}
+                        onChange={(e) => setFraisPrevisionnelsManuels(e.target.value)}
+                        placeholder="Montant FCFA"
+                        className="w-32 bg-white border border-[#F0822A] p-1.5 text-xs font-mono font-bold text-slate-900 outline-none rounded-none text-right"
+                      />
+                      <span className="text-xs font-mono font-bold text-slate-600">FCFA</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Demande d'avance de caisse */}
+              {/* Ligne 5 : Demande d'avance de caisse / trésorerie */}
               <div className="pt-2 border-t border-purple-200">
                 <label className="flex items-center gap-2 cursor-pointer mb-2">
                   <input
                     type="checkbox"
                     checked={avanceDemandee}
                     onChange={(e) => setAvanceDemandee(e.target.checked)}
-                    className="accent-purple-600 w-4 h-4 cursor-pointer"
+                    className="accent-purple-600 w-4 h-4 cursor-pointer rounded-none"
                   />
                   <span className="text-xs font-bold text-slate-800">
                     Solliciter une avance de trésorerie / décharge de caisse avant le départ
@@ -806,17 +1010,39 @@ function NouvelleDemandeForm() {
                 </label>
 
                 {avanceDemandee && (
-                  <div className="pl-6 pt-1 max-w-xs">
-                    <label className="block text-[11px] text-slate-600 mb-1 font-semibold">
+                  <div className="pl-6 pt-2 bg-white p-3 border border-purple-200 flex flex-col gap-2 max-w-md">
+                    <span className="text-[11px] text-slate-600 font-semibold block">
                       Montant de l&apos;avance demandée (FCFA) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={montantAvance}
-                      onChange={(e) => setMontantAvance(e.target.value)}
-                      placeholder="Ex: 75000"
-                      className="w-full bg-white border border-purple-300 p-2 text-slate-900 font-mono text-xs focus:outline-none"
-                    />
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={montantAvance}
+                        onChange={(e) => setMontantAvance(e.target.value)}
+                        placeholder="Ex: 75000"
+                        className="w-full bg-white border border-purple-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
+                      />
+                      <span className="text-xs font-mono font-bold text-slate-600">FCFA</span>
+                    </div>
+
+                    {/* Raccourcis de suggestion 80% et 100% */}
+                    <div className="flex items-center gap-2 pt-1 text-[10px]">
+                      <span className="text-slate-400 font-medium">Suggestions :</span>
+                      <button
+                        type="button"
+                        onClick={() => setMontantAvance(String(calculMission.avanceSuggeree80))}
+                        className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-800 font-mono font-bold border border-purple-200 transition-colors cursor-pointer"
+                      >
+                        80% ({calculMission.avanceSuggeree80.toLocaleString("fr-FR")} FCFA)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMontantAvance(String(calculMission.avanceSuggeree100))}
+                        className="px-2 py-0.5 bg-orange-50 hover:bg-orange-100 text-[#C25E00] font-mono font-bold border border-orange-200 transition-colors cursor-pointer"
+                      >
+                        100% ({calculMission.avanceSuggeree100.toLocaleString("fr-FR")} FCFA)
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1049,32 +1275,54 @@ function NouvelleDemandeForm() {
 
           {/* 3. Missions & Déplacements (Impact Financier & ODM) */}
           {motifActif.famille === "MISSIONS" && (
-            <div className="p-3.5 bg-purple-50/80 border-2 border-purple-200 flex flex-col gap-2 shadow-2xs">
+            <div className="p-3.5 bg-purple-50/80 border-2 border-purple-200 flex flex-col gap-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-purple-950 tracking-wide">
-                  💼 Impact Financier & Déplacement
+                  💼 Budget & Ordre de Mission
                 </span>
                 <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-1.5 py-0.5">
                   Prise en charge Agilly
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium">Frais prévisionnels :</span>
-                <span className="font-mono font-extrabold text-purple-950 text-sm">
-                  {fraisPrevisionnels ? `${Number(fraisPrevisionnels).toLocaleString("fr-FR")} FCFA` : "Non spécifiés"}
+                <span className="text-slate-600 font-medium">Destination :</span>
+                <span className="font-bold text-slate-900 truncate max-w-[170px]" title={calculMission.ville.nom}>
+                  {calculMission.ville.nom}
                 </span>
               </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium">Moyen transport :</span>
+                <span className="font-bold text-slate-800 text-[11px] truncate max-w-[170px]" title={calculMission.transport.libelle}>
+                  {calculMission.transport.libelle.split("(")[0]}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-purple-200/60">
+                <span className="text-slate-700 font-bold">Frais prévisionnels :</span>
+                <span className="font-mono font-extrabold text-purple-950 text-sm">
+                  {fraisPrevisionnelsEffectifs.toLocaleString("fr-FR")} FCFA
+                </span>
+              </div>
+              <div className="text-[10px] text-purple-900 bg-white p-2 border border-purple-200 leading-tight flex flex-col gap-1">
+                <div className="flex justify-between">
+                  <span>• Per diem ({calculMission.nombreJours}j) :</span>
+                  <span className="font-mono font-bold">{calculMission.totalPerDiem.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>• Transport ({calculMission.distanceKmAR} km A/R) :</span>
+                  <span className="font-mono font-bold">{calculMission.fraisTransportEstimes.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+              </div>
               {avanceDemandee && montantAvance && (
-                <div className="flex items-center justify-between text-xs text-purple-800 font-bold">
-                  <span>Avance de caisse demandée :</span>
+                <div className="flex items-center justify-between text-xs text-purple-800 font-bold bg-purple-100/60 p-2 border border-purple-200">
+                  <span>Avance sollicitée :</span>
                   <span className="font-mono">{Number(montantAvance).toLocaleString("fr-FR")} FCFA</span>
                 </div>
               )}
-              <div className="flex items-center justify-between pt-2 border-t border-purple-200 text-xs font-bold text-emerald-700">
-                <span>Impact sur votre solde CP :</span>
-                <span>0 jour déduit (Temps de travail)</span>
+              <div className="flex items-center justify-between pt-1 border-t border-purple-200 text-xs font-bold text-emerald-700">
+                <span>Impact sur solde CP :</span>
+                <span>0 jour déduit (Mission)</span>
               </div>
-              <div className="text-[10px] text-purple-900 bg-purple-100/70 p-2 border border-purple-200 leading-tight mt-1">
+              <div className="text-[10px] text-purple-900 bg-purple-100/70 p-2 border border-purple-200 leading-tight">
                 📄 Un <strong>Ordre de Mission (ODM)</strong> officiel signé par la Direction Générale sera délivré pour vos déplacements.
               </div>
             </div>
