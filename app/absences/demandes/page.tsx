@@ -18,10 +18,11 @@ import { useSearchParams } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { DemandeRHItem, StatutDemandeRH } from "@/types/absences.types";
 import { DemandeWorkflowStepper } from "@/features/absences/components/DemandeWorkflowStepper";
+import { OfficialDocumentViewerModal } from "@/features/absences/components/OfficialDocumentViewerModal";
 
 function MesDemandesContent() {
   const searchParams = useSearchParams();
-  const { myDemandes, annulerDemande, isLoading } = useAbsences();
+  const { myDemandes, annulerDemande, editerPermission, isLoading } = useAbsences();
 
   // Filtres
   const [filterStatut, setFilterStatut] = useState<string>("TOUS");
@@ -33,6 +34,7 @@ function MesDemandesContent() {
 
   const [selectedDemande, setSelectedDemande] = useState<DemandeRHItem | null>(null);
   const [demandeToCancel, setDemandeToCancel] = useState<DemandeRHItem | null>(null);
+  const [bulletinToView, setBulletinToView] = useState<DemandeRHItem | null>(null);
 
   // Synchronisation avec les query params si on vient du dashboard
   useEffect(() => {
@@ -388,13 +390,13 @@ function MesDemandesContent() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                  <th className="py-3 px-4 whitespace-nowrap min-w-[150px]">Référence</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Nature</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Période d&apos;absence</th>
-                  <th className="py-3 px-4 whitespace-nowrap text-center">Durée</th>
-                  <th className="py-3 px-4 whitespace-nowrap min-w-[180px]">Étape du circuit</th>
-                  <th className="py-3 px-4 whitespace-nowrap min-w-[140px]">Statut</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap min-w-[180px]">Actions</th>
+                  <th className="py-3 px-3.5 whitespace-nowrap">Référence</th>
+                  <th className="py-3 px-3.5">Nature</th>
+                  <th className="py-3 px-3.5 whitespace-nowrap">Période d&apos;absence</th>
+                  <th className="py-3 px-2 text-center whitespace-nowrap">Durée</th>
+                  <th className="py-3 px-3.5 whitespace-nowrap">Étape du circuit</th>
+                  <th className="py-3 px-3.5 whitespace-nowrap">Statut</th>
+                  <th className="py-3 px-3.5 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -482,13 +484,44 @@ function MesDemandesContent() {
                           )}
 
                           {["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) && (
-                            <Link
-                              href="/absences/registre"
-                              className="px-2 py-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors"
-                              title="Télécharger l'autorisation officielle scellée"
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (dem.statut === "APPROUVEE" && !dem.documentPermission) {
+                                  editerPermission(dem.id);
+                                }
+                                const numSeq = dem.codeReference.replace(/\D/g, "").slice(-5) || "00018";
+                                const isMission =
+                                  dem.familleDemande === "MISSIONS" ||
+                                  dem.typeDemande === "MISSION_DEPLACEMENT" ||
+                                  dem.typeDemande === "INTERVENTION_TERRAIN" ||
+                                  dem.libelleType?.toLowerCase().includes("mission");
+                                const numUnique =
+                                  dem.documentPermission?.numeroUnique ||
+                                  (isMission ? `AGY-ODM-2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`);
+
+                                setBulletinToView({
+                                  ...dem,
+                                  documentPermission: dem.documentPermission || {
+                                    numeroUnique: numUnique,
+                                    qrCodeUrl: `/api/qr?data=${numUnique}`,
+                                    tokenVerification: `TOK-${Date.now().toString(36).toUpperCase()}`,
+                                    dateEmission: new Date().toISOString(),
+                                    emetteurAgentNom: "Direction des Ressources Humaines",
+                                    emetteurAgentMatricule: "DRH-001",
+                                    cachetOfficiel: true,
+                                    signatureElectronique: true,
+                                    hashSha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                    dureeConservationAnnees: 10,
+                                    balanceCongesPayesSolde: 24,
+                                  },
+                                });
+                              }}
+                              className="px-2.5 py-1 text-[11px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors cursor-pointer shadow-2xs active:scale-[0.98]"
+                              title="Consulter et imprimer l'autorisation officielle scellée"
                             >
                               PDF
-                            </Link>
+                            </button>
                           )}
 
                           {["EN_VALIDATION_N1", "EN_VALIDATION_DRH"].includes(dem.statut) && (
@@ -652,7 +685,53 @@ function MesDemandesContent() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-2">
+              {["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(selectedDemande.statut) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const dem = selectedDemande;
+                    if (dem.statut === "APPROUVEE" && !dem.documentPermission) {
+                      editerPermission(dem.id);
+                    }
+                    const numSeq = dem.codeReference.replace(/\D/g, "").slice(-5) || "00018";
+                    const isMission =
+                      dem.familleDemande === "MISSIONS" ||
+                      dem.typeDemande === "MISSION_DEPLACEMENT" ||
+                      dem.typeDemande === "INTERVENTION_TERRAIN" ||
+                      dem.libelleType?.toLowerCase().includes("mission");
+                    const numUnique =
+                      dem.documentPermission?.numeroUnique ||
+                      (isMission ? `AGY-ODM-2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`);
+
+                    setBulletinToView({
+                      ...dem,
+                      documentPermission: dem.documentPermission || {
+                        numeroUnique: numUnique,
+                        qrCodeUrl: `/api/qr?data=${numUnique}`,
+                        tokenVerification: `TOK-${Date.now().toString(36).toUpperCase()}`,
+                        dateEmission: new Date().toISOString(),
+                        emetteurAgentNom: "Direction des Ressources Humaines",
+                        emetteurAgentMatricule: "DRH-001",
+                        cachetOfficiel: true,
+                        signatureElectronique: true,
+                        hashSha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        dureeConservationAnnees: 10,
+                        balanceCongesPayesSolde: 24,
+                      },
+                    });
+                  }}
+                  className="px-3.5 py-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                >
+                  <span>📄</span>
+                  <span>
+                    {selectedDemande.familleDemande === "MISSIONS" || selectedDemande.typeDemande === "MISSION_DEPLACEMENT"
+                      ? "Consulter l'Ordre de Mission (PDF)"
+                      : "Consulter le Bulletin (PDF)"}
+                  </span>
+                </button>
+              ) : <div />}
+
               <button
                 type="button"
                 onClick={() => setSelectedDemande(null)}
@@ -664,6 +743,13 @@ function MesDemandesContent() {
           </div>
         </div>
       )}
+
+      {/* ── MODAL OFFICIEL DE VISUALISATION & IMPRESSION DU DOCUMENT SCELLÉ ── */}
+      <OfficialDocumentViewerModal
+        isOpen={Boolean(bulletinToView)}
+        onClose={() => setBulletinToView(null)}
+        demande={bulletinToView}
+      />
     </div>
   );
 }

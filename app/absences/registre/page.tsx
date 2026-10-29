@@ -12,6 +12,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { DemandeRHItem } from "@/types/absences.types";
+import { OfficialDocumentViewerModal } from "@/features/absences/components/OfficialDocumentViewerModal";
 
 export default function RegistreGedPage() {
   const { currentPersona, demandes, editerPermission, archiverDemande } = useAbsences();
@@ -23,6 +24,36 @@ export default function RegistreGedPage() {
 
   // Document officiel sélectionné pour affichage fidèle à l'écran
   const [selectedBulletin, setSelectedBulletin] = useState<DemandeRHItem | null>(null);
+
+  // Éditer le bulletin et ouvrir immédiatement le document certifié à l'écran
+  const handleEditerEtOuvrir = (dem: DemandeRHItem) => {
+    editerPermission(dem.id);
+    const numSeq = dem.codeReference.replace(/\D/g, "").slice(-5) || "00021";
+    const isMission =
+      dem.familleDemande === "MISSIONS" ||
+      dem.typeDemande === "MISSION_DEPLACEMENT" ||
+      dem.typeDemande === "INTERVENTION_TERRAIN" ||
+      dem.libelleType?.toLowerCase().includes("mission");
+    const numUnique = isMission ? `AGY-ODM-2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`;
+
+    setSelectedBulletin({
+      ...dem,
+      statut: "PERMISSION_EDITEE",
+      documentPermission: dem.documentPermission || {
+        numeroUnique: numUnique,
+        qrCodeUrl: `/api/qr?data=${numUnique}`,
+        tokenVerification: `TOK-${Date.now().toString(36).toUpperCase()}`,
+        dateEmission: new Date().toISOString(),
+        emetteurAgentNom: `${currentPersona.prenom} ${currentPersona.nom}`,
+        emetteurAgentMatricule: currentPersona.matricule,
+        cachetOfficiel: true,
+        signatureElectronique: true,
+        hashSha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        dureeConservationAnnees: 10,
+        balanceCongesPayesSolde: 24,
+      },
+    });
+  };
 
   // Demandes prêtes à être éditées (Agent DRH)
   const pendingToEdit = useMemo(() => {
@@ -115,7 +146,7 @@ export default function RegistreGedPage() {
 
                 <button
                   type="button"
-                  onClick={() => editerPermission(dem.id)}
+                  onClick={() => handleEditerEtOuvrir(dem)}
                   className="px-3 py-1.5 bg-[#F0822A] hover:bg-[#D96F1D] text-white text-xs font-bold shadow-xs cursor-pointer transition-colors"
                 >
                   Éditer le bulletin &rarr;
@@ -268,264 +299,12 @@ export default function RegistreGedPage() {
         </div>
       </div>
 
-      {/* ── MODAL APERÇU DU BULLETIN OFFICIEL (FIDÈLE À LA FICHE EXCEL FOURNIE PAR L'UTILISATEUR) ── */}
-      {selectedBulletin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="relative bg-white border border-slate-300 shadow-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-8 text-xs flex flex-col gap-6">
-            {/* Barre d'action supérieure */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Aperçu Officiel Conforme — Formulaire Original Agilly
-              </span>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-300 cursor-pointer"
-                >
-                  Imprimer / Exporter PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedBulletin(null)}
-                  className="text-slate-400 hover:text-slate-800 text-base font-bold"
-                >
-                  &times;
-                </button>
-              </div>
-            </div>
-
-            {/* ── RENDU REPRODUISANT LE FORMULAIRE PAPIER/EXCEL OFFICIEL ── */}
-            <div className="border-2 border-slate-800 p-6 flex flex-col gap-5 bg-white text-slate-900 font-sans">
-              {/* Entête Fiche Officielle */}
-              <div className="flex items-start justify-between pb-4 border-b-2 border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-[#F0822A] text-white font-extrabold text-2xl flex items-center justify-center">
-                    A
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black tracking-tight text-slate-900">
-                      AGILLY SOLUTIONS
-                    </h2>
-                    <p className="text-[10px] text-slate-500 uppercase font-semibold">
-                      Direction des Ressources Humaines • Administration du Personnel
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="border border-slate-800 px-3 py-1 font-mono font-bold text-xs bg-slate-50">
-                    {selectedBulletin.documentPermission?.numeroUnique || selectedBulletin.codeReference}
-                  </div>
-                  <span className="text-[10px] text-slate-400 block mt-1">
-                    Date : {formatDateFr(selectedBulletin.dateCreation)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Titre du document officiel */}
-              <div className="text-center py-2 bg-slate-100 border border-slate-300">
-                <h1 className="text-sm font-black uppercase tracking-wider text-slate-900">
-                  FORMULAIRE DE DEMANDE DE PERMISSION
-                </h1>
-                <p className="text-[11px] font-semibold text-slate-600">
-                  (Bulletin Individuel)
-                </p>
-              </div>
-
-              {/* 1. Cadre réservé au salarié */}
-              <div className="border border-slate-800 p-3.5">
-                <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-2 border-b border-slate-300 pb-1">
-                  CADRE RÉSERVÉ AU SALARIÉ
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Matricule :</span>
-                    <span className="font-mono font-bold">{selectedBulletin.demandeur.matricule}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Nom et Prénoms :</span>
-                    <span className="font-bold">
-                      {selectedBulletin.demandeur.nom} {selectedBulletin.demandeur.prenom}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Fonction :</span>
-                    <span className="font-medium">{selectedBulletin.demandeur.poste}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Département :</span>
-                    <span className="font-medium">{selectedBulletin.demandeur.departement}</span>
-                  </div>
-                  <div className="col-span-2 pt-1 border-t border-slate-200">
-                    <span className="text-slate-500 block text-[10px]">N° CNSS :</span>
-                    <span className="font-mono font-medium">
-                      {selectedBulletin.demandeur.numeroCnss || "-"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Type de permission (Grille de cases cochées exacte du document papier) */}
-              <div className="border border-slate-800 p-3.5">
-                <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-2 border-b border-slate-300 pb-1">
-                  TYPE DE PERMISSION (Cocher la mention utile)
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                  {[
-                    { key: "CONGES_ANNUELS", label: "Congés Annuels" },
-                    { key: "CONGES_MALADIE", label: "Congés Maladie" },
-                    { key: "CONGES_MATERNITE", label: "Congés Maternité" },
-                    { key: "RECUPERATION", label: "Récupération" },
-                    { key: "ABSENCE_NON_PAYEE", label: "Absence autorisée non payée" },
-                    { key: "PERMISSION_EXCEPTIONNELLE", label: "Permission Exceptionnelle" },
-                    { key: "MISSION_DEPLACEMENT", label: "Mission" },
-                    { key: "INTERVENTION_TERRAIN", label: "Intervention" },
-                  ].map((item) => {
-                    const isChecked = selectedBulletin.typeDemande === item.key;
-                    return (
-                      <div key={item.key} className="flex items-center gap-1.5">
-                        <span
-                          className={`w-3.5 h-3.5 border border-slate-900 flex items-center justify-center font-bold text-[9px] ${
-                            isChecked ? "bg-slate-900 text-white" : "bg-white"
-                          }`}
-                        >
-                          {isChecked ? "X" : ""}
-                        </span>
-                        <span className={isChecked ? "font-bold text-slate-900" : "text-slate-600"}>
-                          {item.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 3. Période & Motif */}
-              <div className="border border-slate-800 p-3.5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Nombre de jours :</span>
-                  <span className="font-mono font-bold text-sm">
-                    {selectedBulletin.nombreJoursOuvres} jours ouvrés
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Du (inclus) :</span>
-                  <span className="font-mono font-bold">
-                    {formatDateFr(selectedBulletin.dateDebut)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Au (inclus) :</span>
-                  <span className="font-mono font-bold">
-                    {formatDateFr(selectedBulletin.dateFin)}
-                  </span>
-                </div>
-
-                <div className="col-span-3 pt-2 border-t border-slate-200">
-                  <span className="text-slate-500 block text-[10px]">Motif de la permission :</span>
-                  <p className="font-medium italic mt-0.5 text-slate-800">
-                    &ldquo;{selectedBulletin.motif}&rdquo;
-                  </p>
-                </div>
-
-                <div className="col-span-3 pt-1 border-t border-slate-200">
-                  <span className="text-slate-500 block text-[10px]">
-                    Adresse et contact téléphonique pendant l&apos;absence :
-                  </span>
-                  <p className="font-medium text-slate-800">
-                    {selectedBulletin.adresseContactPendantAbsence || "-"}
-                  </p>
-                </div>
-              </div>
-
-              {/* 4. Cadre Réservé DRH & Balance */}
-              <div className="border border-slate-800 p-3.5 bg-slate-50/70 grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-1">
-                    CADRE RÉSERVÉ DRH
-                  </h3>
-                  <p className="text-[10px] text-slate-600">
-                    Contrôle de conformité et décompte des droits acquis.
-                  </p>
-                </div>
-                <div className="border border-slate-400 p-2 bg-white flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-700">
-                    Balance congés payés restants :
-                  </span>
-                  <span className="font-mono font-extrabold text-sm text-[#F0822A]">
-                    {selectedBulletin.documentPermission?.balanceCongesPayesSolde ?? "-"} jours
-                  </span>
-                </div>
-              </div>
-
-              {/* 5. Signatures Salarié & Gérant (Christian BAMBA) */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="border border-slate-800 p-4 h-32 flex flex-col justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                    Signature du Salarié
-                  </span>
-                  <div className="text-center font-serif italic text-slate-700">
-                    Signé numériquement par {selectedBulletin.demandeur.prenom}{" "}
-                    {selectedBulletin.demandeur.nom}
-                  </div>
-                  <span className="text-[9px] font-mono text-slate-400">
-                    Certifié le {formatDateFr(selectedBulletin.dateCreation)}
-                  </span>
-                </div>
-
-                <div className="border border-slate-800 p-4 h-32 flex flex-col justify-between bg-slate-50/40">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-800">
-                      Validation Gérant
-                    </span>
-                    <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1 border border-emerald-200">
-                      BON POUR ACCORD
-                    </span>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-serif italic font-bold text-slate-900 text-sm">
-                      Christian BAMBA
-                    </p>
-                    <p className="text-[9px] text-slate-500">Gérant / Direction Générale</p>
-                  </div>
-                  <span className="text-[9px] font-mono text-slate-400">
-                    Signé & Horodaté eIDAS
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Pied du modal avec option d'archivage */}
-            <div className="flex items-center justify-between pt-2">
-              {selectedBulletin.statut === "PERMISSION_EDITEE" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    archiverDemande(selectedBulletin.id);
-                    setSelectedBulletin(null);
-                  }}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
-                >
-                  Classer & Archiver dans la GED &rarr;
-                </button>
-              ) : (
-                <span className="text-xs text-slate-400 font-mono">
-                  Document sécurisé et scellé dans la GED (Hash SHA-256 valide).
-                </span>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setSelectedBulletin(null)}
-                className="px-4 py-2 bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 font-semibold text-xs"
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── MODAL APERÇU OFFICIEL (ODM & BULLETIN CERTIFIÉ) ── */}
+      <OfficialDocumentViewerModal
+        isOpen={Boolean(selectedBulletin)}
+        onClose={() => setSelectedBulletin(null)}
+        demande={selectedBulletin}
+      />
     </div>
   );
 }
