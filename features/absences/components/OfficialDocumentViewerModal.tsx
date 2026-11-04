@@ -1,17 +1,17 @@
 // ============================================================
 // features/absences/components/OfficialDocumentViewerModal.tsx
 // Visualiseur officiel universel :
-//  - Bulletin Individuel de Permission & Congé
-//  - Ordre de Mission Officiel (ODM A4) & Fiche d'Intervention Technique
-// Conforme au modèle certifié d'entreprise Agilly
+//  - Si demande en cours : Suivi du dossier et circuit de validation
+//  - Si approuvée : Ordre de Mission A4 ou Fiche d'Intervention A4 scellé
+//  - Bulletin Individuel de Permission & Congé standard
 // Respect strict du Design System Soft UI Enterprise (rounded-none)
 // ============================================================
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import Image from "next/image";
 import { DemandeRHItem } from "@/types/absences.types";
-import { MissionsDocumentEditor } from "./MissionsDocumentEditor";
 
 interface OfficialDocumentViewerModalProps {
   isOpen: boolean;
@@ -37,34 +37,28 @@ export function OfficialDocumentViewerModal({
   if (!isOpen || !demande) return null;
 
   const isMission = isMissionItem(demande);
+  const isIntervention =
+    demande.typeDemande === "INTERVENTION_TERRAIN" ||
+    demande.libelleType?.toLowerCase().includes("intervention");
 
-  // Si c'est un Ordre de Mission ou une Intervention Technique, afficher l'éditeur & visualiseur A4 officiel avec les onglets
-  if (isMission) {
-    return (
-      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-        <div className="bg-white border border-slate-300 w-full max-w-6xl max-h-[96vh] overflow-y-auto shadow-2xl flex flex-col font-sans rounded-none p-4 sm:p-6">
-          <MissionsDocumentEditor
-            initialDemande={demande}
-            isModal={true}
-            onClose={onClose}
-          />
-        </div>
-      </div>
-    );
-  }
+  // Statut de validation officielle par la Direction Générale
+  const isApproved =
+    demande.statut === "APPROUVEE" ||
+    demande.statut === "PERMISSION_EDITEE" ||
+    demande.statut === "ARCHIVEE" ||
+    demande.etapeCourante === "CLOTURE";
 
-  // Sinon, afficher le Bulletin Individuel de Permission & Congé standard
-  const numSeq = demande.codeReference.replace(/\D/g, "").slice(-5) || "00018";
+  // Référence officielle séquentielle
+  const numSeq = demande.codeReference.replace(/\D/g, "").slice(-4) || "01";
   const numUnique =
-    demande.documentPermission?.numeroUnique || `AGY-PERM-2026-${numSeq}`;
-
-  const dateEmission = demande.documentPermission?.dateEmission || demande.dateCreation || new Date().toISOString();
-  const emetteurNom = demande.documentPermission?.emetteurAgentNom || "Direction des Ressources Humaines";
+    demande.documentPermission?.numeroUnique ||
+    (isMission ? `JPC/2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`);
 
   const formatDateFr = (isoStr: string) => {
     if (!isoStr) return "-";
     const parts = isoStr.split("T")[0].split("-");
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return isoStr;
   };
 
   const handlePrint = () => {
@@ -73,32 +67,47 @@ export function OfficialDocumentViewerModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-300 w-full max-w-3xl max-h-[96vh] overflow-y-auto shadow-2xl flex flex-col font-sans rounded-none">
+      <div className="bg-white border border-slate-300 w-full max-w-4xl max-h-[96vh] overflow-y-auto shadow-2xl flex flex-col font-sans rounded-none">
         
-        {/* BARRE D'ACTIONS DU DOCUMENT (NON IMPRIMABLE) */}
+        {/* BARRE SUPÉRIEURE D'ACTIONS (NON IMPRIMABLE) */}
         <div className="bg-slate-50 px-6 py-3.5 border-b border-slate-200 flex items-center justify-between print:hidden">
-          <div>
+          <div className="flex items-center gap-3">
             <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wider block">
-              {isMission ? "Ordre de Mission Officiel (ODM)" : "Bulletin Officiel de Permission (GED)"}
+              {isMission
+                ? isIntervention
+                  ? "Fiche d'Intervention Technique"
+                  : "Ordre de Mission Officiel"
+                : "Bulletin Officiel de Permission"}
             </span>
             <span className="text-xs font-mono font-bold text-slate-900">
-              {numUnique} • Certifié Agilly
+              {demande.codeReference}
             </span>
+            {isApproved ? (
+              <span className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5">
+                ✓ Validé &amp; Scellé DG
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300 px-2 py-0.5">
+                ⏳ En cours d&apos;arbitrage
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs px-4 py-2 rounded-none transition-colors cursor-pointer shadow-xs flex items-center gap-2 active:scale-[0.99]"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <polyline points="6 9 6 2 18 2 18 9"/>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                <rect x="6" y="14" width="12" height="8"/>
-              </svg>
-              <span>Imprimer / Exporter PDF</span>
-            </button>
+            {isApproved && (
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs px-4 py-2 rounded-none transition-colors cursor-pointer shadow-xs flex items-center gap-2 active:scale-[0.99]"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                <span>Télécharger / Imprimer PDF A4</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -110,307 +119,413 @@ export function OfficialDocumentViewerModal({
           </div>
         </div>
 
-        {/* ── CORPS DU DOCUMENT FORMAT OFFICIEL A4 (IMPRIMABLE) ── */}
-        <div className="p-4 sm:p-8 flex justify-center bg-slate-100/50">
-          <div className="bg-white border-2 border-slate-900 shadow-sm w-full max-w-2xl p-6 sm:p-8 text-slate-900 flex flex-col gap-5 text-xs rounded-none print:border-none print:shadow-none print:p-0">
-            
-            {/* EN-TÊTE CORPORATE OFFICIEL */}
-            <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-[#F0822A] text-white font-black text-2xl flex items-center justify-center rounded-none shadow-xs">
-                  A
-                </div>
-                <div>
-                  <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 m-0">
-                    AGILLY SOLUTIONS
-                  </h1>
-                  <p className="text-[10px] text-slate-500 uppercase font-semibold m-0">
-                    Direction des Ressources Humaines • Administration du Personnel
-                  </p>
-                  <p className="text-[9px] text-slate-400 font-mono m-0">
-                    Abidjan Plateau • Côte d&apos;Ivoire • info@agilly.net
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-right flex flex-col items-end">
-                <div className="border border-slate-800 px-3 py-1 font-mono font-black text-xs bg-slate-50">
-                  {numUnique}
-                </div>
-                <span className="text-[10px] text-slate-500 block mt-1 font-mono">
-                  Date émission : {formatDateFr(dateEmission)}
+        {/* ── CAS 1 : DOSSIER DE MISSION EN COURS DE VALIDATION (PAS ENCORE SCELLÉ) ── */}
+        {isMission && !isApproved ? (
+          <div className="p-6 sm:p-8 flex flex-col gap-6 bg-slate-50">
+            {/* Bannière explicative */}
+            <div className="bg-amber-50/80 border border-amber-300 p-4 flex items-start gap-3">
+              <span className="text-amber-700 text-lg">⏳</span>
+              <div>
+                <span className="text-xs font-black uppercase text-amber-950 block">
+                  Demande de mission en cours d&apos;instruction
                 </span>
-                <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 border border-emerald-200 mt-1">
-                  ✓ HOMOLOGUÉ & SCELLÉ
-                </span>
+                <p className="text-xs text-amber-900 mt-0.5 m-0 leading-relaxed">
+                  L&apos;<strong>Ordre de mission officiel A4 scellé et signé par la Direction Générale</strong> sera automatiquement généré et téléchargeable dès l&apos;accord final du Directeur Général (ou de son intérimaire désigné).
+                </p>
               </div>
             </div>
 
-            {/* TITRE DU DOCUMENT */}
-            <div className="text-center py-2.5 bg-slate-100 border border-slate-300">
-              <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 m-0">
-                {isMission
-                  ? "ORDRE DE MISSION OFFICIEL & DÉPLACEMENT PROFESSIONNEL"
-                  : "FORMULAIRE DE DEMANDE DE PERMISSION"}
-              </h2>
-              <p className="text-[10px] font-semibold text-slate-600 m-0 mt-0.5">
-                {isMission
-                  ? "(Prise en charge financière et couverture institutionnelle Agilly)"
-                  : "(Bulletin Individuel — Exemplaire Officiel Archivé)"}
-              </p>
-            </div>
-
-            {/* 1. CADRE IDENTIFICATION DU SALARIÉ / MISSIONNAIRE */}
-            <div className="border border-slate-800 p-3.5">
-              <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-2 border-b border-slate-300 pb-1 text-[#C25E00]">
-                1. IDENTIFICATION DU SALARIÉ {isMission && "/ MISSIONNAIRE"}
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                <div>
-                  <span className="text-slate-500 block text-[10px] font-medium">Matricule :</span>
-                  <span className="font-mono font-bold text-slate-900">{demande.demandeur.matricule}</span>
+            {/* Circuit de validation stepper */}
+            <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 block">
+                Progression du circuit d&apos;approbation
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-emerald-50 border border-emerald-200 flex flex-col gap-1">
+                  <span className="font-bold text-emerald-950">1. Avis Responsable N+1</span>
+                  <span className="text-[10px] text-emerald-800">✓ Favorable (Transmis)</span>
                 </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px] font-medium">Nom et Prénoms :</span>
-                  <span className="font-bold text-slate-900">
-                    {demande.demandeur.nom} {demande.demandeur.prenom}
-                  </span>
+                <div className="p-3 bg-emerald-50 border border-emerald-200 flex flex-col gap-1">
+                  <span className="font-bold text-emerald-950">2. Contrôle Direction RH</span>
+                  <span className="text-[10px] text-emerald-800">✓ Conforme au barème</span>
                 </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px] font-medium">Fonction / Poste :</span>
-                  <span className="font-medium text-slate-800">{demande.demandeur.poste}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px] font-medium">Département :</span>
-                  <span className="font-medium text-slate-800">{demande.demandeur.departement}</span>
-                </div>
-                <div className="col-span-2 pt-1 border-t border-slate-200">
-                  <span className="text-slate-500 block text-[10px] font-medium">N° CNSS :</span>
-                  <span className="font-mono font-semibold text-slate-800">
-                    {demande.demandeur.numeroCnss || "CI-0019284729-A"}
-                  </span>
-                </div>
-                <div className="col-span-2 pt-1 border-t border-slate-200">
-                  <span className="text-slate-500 block text-[10px] font-medium">Contact / Téléphone :</span>
-                  <span className="font-mono text-slate-800">
-                    {demande.adresseContactPendantAbsence || "+225 07 00 00 00 00"}
-                  </span>
+                <div className="p-3 bg-amber-50 border border-amber-300 flex flex-col gap-1">
+                  <span className="font-bold text-amber-950">3. Accord &amp; Signature DG</span>
+                  <span className="text-[10px] font-semibold text-amber-800">● En attente de signature</span>
                 </div>
               </div>
             </div>
 
-            {/* 2. SI MISSION : CADRE CADRAGE LOGISTIQUE & FINANCIER */}
-            {isMission ? (
-              <>
-                <div className="border border-slate-800 p-3.5 bg-purple-50/20">
-                  <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-2 border-b border-purple-200 pb-1 text-purple-950">
-                    2. CARACTÉRISTIQUES DE LA MISSION & LOGISTIQUE
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Lieu / Destination :</span>
-                      <span className="font-bold text-slate-900 text-sm">
-                        📍 {demande.destination || "Côte d'Ivoire (Intérieur)"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Moyen de transport :</span>
-                      <span className="font-bold text-slate-900">
-                        🚗 {demande.moyenTransport || "Véhicule de service Agilly"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Période d&apos;intervention :</span>
-                      <span className="font-mono font-bold text-slate-900">
-                        Du {formatDateFr(demande.dateDebut)} au {formatDateFr(demande.dateFin)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Durée totale :</span>
-                      <span className="font-mono font-bold text-[#F0822A]">
-                        {demande.nombreJoursOuvres} jour(s) ouvré(s) ({demande.nombreJoursCalendaires} j calendaires)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* PRISES EN CHARGE FINANCIÈRES & PER DIEM */}
-                <div className="border-2 border-purple-300 p-3.5 bg-white">
-                  <div className="flex items-center justify-between border-b border-purple-100 pb-1.5 mb-2">
-                    <h3 className="font-extrabold text-[11px] uppercase tracking-wider text-purple-950 m-0">
-                      3. PRISE EN CHARGE FINANCIÈRE & AVANCE DE TRÉSORERIE
-                    </h3>
-                    <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5">
-                      Budget Agilly
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 bg-slate-50 border border-slate-200">
-                      <span className="text-[10px] text-slate-500 block font-medium">Budget total prévisionnel :</span>
-                      <span className="text-base font-black font-mono text-purple-950">
-                        {demande.fraisPrevisionnels
-                          ? `${Number(demande.fraisPrevisionnels).toLocaleString("fr-FR")} FCFA`
-                          : "Selon barème officiel"}
-                      </span>
-                      <span className="text-[10px] text-slate-500 block mt-0.5">
-                        Couvre per diem, hébergement, restauration et transport A/R.
-                      </span>
-                    </div>
-
-                    <div className="p-2.5 bg-purple-50/60 border border-purple-200">
-                      <span className="text-[10px] text-purple-900 block font-medium">Statut de la prise en charge :</span>
-                      <span className="text-xs font-bold text-emerald-700 block mt-0.5">
-                        ✓ Imputable au budget d&apos;exploitation Agilly
-                      </span>
-                      <span className="text-[10px] text-slate-600 block mt-0.5 font-medium">
-                        0 jour déduit sur le solde de congés payés annuels.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* 2. SI CONGÉ OU PERMISSION : TYPE DE PERMISSION (GRILLE ORIGINALE CONFORME EXCEL) */
-              <>
-                <div className="border border-slate-800 p-3.5">
-                  <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-2 border-b border-slate-300 pb-1 text-[#C25E00]">
-                    2. TYPE DE PERMISSION (Cocher la mention utile)
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
-                    {[
-                      { key: "CONGES_ANNUELS", label: "Congés Annuels Payés" },
-                      { key: "CONGES_MALADIE", label: "Congés Maladie (Arrêt)" },
-                      { key: "CONGES_MATERNITE", label: "Congés Maternité / Paternité" },
-                      { key: "PERMISSION_MARIAGE", label: "Mariage du salarié (3j)" },
-                      { key: "PERMISSION_DECES", label: "Décès famille proche (2 à 5j)" },
-                      { key: "PERMISSION_NAISSANCE", label: "Naissance / Baptême (2j)" },
-                      { key: "PERMISSION_MEDICALE", label: "Rendez-vous médical" },
-                      { key: "PERMISSION_ADMINISTRATIVE", label: "Démarche administrative" },
-                      { key: "CONGES_SANS_SOLDE", label: "Congé sans solde" },
-                    ].map((item) => {
-                      const isChecked =
-                        demande.typeDemande === item.key ||
-                        (item.key === "CONGES_MATERNITE" && demande.typeDemande === "CONGES_PATERNITE");
-                      return (
-                        <div key={item.key} className="flex items-center gap-2">
-                          <span className={`w-3.5 h-3.5 border flex items-center justify-center font-bold text-[9px] ${
-                            isChecked ? "bg-[#F0822A] text-white border-[#F0822A]" : "border-slate-400 bg-slate-50"
-                          }`}>
-                            {isChecked ? "✓" : ""}
-                          </span>
-                          <span className={isChecked ? "font-bold text-slate-900" : "text-slate-600"}>
-                            {item.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 3. PÉRIODE DE L'ABSENCE */}
-                <div className="border border-slate-800 p-3.5">
-                  <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-2 border-b border-slate-300 pb-1 text-[#C25E00]">
-                    3. PÉRIODE DE L&apos;ABSENCE & DÉCOMPTE
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Date de début :</span>
-                      <span className="font-mono font-bold text-slate-900">{formatDateFr(demande.dateDebut)}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Date de fin :</span>
-                      <span className="font-mono font-bold text-slate-900">{formatDateFr(demande.dateFin)}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Nombre de jours ouvrés :</span>
-                      <span className="font-mono font-black text-[#F0822A] text-sm">
-                        {demande.nombreJoursOuvres} jour(s)
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-medium">Jours calendaires :</span>
-                      <span className="font-mono font-bold text-slate-700">
-                        {demande.nombreJoursCalendaires} jour(s)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* 4. MOTIF OFFICIEL CONSIGNÉ */}
-            <div className="border border-slate-800 p-3.5">
-              <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-1 text-slate-700">
-                {isMission ? "4. OBJET & MOTIF DE LA MISSION" : "4. MOTIF DE LA DEMANDE"}
-              </h3>
-              <p className="italic text-slate-800 bg-slate-50 p-2.5 border border-slate-200 text-xs m-0">
-                &ldquo;{demande.motif}&rdquo;
-              </p>
-            </div>
-
-            {/* 5. VISAS ET SIGNATURES OFFICIELLES (GRILLE FIDÈLE AGILLY) */}
-            <div className="border border-slate-800 p-3.5">
-              <h3 className="font-extrabold text-[11px] uppercase tracking-wider mb-2.5 border-b border-slate-300 pb-1 text-slate-800">
-                5. VISAS HIÉRARCHIQUES & AUTORISATIONS LÉGALES
-              </h3>
-              <div className="grid grid-cols-3 gap-3 text-center text-[10px]">
-                {/* Salarié */}
-                <div className="border border-slate-300 p-2.5 flex flex-col justify-between min-h-[90px] bg-slate-50/50">
-                  <span className="font-bold text-slate-700 block">LE SALARIÉ / DEMANDEUR</span>
-                  <div className="my-1">
-                    <span className="text-[9px] text-emerald-700 font-bold block">✓ Certifié sur l&apos;honneur</span>
-                    <span className="font-mono text-[9px] text-slate-400">Signé électroniquement</span>
-                  </div>
-                  <span className="text-slate-500 font-medium">
+            {/* Récapitulatif du dossier de mission */}
+            <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-4 text-xs">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#C25E00] border-b border-slate-200 pb-2">
+                Détails du déplacement soumis
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Demandeur</span>
+                  <span className="font-bold text-slate-900 text-sm">
                     {demande.demandeur.prenom} {demande.demandeur.nom}
                   </span>
-                </div>
-
-                {/* Manager N+1 */}
-                <div className="border border-slate-300 p-2.5 flex flex-col justify-between min-h-[90px] bg-slate-50/50">
-                  <span className="font-bold text-slate-700 block">LE RESPONSABLE N+1</span>
-                  <div className="my-1">
-                    <span className="text-[9px] text-emerald-700 font-bold block">✓ Avis Favorable Accordé</span>
-                    <span className="font-mono text-[9px] text-slate-400">Visa hiérarchique validé</span>
-                  </div>
-                  <span className="text-slate-500 font-medium">
-                    Direction de Département
+                  <span className="text-slate-500 block text-[11px]">
+                    Matricule : {demande.demandeur.matricule} • {demande.demandeur.poste}
                   </span>
                 </div>
-
-                {/* Direction Générale / DRH */}
-                <div className="border-2 border-slate-800 p-2.5 flex flex-col justify-between min-h-[90px] bg-orange-50/30">
-                  <span className="font-black text-slate-900 block">
-                    {isMission ? "LA DIRECTION GÉNÉRALE" : "LA DIRECTION DES RH"}
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Destination / Lieu</span>
+                  <span className="font-bold text-slate-900 text-sm">
+                    📍 {demande.destination || "Côte d'Ivoire"}
                   </span>
-                  <div className="my-1">
-                    <span className="text-[10px] text-[#C25E00] font-black block">✓ BON POUR ACCORD</span>
-                    <span className="font-mono text-[9px] text-slate-500">Homologué & Enregistré GED</span>
-                  </div>
-                  <span className="text-slate-900 font-bold">
-                    {emetteurNom}
+                  <span className="text-slate-500 block text-[11px]">
+                    Moyen de transport : {demande.moyenTransport || "Véhicule de service"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Période sollicitée</span>
+                  <span className="font-mono font-bold text-slate-900 text-sm">
+                    Du {formatDateFr(demande.dateDebut)} au {formatDateFr(demande.dateFin)}
+                  </span>
+                  <span className="text-[#F0822A] font-bold block text-[11px]">
+                    {demande.nombreJoursOuvres} jour(s) ouvré(s)
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Frais prévisionnels estimés</span>
+                  <span className="font-mono font-black text-[#F0822A] text-base">
+                    {demande.fraisPrevisionnels
+                      ? `${Number(demande.fraisPrevisionnels).toLocaleString("fr-FR")} FCFA`
+                      : "Selon barème kilométrique"}
+                  </span>
+                  <span className="text-slate-500 block text-[10px]">
+                    Prise en charge intégrale Agilly
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* PIED DE PAGE : CERTIFICATION & CACHET NUMÉRIQUE */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-200 text-[10px] text-slate-500">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-emerald-600 rounded-full" />
-                <span>Document probatoire certifié Agilly Cloud • Archivage légal 10 ans</span>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold mb-1">Objet de la mission</span>
+                <p className="bg-slate-50 p-3 border border-slate-200 text-slate-800 m-0 leading-relaxed italic">
+                  &ldquo;{demande.motif}&rdquo;
+                </p>
               </div>
-              <span className="font-mono text-slate-400">
-                SHA-256: {demande.documentPermission?.hashSha256?.slice(0, 16) || "e3b0c44298fc1c14"}...
-              </span>
             </div>
 
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-none transition-colors cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ── CAS 2 : DOCUMENT OFFICIEL A4 (VALIDÉ OU BULLETIN DE CONGÉ SCELLÉ) ── */
+          <div className="p-4 sm:p-8 flex justify-center bg-slate-100/70">
+            <div
+              id="printable-a4-document"
+              className="bg-white border border-slate-300 shadow-xl w-full max-w-[650px] min-h-[820px] p-8 sm:p-12 text-slate-900 flex flex-col justify-between font-sans rounded-none print:border-none print:shadow-none print:p-0 print:m-0"
+            >
+              {isMission ? (
+                isIntervention ? (
+                  /* ── FEUILLE A4 : FICHE D'INTERVENTION TECHNIQUE (IMAGE 2) ── */
+                  <div className="flex flex-col gap-6">
+                    {/* En-tête Agilly */}
+                    <div className="flex items-start justify-between pb-3">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src="/logo.png"
+                            alt="Agilly"
+                            width={36}
+                            height={36}
+                            className="object-contain"
+                          />
+                          <span className="text-2xl font-black tracking-tight text-slate-900">
+                            agil<span className="text-[#F0822A]">ly</span>
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-medium tracking-wide mt-1">
+                          Services Managés • Cloud &amp; Cyber Sécurité
+                        </span>
+                      </div>
+
+                      <div className="text-right text-[11px] text-slate-600 leading-snug">
+                        <p className="m-0 font-medium">22 rue des carrossiers Zone 3</p>
+                        <p className="m-0 font-medium">Treichville Abidjan</p>
+                      </div>
+                    </div>
+
+                    {/* Cadre Titre Fiche d'Intervention */}
+                    <div className="border border-slate-900 py-2.5 text-center my-1">
+                      <h1 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 m-0">
+                        FICHE D&apos;INTERVENTION TECHNIQUE
+                      </h1>
+                    </div>
+
+                    {/* Équipe d'Intervention / Employés */}
+                    <div className="border border-slate-300 p-3.5 bg-slate-50/50 flex flex-col gap-1.5 text-xs">
+                      <span className="font-extrabold uppercase text-[11px] text-slate-800 tracking-wide">
+                        EQUIPE D&apos;INTERVENTION / EMPLOYES :
+                      </span>
+                      <div className="flex flex-col gap-1 pl-2 pt-1 font-bold text-slate-900">
+                        <span>• {demande.demandeur.prenom} {demande.demandeur.nom} (Intervenant Principal)</span>
+                        <span className="font-medium text-slate-800">• Équipe support &amp; réseaux Agilly</span>
+                      </div>
+                    </div>
+
+                    {/* Section 1 : Description des Prestations Techniques */}
+                    <div className="flex flex-col gap-2 text-xs">
+                      <span className="font-extrabold underline text-slate-900 text-xs">
+                        1 - Description des Prestations Techniques
+                      </span>
+
+                      <div className="flex flex-col gap-3 pl-2 pt-1">
+                        <div>
+                          <span className="font-black text-slate-900 flex items-center gap-1.5">
+                            <span>▲</span> DOMINO :
+                          </span>
+                          <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
+                            Migration des serveurs vers la version 11 et installation de VERSE.
+                          </p>
+                        </div>
+
+                        <div>
+                          <span className="font-black text-slate-900 flex items-center gap-1.5">
+                            <span>▲</span> WINDOWS :
+                          </span>
+                          <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
+                            Migration OS vers 2016 SERVER et passage à Edge.
+                          </p>
+                        </div>
+
+                        <div>
+                          <span className="font-black text-slate-900 flex items-center gap-1.5">
+                            <span>▲</span> INFRASTRUCTURES / RÉSEAUX :
+                          </span>
+                          <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
+                            {demande.motif || "Sécurisation des routeurs et pare-feu principaux."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2 : Conditions Financières */}
+                    <div className="flex flex-col gap-1.5 text-xs pt-2">
+                      <span className="font-extrabold underline text-slate-900 text-xs">
+                        2 - Conditions financières
+                      </span>
+                      <div className="pl-2 pt-1">
+                        <span className="font-medium text-slate-800">
+                          Tarif contractuel : <strong className="font-extrabold text-slate-900">720 000 FCFA / jour</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Visas en pied de fiche */}
+                    <div className="pt-12 grid grid-cols-2 gap-6 text-center text-[10px]">
+                      <div className="border border-slate-300 p-3 flex flex-col justify-between min-h-[70px]">
+                        <span className="font-bold text-slate-700 uppercase">Visa Client / Réception</span>
+                        <span className="text-slate-400 font-mono text-[9px]">Date &amp; Cachet</span>
+                      </div>
+                      <div className="border border-slate-300 p-3 flex flex-col justify-between min-h-[70px]">
+                        <span className="font-bold text-slate-700 uppercase">Visa Direction Agilly</span>
+                        <span className="text-emerald-700 font-bold text-[9px]">✓ Homologué DG</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── FEUILLE A4 : ORDRE DE MISSION OFFICIEL (IMAGE 1) ── */
+                  <div className="flex flex-col gap-8">
+                    {/* En-tête Agilly */}
+                    <div className="flex items-start justify-between pb-4">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src="/logo.png"
+                            alt="Agilly"
+                            width={36}
+                            height={36}
+                            className="object-contain"
+                          />
+                          <span className="text-2xl font-black tracking-tight text-slate-900">
+                            agil<span className="text-[#F0822A]">ly</span>
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-medium tracking-wide mt-1">
+                          Services Managés • Cloud &amp; Cyber Sécurité
+                        </span>
+                      </div>
+
+                      <div className="text-right text-[11px] text-slate-600 leading-snug">
+                        <p className="m-0 font-medium">22 rue des Carrossiers</p>
+                        <p className="m-0 font-medium">Treichville - Zone 3</p>
+                        <p className="m-0 font-medium">Abidjan</p>
+                        <p className="m-0 font-medium">Côte d&apos;Ivoire</p>
+                      </div>
+                    </div>
+
+                    {/* Titre & Sous-titre */}
+                    <div className="text-center pt-2">
+                      <h1 className="text-base sm:text-lg font-black tracking-wider uppercase text-slate-900 m-0">
+                        ORDRE DE MISSION N° {numUnique}
+                      </h1>
+                      <h2 className="text-xs font-bold uppercase tracking-widest text-[#F0822A] mt-2 mb-0">
+                        LE DIRECTEUR GÉNÉRAL
+                      </h2>
+                    </div>
+
+                    {/* Grille des mentions obligatoires */}
+                    <div className="flex flex-col gap-4 text-xs pt-4 px-2 sm:px-6">
+                      <div className="grid grid-cols-12 gap-2 py-1 items-baseline">
+                        <span className="col-span-5 font-bold text-slate-800">
+                          Donne ordre à :
+                        </span>
+                        <span className="col-span-7 font-extrabold uppercase text-slate-900">
+                          M. {demande.demandeur.prenom} {demande.demandeur.nom.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-12 gap-2 py-1 items-baseline">
+                        <span className="col-span-5 font-bold text-slate-800">
+                          Pour se rendre en mission à :
+                        </span>
+                        <span className="col-span-7 font-bold uppercase text-slate-900">
+                          {demande.destination || "À BOUAKÉ"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-12 gap-2 py-1 items-baseline">
+                        <span className="col-span-5 font-bold text-slate-800">
+                          Objet de la mission :
+                        </span>
+                        <span className="col-span-7 font-bold uppercase text-slate-900">
+                          {demande.motif || "ASSISTANCE TECHNIQUE"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-12 gap-2 py-1 items-baseline">
+                        <span className="col-span-5 font-bold text-slate-800">
+                          Moyen de transport :
+                        </span>
+                        <span className="col-span-7 font-bold uppercase text-slate-900">
+                          {demande.moyenTransport || "VÉHICULE DE SERVICE"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-12 gap-2 py-1 items-baseline">
+                        <span className="col-span-5 font-bold text-slate-800">
+                          Date de départ :
+                        </span>
+                        <span className="col-span-7 font-mono font-bold text-slate-900">
+                          {formatDateFr(demande.dateDebut)}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-12 gap-2 py-1 items-baseline">
+                        <span className="col-span-5 font-bold text-slate-800">
+                          Date de retour :
+                        </span>
+                        <span className="col-span-7 font-mono font-bold text-slate-900">
+                          {formatDateFr(demande.dateFin)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Signature en bas à droite */}
+                    <div className="pt-16 sm:pt-20 flex flex-col items-end text-right px-2 sm:px-6">
+                      <span className="text-xs text-slate-700 italic">
+                        Fait à Abidjan, le {formatDateFr(demande.dateCreation || new Date().toISOString())}
+                      </span>
+                      <div className="mt-6 flex flex-col items-center">
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
+                          M. GÉRARD KONAN
+                        </span>
+                        <span className="text-[11px] text-slate-600 font-medium">
+                          Directeur Général
+                        </span>
+                        <span className="text-[9px] text-emerald-700 font-bold mt-1 bg-emerald-50 px-2 py-0.5 border border-emerald-200">
+                          ✓ Signé &amp; Scellé électroniquement
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              ) : (
+                /* ── BULLETIN STANDARD DE PERMISSION / CONGÉ ── */
+                <div className="flex flex-col gap-5 text-xs">
+                  <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#F0822A] text-white font-black text-xl flex items-center justify-center">
+                        A
+                      </div>
+                      <div>
+                        <h1 className="text-base font-black tracking-tight text-slate-900 m-0">
+                          AGILLY SOLUTIONS
+                        </h1>
+                        <p className="text-[10px] text-slate-500 uppercase font-semibold m-0">
+                          Direction des Ressources Humaines
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="border border-slate-800 px-3 py-1 font-mono font-black text-xs bg-slate-50">
+                        {numUnique}
+                      </div>
+                      <span className="text-[10px] text-slate-500 block mt-1 font-mono">
+                        {formatDateFr(demande.dateCreation)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-center py-2 bg-slate-100 border border-slate-300">
+                    <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 m-0">
+                      BULLETIN OFFICIEL DE PERMISSION / CONGÉ
+                    </h2>
+                  </div>
+
+                  <div className="border border-slate-800 p-3">
+                    <span className="font-extrabold text-[11px] uppercase block mb-1 text-[#C25E00]">
+                      1. IDENTIFICATION DU SALARIÉ
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>Demandeur : <strong>{demande.demandeur.prenom} {demande.demandeur.nom}</strong></div>
+                      <div>Matricule : <strong className="font-mono">{demande.demandeur.matricule}</strong></div>
+                      <div>Fonction : {demande.demandeur.poste}</div>
+                      <div>Département : {demande.demandeur.departement}</div>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-800 p-3">
+                    <span className="font-extrabold text-[11px] uppercase block mb-1 text-[#C25E00]">
+                      2. PÉRIODE &amp; DÉCOMPTE
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>Du : <strong className="font-mono">{formatDateFr(demande.dateDebut)}</strong></div>
+                      <div>Au : <strong className="font-mono">{formatDateFr(demande.dateFin)}</strong></div>
+                      <div>Durée ouvrée : <strong className="text-[#F0822A]">{demande.nombreJoursOuvres} jour(s)</strong></div>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-800 p-3">
+                    <span className="font-extrabold text-[11px] uppercase block mb-1 text-slate-800">
+                      3. MOTIF
+                    </span>
+                    <p className="italic text-slate-800 m-0">&ldquo;{demande.motif}&rdquo;</p>
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-300 flex justify-between items-center text-[10px] text-slate-500">
+                    <span>Certifié conforme Agilly Cloud GED</span>
+                    <span className="font-bold text-emerald-700">✓ HOMOLOGUÉ &amp; SCELLÉ</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
   );
 }
-

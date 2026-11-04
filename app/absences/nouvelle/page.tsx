@@ -505,7 +505,7 @@ function NouvelleDemandeForm() {
     try {
       const isIntervention = missionType === "Intervention";
       const typeCode: TypeDemandeRH = isIntervention ? "INTERVENTION_TERRAIN" : "MISSION_DEPLACEMENT";
-      const newDemande = await addDemande({
+      await addDemande({
         typeDemande: typeCode,
         libelleType: isIntervention ? "Fiche d'intervention technique" : "Ordre de mission officiel",
         dateDebut: missionDateDepart,
@@ -518,10 +518,12 @@ function NouvelleDemandeForm() {
         moyenTransport: "VÉHICULE DE SERVICE",
         fraisPrevisionnels: fraisDeplacementEstimes,
       });
-      setDemandeMissionEtablie(newDemande);
+
+      // Redirection directe vers le tableau de suivi
+      router.push("/absences/demandes");
     } catch (err: any) {
       console.error("[handleEtablirMission] Erreur:", err);
-      alert(err?.message || "Erreur lors de l'établissement de l'ordre de mission.");
+      alert(err?.message || "Erreur lors de la transmission de la demande de mission.");
     } finally {
       setIsSubmitting(false);
     }
@@ -759,48 +761,9 @@ function NouvelleDemandeForm() {
         </div>
       </div>
 
-      {/* ── CAS 1 : FAMILLE MISSIONS (CONFORME PIXEL-PERFECT IMAGE 3) ── */}
+      {/* ── CAS 1 : FAMILLE MISSIONS (SAISIE RAPIDE ET SOUPLE EN 3 BLOCS) ── */}
       {familleActive === "MISSIONS" ? (
-        demandeMissionEtablie ? (
-          /* ── DEMANDE ÉTABLIE AVEC SUCCÈS : APERÇU OFFICIEL ET IMPRESSION A4 ── */
-          <div className="flex flex-col gap-6">
-            <div className="bg-emerald-50 border-2 border-emerald-400 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                  <span className="text-emerald-950 font-black text-sm uppercase tracking-wide">
-                    ✓ Ordre de mission établi avec succès
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-800 mt-1 m-0">
-                  Votre ordre de mission officiel a été enregistré et transmis dans le circuit de validation. Vous pouvez imprimer ou exporter votre document A4 ci-dessous.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setDemandeMissionEtablie(null)}
-                  className="px-3.5 py-2 bg-white border border-emerald-300 hover:bg-emerald-100 text-xs font-bold text-emerald-900 rounded-none cursor-pointer transition-colors"
-                >
-                  + Établir une autre mission
-                </button>
-                <Link
-                  href="/absences/demandes"
-                  className="px-4 py-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white text-xs font-bold rounded-none shadow-xs transition-colors"
-                >
-                  Consulter mes demandes →
-                </Link>
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 p-4 sm:p-6 shadow-xs">
-              <MissionsDocumentEditor initialDemande={demandeMissionEtablie} />
-            </div>
-          </div>
-        ) : (
-          /* ── FORMULAIRE DE MISSION (IMAGE 3 : 2 COLONNES, SLIDER, TABLE PALIERS, APERÇU) ── */
-          <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
             {/* SOUS-TITRE OFFICIEL */}
             <div className="text-xs font-semibold text-slate-500">
               Établissement de la validation officielle. Les frais de déplacement sont calculés selon la distance.
@@ -1146,16 +1109,15 @@ function NouvelleDemandeForm() {
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleEtablirMission}
-                    className="w-full bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-3 px-4 rounded-none transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
+                    className="w-full bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-3.5 px-4 rounded-none transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
                   >
-                    <span>Établir l&apos;ordre de mission</span>
+                    <span>Envoyer ma demande pour validation →</span>
                   </button>
                 </div>
 
               </div>
             </div>
           </div>
-        )
       ) : (
         /* ── CAS 2 : FORMULAIRE CLASSIQUE CONGÉS & PERMISSIONS ── */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
