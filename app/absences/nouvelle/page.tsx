@@ -396,22 +396,22 @@ function NouvelleDemandeForm() {
   };
 
   // ══════════════════════════════════════════════════════════════
-  // ÉCRAN 1 : CHOIX INITIAL SÉPARÉ (VISIBLE UNIQUEMENT SI RIEN N'EST CHOISI)
-  // DÈS QU'ON CLIQUE, CE BLOC DISPARAÎT ET ON ENTRE DIRECTEMENT DANS LE FORMULAIRE
+  // ÉCRAN 1 : CHOIX INITIAL ÉPURÉ ET SIMPLE
+  // (AUCUNE SURCHARGE : LES DÉTAILS SE FONT DIRECTEMENT DANS LE FORMULAIRE)
   // ══════════════════════════════════════════════════════════════
   if (familleActive === null) {
     return (
-      <div className="flex flex-col gap-6 max-w-5xl mx-auto">
+      <div className="flex flex-col gap-6 max-w-4xl mx-auto">
         <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 bg-[#F0822A]" />
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                Nouvelle demande &mdash; Choisissez la nature de votre démarche
+                Nouvelle demande &mdash; Quel type de démarche souhaitez-vous faire ?
               </h1>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Chaque démarche dispose de son propre formulaire dédié. Cliquez sur l&apos;option voulue pour ouvrir son formulaire direct.
+              Sélectionnez ci-dessous pour ouvrir directement le formulaire correspondant :
             </p>
           </div>
 
@@ -423,123 +423,74 @@ function NouvelleDemandeForm() {
           </Link>
         </div>
 
-        {/* GRILLE DES 4 CHOIX ÉTANCHES */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* 1. CONGÉS */}
+        {/* 3 CARTES SIMPLES ET ÉPURÉES */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* 1. CONGÉS & PERMISSIONS */}
           <button
             type="button"
             onClick={() => {
               setFamilleActive("CONGES");
               setTypeDemande("CONGES_ANNUELS");
             }}
-            className="group p-6 bg-white border border-slate-200 hover:border-blue-600 text-left cursor-pointer transition-all border-t-4 border-t-blue-600 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
+            className="group p-5 bg-white border border-slate-200 hover:border-blue-600 text-left cursor-pointer transition-all border-t-4 border-t-blue-600 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black uppercase text-blue-900 tracking-wider">
-                  1. Congés Payés &amp; Repos Légal
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 font-bold">
-                  6 motifs
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors mb-2">
-                Congé Annuel, Maladie, Maternité, Sans solde
+              <span className="text-[10px] font-black uppercase text-blue-900 tracking-wider block mb-2">
+                1. Absences &amp; Repos
+              </span>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors mb-1.5">
+                Congé ou Permission
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed m-0">
-                Décompté de votre solde annuel acquis de 2,2 jours/mois ou soumis à un justificatif officiel (arrêt de travail, maternité, stage).
+                Congé payé, arrêt maladie, motif familial ou sortie en heures.
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-600 group-hover:text-blue-700">
-              <span>Remplir une demande de Congé</span>
-              <span>&rarr;</span>
+              <span>Remplir &rarr;</span>
             </div>
           </button>
 
-          {/* 2. PERMISSIONS */}
-          <button
-            type="button"
-            onClick={() => {
-              setFamilleActive("PERMISSIONS");
-              setTypeDemande("PERMISSION_MARIAGE");
-            }}
-            className="group p-6 bg-white border border-slate-200 hover:border-indigo-600 text-left cursor-pointer transition-all border-t-4 border-t-indigo-600 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black uppercase text-indigo-900 tracking-wider">
-                  2. Permissions Exceptionnelles
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">
-                  9 motifs
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-700 transition-colors mb-2">
-                Événements familiaux, Médical &amp; Sortie en heures
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed m-0">
-                Mariage, naissance, obsèques, rendez-vous médical ou sortie en cours de journée. Le solde de vos congés payés reste préservé.
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-indigo-600 group-hover:text-indigo-700">
-              <span>Remplir une demande de Permission</span>
-              <span>&rarr;</span>
-            </div>
-          </button>
-
-          {/* 3. ORDRE DE MISSION */}
+          {/* 2. ORDRE DE MISSION */}
           <button
             type="button"
             onClick={() => router.push("/absences/missions/nouvelle")}
-            className="group p-6 bg-white border border-slate-200 hover:border-[#F0822A] text-left cursor-pointer transition-all border-t-4 border-t-[#F0822A] shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
+            className="group p-5 bg-white border border-slate-200 hover:border-[#F0822A] text-left cursor-pointer transition-all border-t-4 border-t-[#F0822A] shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black uppercase text-[#C25E00] tracking-wider">
-                  3. Ordre de Mission Professionnel
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-orange-50 text-[#C25E00] border border-orange-200 font-bold">
-                  Déplacement CI
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-[#F0822A] transition-colors mb-2">
-                Mission Professionnelle Individuelle
+              <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wider block mb-2">
+                2. Déplacement Pro
+              </span>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-[#F0822A] transition-colors mb-1.5">
+                Ordre de Mission
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed m-0">
-                Déplacement professionnel avec calcul automatique des frais selon le barème kilométrique officiel et édition de l&apos;Ordre de Mission signé DG.
+                Déplacement individuel et calcul automatique des frais de route.
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#F0822A] group-hover:text-[#D96F1D]">
-              <span>Établir un Ordre de Mission</span>
-              <span>&rarr;</span>
+              <span>Remplir &rarr;</span>
             </div>
           </button>
 
-          {/* 4. INTERVENTION TECHNIQUE */}
+          {/* 3. INTERVENTION TECHNIQUE */}
           <button
             type="button"
             onClick={() => router.push("/absences/interventions/nouvelle")}
-            className="group p-6 bg-white border border-slate-200 hover:border-slate-900 text-left cursor-pointer transition-all border-t-4 border-t-slate-900 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
+            className="group p-5 bg-white border border-slate-200 hover:border-slate-900 text-left cursor-pointer transition-all border-t-4 border-t-slate-900 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black uppercase text-slate-900 tracking-wider">
-                  4. Intervention Technique
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-300 font-bold">
-                  Équipe &amp; Client
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-slate-900 transition-colors mb-2">
-                Fiche d&apos;Intervention sur Site Client
+              <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider block mb-2">
+                3. Prestation Client
+              </span>
+              <h3 className="text-base font-bold text-slate-900 transition-colors mb-1.5">
+                Intervention Technique
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed m-0">
-                Intervention technique en équipe multi-salariés, spécifications Domino, Windows, Infrastructure/Réseau et tarif contractuel journalier.
+                Intervention sur site client avec équipe technique.
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
-              <span>Établir une Fiche d&apos;Intervention</span>
-              <span>&rarr;</span>
+              <span>Remplir &rarr;</span>
             </div>
           </button>
         </div>

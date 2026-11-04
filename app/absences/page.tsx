@@ -145,44 +145,19 @@ function AbsencesDashboardContent() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0 sm:flex-nowrap">
-          {activeTab === "CONGES" ? (
-            <>
-              <Link
-                href="/absences/demandes?univers=CONGES"
-                className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs text-center whitespace-nowrap"
-              >
-                Tableau de mes congés
-              </Link>
-              <Link
-                href="/absences/nouvelle?famille=PERMISSIONS"
-                className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-300 font-bold text-xs py-2 px-3.5 transition-all shadow-2xs text-center whitespace-nowrap"
-              >
-                <span>+ Demander une permission</span>
-              </Link>
-              <Link
-                href="/absences/nouvelle?type=CONGES_ANNUELS"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs text-center whitespace-nowrap active:scale-[0.99]"
-              >
-                <span>+ Poser un congé</span>
-              </Link>
-            </>
-          ) : (
-            <div className="flex items-center gap-2.5 shrink-0 flex-nowrap">
-              <Link
-                href="/absences/missions/nouvelle"
-                className="inline-flex items-center justify-center gap-1.5 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-3.5 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
-              >
-                <span>+ Nouvel Ordre de Mission</span>
-              </Link>
-              <Link
-                href="/absences/interventions/nouvelle"
-                className="inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 px-3.5 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
-              >
-                <span>+ Nouvelle Fiche d&apos;Intervention</span>
-              </Link>
-            </div>
-          )}
+        <div className="flex items-center gap-2.5 shrink-0 flex-nowrap">
+          <Link
+            href="/absences/demandes"
+            className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs whitespace-nowrap"
+          >
+            Mes demandes
+          </Link>
+          <Link
+            href="/absences/nouvelle"
+            className="inline-flex items-center justify-center gap-1.5 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
+          >
+            <span>+ Nouvelle demande</span>
+          </Link>
         </div>
       </div>
 
@@ -480,60 +455,41 @@ function AbsencesDashboardContent() {
             </div>
           </div>
 
-          {/* Accès rapide aux 2 formulaires séparés : Ordre de Mission vs Fiche d'Intervention */}
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">
-              Choisissez le type de dossier à créer (2 parcours séparés)
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Link
-                href="/absences/nouvelle?type=MISSION_DEPLACEMENT"
-                className="bg-white border-2 border-slate-200 hover:border-[#F0822A] p-5 transition-all group flex flex-col justify-between shadow-2xs"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-orange-50 text-[#C25E00] border border-orange-200 px-2 py-0.5">
-                      1. Déplacement &amp; Frais Kilométriques
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">Document : ODM A4</span>
-                  </div>
-                  <span className="text-sm font-black text-slate-900 block mt-1">
-                    Ordre de Mission Officiel
-                  </span>
-                  <span className="text-xs text-slate-600 leading-relaxed block mt-1.5">
-                    Déplacement d&apos;un collaborateur (Abidjan ou Intérieur CI), jauge de distance (0 à 1000 km), barème officiel des 6 paliers et génération de l&apos;<strong>Ordre de Mission signé DG</strong> après validation.
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#F0822A] mt-4 pt-3 border-t border-slate-100">
-                  <span>Remplir un Ordre de Mission</span>
-                  <ArrowRightSvg />
-                </div>
-              </Link>
+          {/* Accès rapide aux 2 démarches */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link
+              href="/absences/missions/nouvelle"
+              className="bg-white border border-slate-200 hover:border-[#F0822A] p-4 transition-all group flex items-center justify-between shadow-2xs"
+            >
+              <div>
+                <span className="text-xs font-bold text-slate-900 block group-hover:text-[#F0822A] transition-colors">
+                  Ordre de Mission Professionnel
+                </span>
+                <span className="text-[11px] text-slate-500 block mt-0.5">
+                  Déplacement individuel et calcul des frais de route
+                </span>
+              </div>
+              <span className="text-xs font-bold text-[#F0822A] group-hover:translate-x-1 transition-transform pl-3 shrink-0">
+                Remplir &rarr;
+              </span>
+            </Link>
 
-              <Link
-                href="/absences/nouvelle?type=INTERVENTION_TERRAIN"
-                className="bg-white border-2 border-slate-200 hover:border-slate-900 p-5 transition-all group flex flex-col justify-between shadow-2xs"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-300 px-2 py-0.5">
-                      2. Équipe Technique &amp; Prestations
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">Document : Fiche A4</span>
-                  </div>
-                  <span className="text-sm font-black text-slate-900 block mt-1">
-                    Fiche d&apos;Intervention Technique (Multi-employés)
-                  </span>
-                  <span className="text-xs text-slate-600 leading-relaxed block mt-1.5">
-                    Intervention sur site client en équipe (<strong>+ Ajouter des employés</strong>), détail des prestations techniques (<strong>DOMINO, WINDOWS, INFRASTRUCTURES / RÉSEAUX</strong>) et tarif contractuel journalier.
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-900 mt-4 pt-3 border-t border-slate-100">
-                  <span>Remplir une Fiche d&apos;Intervention</span>
-                  <ArrowRightSvg />
-                </div>
-              </Link>
-            </div>
+            <Link
+              href="/absences/interventions/nouvelle"
+              className="bg-white border border-slate-200 hover:border-slate-900 p-4 transition-all group flex items-center justify-between shadow-2xs"
+            >
+              <div>
+                <span className="text-xs font-bold text-slate-900 block transition-colors">
+                  Fiche d&apos;Intervention Technique
+                </span>
+                <span className="text-[11px] text-slate-500 block mt-0.5">
+                  Intervention sur site client en équipe
+                </span>
+              </div>
+              <span className="text-xs font-bold text-slate-900 group-hover:translate-x-1 transition-transform pl-3 shrink-0">
+                Remplir &rarr;
+              </span>
+            </Link>
           </div>
 
           {/* Missions en cours */}
