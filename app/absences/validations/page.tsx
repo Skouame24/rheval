@@ -466,7 +466,7 @@ export default function ValidationsInboxPage() {
                 <div>
                   <span className="text-slate-400 text-[10px] block mb-1">Motif déclaré :</span>
                   <p className="p-3 bg-slate-50 border border-slate-200 italic text-slate-800 leading-relaxed">
-                    &ldquo;{activeDemande.motif}&rdquo;
+                    &ldquo;{activeDemande.motif.split("||INTERVENTION_META:")[0]}&rdquo;
                   </p>
                 </div>
 

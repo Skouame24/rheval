@@ -6,10 +6,12 @@
 
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { DemandeWorkflowStepper } from "@/features/absences/components/DemandeWorkflowStepper";
+import { OfficialDocumentViewerModal } from "@/features/absences/components/OfficialDocumentViewerModal";
 import { DemandeRHItem } from "@/types/absences.types";
 
 const fr = (iso: string) => iso.split("T")[0].split("-").reverse().join("/");
@@ -62,9 +64,20 @@ function isCongeAnnuelItem(d: DemandeRHItem): boolean {
   );
 }
 
-export default function AbsencesDashboardPage() {
+function AbsencesDashboardContent() {
+  const searchParams = useSearchParams();
   const { currentPersona, myDemandes, soldeConges, isLoading } = useAbsences();
   const [activeTab, setActiveTab] = useState<"CONGES" | "MISSIONS">("CONGES");
+  const [documentToView, setDocumentToView] = useState<DemandeRHItem | null>(null);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "MISSIONS") {
+      setActiveTab("MISSIONS");
+    } else if (tabParam === "CONGES") {
+      setActiveTab("CONGES");
+    }
+  }, [searchParams]);
 
   // Séparation en deux univers étanches
   const demandesConges = useMemo(() => myDemandes.filter((d) => !isMissionItem(d)), [myDemandes]);
@@ -119,27 +132,51 @@ export default function AbsencesDashboardPage() {
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#F0822A]" />
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Tableau de bord
+              {activeTab === "CONGES"
+                ? "Espace Congés & Permissions"
+                : "Espace Missions & Interventions Techniques"}
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Bonjour <strong>{currentPersona.prenom} {currentPersona.nom}</strong> • Suivi des congés, autorisations et ordres de mission.
+            Bonjour <strong>{currentPersona.prenom} {currentPersona.nom}</strong> •{" "}
+            {activeTab === "CONGES"
+              ? "Gestion de vos congés payés, permissions exceptionnelles et soldes acquis."
+              : "Saisie séparée de vos Ordres de Mission (frais kilométriques) et Fiches d'Intervention Technique (multi-employés)."}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/absences/planning"
-            className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs"
-          >
-            Planning d&apos;équipe
-          </Link>
-          <Link
-            href={activeTab === "CONGES" ? "/absences/nouvelle?type=CONGES_ANNUELS" : "/absences/nouvelle?type=MISSION_DEPLACEMENT"}
-            className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
-          >
-            <span>{activeTab === "CONGES" ? "+ Nouvelle demande de congé" : "+ Nouvel ordre de mission"}</span>
-          </Link>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {activeTab === "CONGES" ? (
+            <>
+              <Link
+                href="/absences/demandes?univers=CONGES"
+                className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs"
+              >
+                Tableau de mes congés
+              </Link>
+              <Link
+                href="/absences/nouvelle?type=CONGES_ANNUELS"
+                className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+              >
+                <span>+ Nouvelle demande de congé</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/absences/nouvelle?type=MISSION_DEPLACEMENT"
+                className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+              >
+                <span>+ Nouvel Ordre de Mission</span>
+              </Link>
+              <Link
+                href="/absences/nouvelle?type=INTERVENTION_TERRAIN"
+                className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+              >
+                <span>+ Nouvelle Fiche d&apos;Intervention</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -437,42 +474,56 @@ export default function AbsencesDashboardPage() {
             </div>
           </div>
 
-          {/* Accès rapide aux types de missions */}
+          {/* Accès rapide aux 2 formulaires séparés : Ordre de Mission vs Fiche d'Intervention */}
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">
-              Nouvelle activité terrain
+              Choisissez le type de dossier à créer (2 parcours séparés)
             </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Link
                 href="/absences/nouvelle?type=MISSION_DEPLACEMENT"
-                className="bg-white border border-slate-200 hover:border-[#F0822A] p-4 transition-all group flex flex-col justify-between shadow-2xs"
+                className="bg-white border-2 border-slate-200 hover:border-[#F0822A] p-5 transition-all group flex flex-col justify-between shadow-2xs"
               >
                 <div>
-                  <div className="w-6 h-0.5 bg-[#F0822A] mb-3" />
-                  <span className="text-xs font-bold text-slate-900 block">Ordre de Mission & Intervention</span>
-                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
-                    Intervention site client, province ou international • Validation budgétaire
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-orange-50 text-[#C25E00] border border-orange-200 px-2 py-0.5">
+                      1. Déplacement &amp; Frais Kilométriques
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">Document : ODM A4</span>
+                  </div>
+                  <span className="text-sm font-black text-slate-900 block mt-1">
+                    Ordre de Mission Officiel
+                  </span>
+                  <span className="text-xs text-slate-600 leading-relaxed block mt-1.5">
+                    Déplacement d&apos;un collaborateur (Abidjan ou Intérieur CI), jauge de distance (0 à 1000 km), barème officiel des 6 paliers et génération de l&apos;<strong>Ordre de Mission signé DG</strong> après validation.
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#F0822A] mt-4">
-                  <span>Déclarer la mission</span>
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#F0822A] mt-4 pt-3 border-t border-slate-100">
+                  <span>Remplir un Ordre de Mission</span>
                   <ArrowRightSvg />
                 </div>
               </Link>
 
               <Link
                 href="/absences/nouvelle?type=INTERVENTION_TERRAIN"
-                className="bg-white border border-slate-200 hover:border-slate-400 p-4 transition-all group flex flex-col justify-between shadow-2xs"
+                className="bg-white border-2 border-slate-200 hover:border-slate-900 p-5 transition-all group flex flex-col justify-between shadow-2xs"
               >
                 <div>
-                  <div className="w-6 h-0.5 bg-slate-600 mb-3" />
-                  <span className="text-xs font-bold text-slate-900 block">Intervention Technique sur Site</span>
-                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
-                    Installation, datacenter, maintenance client ou astreinte
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-300 px-2 py-0.5">
+                      2. Équipe Technique &amp; Prestations
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">Document : Fiche A4</span>
+                  </div>
+                  <span className="text-sm font-black text-slate-900 block mt-1">
+                    Fiche d&apos;Intervention Technique (Multi-employés)
+                  </span>
+                  <span className="text-xs text-slate-600 leading-relaxed block mt-1.5">
+                    Intervention sur site client en équipe (<strong>+ Ajouter des employés</strong>), détail des prestations techniques (<strong>DOMINO, WINDOWS, INFRASTRUCTURES / RÉSEAUX</strong>) et tarif contractuel journalier.
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 mt-4">
-                  <span>Planifier l&apos;intervention</span>
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-900 mt-4 pt-3 border-t border-slate-100">
+                  <span>Remplir une Fiche d&apos;Intervention</span>
                   <ArrowRightSvg />
                 </div>
               </Link>
@@ -483,17 +534,17 @@ export default function AbsencesDashboardPage() {
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
-                Ordres de mission en cours de validation ({enCoursMissions.length})
+                Ordres de mission &amp; Interventions en cours de validation ({enCoursMissions.length})
               </span>
-              <Link href="/absences/demandes" className="text-xs font-semibold text-slate-600 hover:text-slate-900">
-                Historique complet →
+              <Link href="/absences/demandes?univers=MISSIONS" className="text-xs font-semibold text-[#F0822A] hover:underline">
+                Ouvrir le tableau des missions &amp; interventions →
               </Link>
             </div>
 
             {enCoursMissions.length === 0 ? (
               <div className="bg-white border border-slate-200 p-8 text-center text-xs text-slate-500">
-                <p className="font-bold text-slate-700 text-sm">Aucun ordre de mission en cours</p>
-                <p className="mt-1">Tous vos déplacements ont été validés par le N+1 et la Finance.</p>
+                <p className="font-bold text-slate-700 text-sm">Aucune mission ou intervention en attente</p>
+                <p className="mt-1">Vos dossiers validés sont disponibles dans le tableau avec téléchargement PDF.</p>
               </div>
             ) : (
               enCoursMissions.map((d) => {
@@ -507,23 +558,32 @@ export default function AbsencesDashboardPage() {
                           <span className="text-sm font-bold text-slate-900">{d.libelleType}</span>
                           <span className="text-xs font-mono text-slate-400">({d.codeReference})</span>
                           <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200">
-                            Frais prévisionnels : {d.fraisPrevisionnels ? `${d.fraisPrevisionnels.toLocaleString("fr-FR")} FCFA` : "Prise en charge directe"}
+                            Montant : {d.fraisPrevisionnels ? `${d.fraisPrevisionnels.toLocaleString("fr-FR")} FCFA` : "Selon contrat"}
                           </span>
                         </div>
                         <p className="text-xs text-slate-600 mt-1">
                           Période : <strong>Du {fr(d.dateDebut)} au {fr(d.dateFin)}</strong> · {d.nombreJoursOuvres} jour(s)
-                          {d.destination && <span> · Destination : <strong>{d.destination}</strong></span>}
+                          {d.destination && <span> · Lieu : <strong>{d.destination}</strong></span>}
                         </p>
                       </div>
 
-                      {d.statut === "RETOURNEE_EMPLOYE" && (
-                        <Link
-                          href={`/absences/nouvelle?edit=${d.id}`}
-                          className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 transition-colors"
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDocumentToView(d)}
+                          className="text-xs font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 transition-colors cursor-pointer"
                         >
-                          Corriger le dossier
-                        </Link>
-                      )}
+                          Consulter
+                        </button>
+                        {d.statut === "RETOURNEE_EMPLOYE" && (
+                          <Link
+                            href={`/absences/nouvelle?edit=${d.id}`}
+                            className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 transition-colors"
+                          >
+                            Corriger le dossier
+                          </Link>
+                        )}
+                      </div>
                     </div>
 
                     <DemandeWorkflowStepper demande={d} />
@@ -540,28 +600,43 @@ export default function AbsencesDashboardPage() {
             )}
           </section>
 
-          {/* Ordre de mission validé */}
+          {/* Ordre de mission ou Fiche d'intervention validé */}
           {approuveesMissions.length > 0 && (
-            <div className="bg-white border border-slate-200 border-l-4 border-l-slate-800 p-4 flex items-center justify-between gap-3 text-xs shadow-2xs">
+            <div className="bg-white border border-slate-200 border-l-4 border-l-emerald-600 p-4 flex items-center justify-between gap-3 text-xs shadow-2xs">
               <div>
                 <p className="font-bold text-slate-900 text-sm">
-                  Ordre de Mission (ODM) signé : {approuveesMissions[0].libelleType} ({approuveesMissions[0].codeReference})
+                  Document officiel validé &amp; signé : {approuveesMissions[0].libelleType} ({approuveesMissions[0].codeReference})
                 </p>
                 <p className="text-slate-500 text-xs mt-0.5 m-0">
-                  Validé par la Direction Générale et visé par la Finance. Votre ordre de mission officiel est scellé.
+                  Validé par le workflow. Vous pouvez consulter et télécharger le document A4 officiel associé.
                 </p>
               </div>
-              <Link
-                href="/absences/registre"
-                className="px-3.5 py-2 bg-white border border-slate-300 hover:border-slate-400 font-bold text-slate-800 transition-colors whitespace-nowrap shadow-2xs"
+              <button
+                type="button"
+                onClick={() => setDocumentToView(approuveesMissions[0])}
+                className="px-4 py-2 bg-[#F0822A] hover:bg-[#D96F1D] font-bold text-white transition-colors whitespace-nowrap shadow-2xs cursor-pointer"
               >
-                Télécharger l&apos;ODM (PDF)
-              </Link>
+                Consulter &amp; Télécharger PDF →
+              </button>
             </div>
           )}
         </div>
       )}
+
+      <OfficialDocumentViewerModal
+        isOpen={Boolean(documentToView)}
+        onClose={() => setDocumentToView(null)}
+        demande={documentToView}
+      />
     </div>
+  );
+}
+
+export default function AbsencesDashboardPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-xs text-slate-500">Chargement du tableau de bord...</div>}>
+      <AbsencesDashboardContent />
+    </Suspense>
   );
 }
 

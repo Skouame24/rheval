@@ -105,9 +105,9 @@ export default function PortailPage() {
         </div>
 
         {/* ─── Applications Grid (Charte Bords Carrés rounded-none) ─── */}
-        <div className="w-full max-w-[1000px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="w-full max-w-[1150px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           
-          {/* RHEVAL - APPLICATION DISPONIBLE */}
+          {/* 1. RHEVAL - ÉVALUATIONS ANNUELLES */}
           <button 
             onClick={navigateToDashboard}
             className="group relative flex flex-col bg-white border border-slate-200 hover:border-[#F0822A] shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-[#F0822A]"
@@ -121,7 +121,7 @@ export default function PortailPage() {
                 </svg>
               </div>
              
-              <h3 className="text-xl font-extrabold text-slate-900 mb-2 group-hover:text-[#F0822A] transition-colors">AGILLY RHEVAL</h3>
+              <h3 className="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-[#F0822A] transition-colors">AGILLY RHEVAL</h3>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
                 Plateforme officielle de gestion des évaluations annuelles de performance et suivi des objectifs.
               </p>
@@ -135,9 +135,9 @@ export default function PortailPage() {
             </div>
           </button>
 
-          {/* ABSENCES & CONGÉS - APPLICATION DISPONIBLE */}
+          {/* 2. CONGÉS & PERMISSIONS */}
           <button 
-            onClick={() => router.push("/absences")}
+            onClick={() => router.push("/absences?tab=CONGES")}
             className="group relative flex flex-col bg-white border border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-blue-600"
           >
             <div className="p-6 pb-4">
@@ -151,27 +151,57 @@ export default function PortailPage() {
                 </svg>
               </div>
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
-                  Absences & Congés
+                <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
+                  Congés &amp; Permissions
                 </h3>
-                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5">
-                  NOUVEAU
-                </span>
               </div>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Workflow des congés, permissions, missions, interventions, contrôle solde et archivage GED.
+                Demandes de congés annuels, permissions exceptionnelles, suivi des soldes acquis et édition des bulletins.
               </p>
             </div>
             
             <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-blue-50/50 transition-colors">
-              <span className="text-xs font-extrabold text-blue-600">Ouvrir l'application →</span>
+              <span className="text-xs font-extrabold text-blue-600">Espace Congés →</span>
               <svg className="text-blue-600 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
               </svg>
             </div>
           </button>
 
-          {/* ÉVALUATION COMPÉTENCES - EN DÉVELOPPEMENT */}
+          {/* 3. MISSIONS & INTERVENTIONS TECHNIQUES */}
+          <button 
+            onClick={() => router.push("/absences?tab=MISSIONS")}
+            className="group relative flex flex-col bg-white border border-slate-200 hover:border-emerald-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-emerald-600"
+          >
+            <div className="p-6 pb-4">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-700 flex items-center justify-center rounded-none mb-4 border border-emerald-200 group-hover:scale-105 transition-transform">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="0" ry="0"/>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                  Missions &amp; Interventions
+                </h3>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5">
+                  TERRAIN
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Ordres de mission (frais kilométriques CI) et Fiches d&apos;intervention technique multi-employés sur site client.
+              </p>
+            </div>
+            
+            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-emerald-50/50 transition-colors">
+              <span className="text-xs font-extrabold text-emerald-700">Espace Missions →</span>
+              <svg className="text-emerald-700 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </div>
+          </button>
+
+          {/* 4. ÉVALUATION COMPÉTENCES - EN DÉVELOPPEMENT */}
           <div className="relative flex flex-col bg-white/80 border border-slate-200/80 opacity-80 select-none rounded-none border-t-4 border-t-purple-600">
             <div className="p-6 pb-4">
               <div className="w-12 h-12 bg-purple-50 text-purple-600 flex items-center justify-center rounded-none mb-4 border border-purple-100">
@@ -180,11 +210,11 @@ export default function PortailPage() {
                   <path d="M6 12v5c3 3 9 3 12 0v-5" />
                 </svg>
               </div>
-              <h3 className="text-xl font-extrabold text-slate-900 mb-2">
+              <h3 className="text-lg font-extrabold text-slate-900 mb-2">
                 Évaluation Compétences
               </h3>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Référentiel métier, cartographie des compétences clés (Hard & Soft Skills) et plans de carrière.
+                Référentiel métier, cartographie des compétences clés (Hard &amp; Soft Skills) et plans de carrière.
               </p>
             </div>
             

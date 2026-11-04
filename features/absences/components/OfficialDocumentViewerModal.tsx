@@ -1,15 +1,15 @@
 // ============================================================
 // features/absences/components/OfficialDocumentViewerModal.tsx
-// Visualiseur officiel universel :
-//  - Si demande en cours : Suivi du dossier et circuit de validation
-//  - Si approuvée : Ordre de Mission A4 ou Fiche d'Intervention A4 scellé
-//  - Bulletin Individuel de Permission & Congé standard
+// Visualiseur officiel universel avec séparation stricte :
+//  1. Ordre de Mission Officiel A4 (Image 1 — N° JPC/..., signé M. GÉRARD KONAN)
+//  2. Fiche d'Intervention Technique A4 (Image 2 — Équipe multi-employés, DOMINO / WINDOWS / INFRA, Tarif contractuel)
+//  3. Bulletin Individuel de Permission & Congé A4
 // Respect strict du Design System Soft UI Enterprise (rounded-none)
 // ============================================================
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo } from "react";
 import Image from "next/image";
 import { DemandeRHItem } from "@/types/absences.types";
 
@@ -17,6 +17,35 @@ interface OfficialDocumentViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
   demande: DemandeRHItem | null;
+}
+
+interface InterventionMeta {
+  clientSite?: string;
+  equipe?: string[];
+  domino?: string;
+  windows?: string;
+  infra?: string;
+  tarifJour?: number;
+}
+
+export function parseDemandeMotifAndMeta(rawMotif: string): {
+  cleanMotif: string;
+  meta: InterventionMeta | null;
+} {
+  if (!rawMotif) return { cleanMotif: "", meta: null };
+  const marker = "||INTERVENTION_META:";
+  const idx = rawMotif.indexOf(marker);
+  if (idx === -1) {
+    return { cleanMotif: rawMotif, meta: null };
+  }
+  const cleanMotif = rawMotif.slice(0, idx).trim();
+  const jsonPart = rawMotif.slice(idx + marker.length).trim();
+  try {
+    const parsed = JSON.parse(jsonPart) as InterventionMeta;
+    return { cleanMotif, meta: parsed };
+  } catch {
+    return { cleanMotif, meta: null };
+  }
 }
 
 function isMissionItem(d: DemandeRHItem): boolean {
@@ -34,12 +63,18 @@ export function OfficialDocumentViewerModal({
   onClose,
   demande,
 }: OfficialDocumentViewerModalProps) {
+  const { cleanMotif, meta } = useMemo(
+    () => parseDemandeMotifAndMeta(demande?.motif || ""),
+    [demande?.motif]
+  );
+
   if (!isOpen || !demande) return null;
 
   const isMission = isMissionItem(demande);
   const isIntervention =
     demande.typeDemande === "INTERVENTION_TERRAIN" ||
-    demande.libelleType?.toLowerCase().includes("intervention");
+    demande.libelleType?.toLowerCase().includes("intervention") ||
+    Boolean(meta);
 
   // Statut de validation officielle par la Direction Générale
   const isApproved =
@@ -52,7 +87,11 @@ export function OfficialDocumentViewerModal({
   const numSeq = demande.codeReference.replace(/\D/g, "").slice(-4) || "01";
   const numUnique =
     demande.documentPermission?.numeroUnique ||
-    (isMission ? `JPC/2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`);
+    (isMission
+      ? isIntervention
+        ? `FIT/2026-${numSeq}`
+        : `JPC/2026-${numSeq}`
+      : `AGY-PERM-2026-${numSeq}`);
 
   const formatDateFr = (isoStr: string) => {
     if (!isoStr) return "-";
@@ -65,30 +104,47 @@ export function OfficialDocumentViewerModal({
     window.print();
   };
 
+  // Données dynamiques pour la Fiche d'Intervention Technique
+  const equipeIntervention =
+    meta?.equipe && meta.equipe.length > 0
+      ? meta.equipe
+      : [
+          `${demande.demandeur.prenom} ${demande.demandeur.nom.toUpperCase()} (Intervenant Principal)`,
+          "M. KOFFI Marc — Ingénieur Systèmes & Cloud",
+          "Mme TRAORÉ Awa — Ingénieure Réseaux & Sécurité",
+        ];
+
+  const dominoText =
+    meta?.domino || "Migration des serveurs vers la version 11 et installation de VERSE.";
+  const windowsText =
+    meta?.windows || "Migration OS vers 2016 SERVER et passage à Edge.";
+  const infraText =
+    meta?.infra || cleanMotif || "Sécurisation des routeurs et pare-feu principaux.";
+  const tarifJour = meta?.tarifJour || 720000;
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white border border-slate-300 w-full max-w-4xl max-h-[96vh] overflow-y-auto shadow-2xl flex flex-col font-sans rounded-none">
-        
         {/* BARRE SUPÉRIEURE D'ACTIONS (NON IMPRIMABLE) */}
         <div className="bg-slate-50 px-6 py-3.5 border-b border-slate-200 flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wider block">
               {isMission
                 ? isIntervention
                   ? "Fiche d'Intervention Technique"
                   : "Ordre de Mission Officiel"
-                : "Bulletin Officiel de Permission"}
+                : "Bulletin Officiel de Permission / Congé"}
             </span>
             <span className="text-xs font-mono font-bold text-slate-900">
               {demande.codeReference}
             </span>
             {isApproved ? (
               <span className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5">
-                ✓ Validé &amp; Scellé DG
+                ✓ Validé &amp; Scellé (Document prêt)
               </span>
             ) : (
               <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300 px-2 py-0.5">
-                ⏳ En cours d&apos;arbitrage
+                ⏳ En attente de validation du workflow
               </span>
             )}
           </div>
@@ -119,18 +175,22 @@ export function OfficialDocumentViewerModal({
           </div>
         </div>
 
-        {/* ── CAS 1 : DOSSIER DE MISSION EN COURS DE VALIDATION (PAS ENCORE SCELLÉ) ── */}
-        {isMission && !isApproved ? (
+        {/* ── CAS 1 : DEMANDE EN COURS DE VALIDATION (DOCUMENT GÉNÉRÉ UNIQUEMENT APRÈS VALIDATION) ── */}
+        {!isApproved ? (
           <div className="p-6 sm:p-8 flex flex-col gap-6 bg-slate-50">
             {/* Bannière explicative */}
-            <div className="bg-amber-50/80 border border-amber-300 p-4 flex items-start gap-3">
-              <span className="text-amber-700 text-lg">⏳</span>
+            <div className="bg-amber-50/90 border border-amber-300 p-4 flex items-start gap-3">
+              <span className="text-amber-700 text-lg font-bold">⏳</span>
               <div>
                 <span className="text-xs font-black uppercase text-amber-950 block">
-                  Demande de mission en cours d&apos;instruction
+                  {isIntervention
+                    ? "Fiche d'Intervention en cours de validation"
+                    : isMission
+                    ? "Ordre de Mission en cours de validation"
+                    : "Demande de Congé / Permission en cours de validation"}
                 </span>
                 <p className="text-xs text-amber-900 mt-0.5 m-0 leading-relaxed">
-                  L&apos;<strong>Ordre de mission officiel A4 scellé et signé par la Direction Générale</strong> sera automatiquement généré et téléchargeable dès l&apos;accord final du Directeur Général (ou de son intérimaire désigné).
+                  Conformément aux règles Agilly, le <strong>document officiel A4 signé et téléchargeable en PDF</strong> est généré uniquement après la validation complète du workflow hiérarchique.
                 </p>
               </div>
             </div>
@@ -138,77 +198,162 @@ export function OfficialDocumentViewerModal({
             {/* Circuit de validation stepper */}
             <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-3">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 block">
-                Progression du circuit d&apos;approbation
+                État d&apos;avancement du workflow
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-3 bg-emerald-50 border border-emerald-200 flex flex-col gap-1">
-                  <span className="font-bold text-emerald-950">1. Avis Responsable N+1</span>
-                  <span className="text-[10px] text-emerald-800">✓ Favorable (Transmis)</span>
+                <div
+                  className={`p-3 border flex flex-col gap-1 ${
+                    demande.etapeCourante === "SUPERIEUR_N1"
+                      ? "bg-amber-50 border-amber-300"
+                      : "bg-emerald-50 border-emerald-200"
+                  }`}
+                >
+                  <span className="font-bold text-slate-900">1. Avis Responsable N+1</span>
+                  <span className="text-[10px] font-semibold">
+                    {demande.etapeCourante === "SUPERIEUR_N1" ? "● En attente de validation N+1" : "✓ Validé"}
+                  </span>
                 </div>
-                <div className="p-3 bg-emerald-50 border border-emerald-200 flex flex-col gap-1">
-                  <span className="font-bold text-emerald-950">2. Contrôle Direction RH</span>
-                  <span className="text-[10px] text-emerald-800">✓ Conforme au barème</span>
+                <div
+                  className={`p-3 border flex flex-col gap-1 ${
+                    demande.etapeCourante === "DRH"
+                      ? "bg-amber-50 border-amber-300"
+                      : demande.etapeCourante === "SUPERIEUR_N1"
+                      ? "bg-slate-50 border-slate-200 text-slate-400"
+                      : "bg-emerald-50 border-emerald-200"
+                  }`}
+                >
+                  <span className="font-bold text-slate-900">2. Contrôle RH / Finance</span>
+                  <span className="text-[10px] font-semibold">
+                    {demande.etapeCourante === "DRH"
+                      ? "● En cours de contrôle"
+                      : demande.etapeCourante === "SUPERIEUR_N1"
+                      ? "En attente étape 1"
+                      : "✓ Conforme"}
+                  </span>
                 </div>
-                <div className="p-3 bg-amber-50 border border-amber-300 flex flex-col gap-1">
-                  <span className="font-bold text-amber-950">3. Accord &amp; Signature DG</span>
-                  <span className="text-[10px] font-semibold text-amber-800">● En attente de signature</span>
+                <div
+                  className={`p-3 border flex flex-col gap-1 ${
+                    demande.etapeCourante === "DIRECTION_DG"
+                      ? "bg-amber-50 border-amber-300"
+                      : "bg-slate-50 border-slate-200 text-slate-400"
+                  }`}
+                >
+                  <span className="font-bold text-slate-900">3. Signature Direction Générale</span>
+                  <span className="text-[10px] font-semibold">
+                    {demande.etapeCourante === "DIRECTION_DG"
+                      ? "● En attente de signature DG"
+                      : "Génère le PDF officiel"}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Récapitulatif du dossier de mission */}
-            <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-4 text-xs">
-              <span className="text-[11px] font-black uppercase tracking-wider text-[#C25E00] border-b border-slate-200 pb-2">
-                Détails du déplacement soumis
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Demandeur</span>
-                  <span className="font-bold text-slate-900 text-sm">
-                    {demande.demandeur.prenom} {demande.demandeur.nom}
-                  </span>
-                  <span className="text-slate-500 block text-[11px]">
-                    Matricule : {demande.demandeur.matricule} • {demande.demandeur.poste}
-                  </span>
+            {/* Récapitulatif adapté au type exact de dossier */}
+            {isIntervention ? (
+              <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-4 text-xs">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
+                  Détails de la Fiche d&apos;Intervention Technique soumise
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Client / Site</span>
+                    <span className="font-bold text-slate-900">{meta?.clientSite || demande.destination || "Site Client"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Période &amp; Durée</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      Du {formatDateFr(demande.dateDebut)} au {formatDateFr(demande.dateFin)} ({demande.nombreJoursOuvres} j)
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Destination / Lieu</span>
-                  <span className="font-bold text-slate-900 text-sm">
-                    📍 {demande.destination || "Côte d'Ivoire"}
+                <div className="border border-slate-200 bg-slate-50 p-3">
+                  <span className="text-[10px] font-black uppercase text-slate-700 block mb-1">
+                    Équipe d&apos;Intervention ({equipeIntervention.length}) :
                   </span>
-                  <span className="text-slate-500 block text-[11px]">
-                    Moyen de transport : {demande.moyenTransport || "Véhicule de service"}
-                  </span>
+                  <div className="flex flex-col gap-1 font-medium text-slate-900">
+                    {equipeIntervention.map((membre, idx) => (
+                      <span key={idx}>• {membre}</span>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Période sollicitée</span>
-                  <span className="font-mono font-bold text-slate-900 text-sm">
-                    Du {formatDateFr(demande.dateDebut)} au {formatDateFr(demande.dateFin)}
-                  </span>
-                  <span className="text-[#F0822A] font-bold block text-[11px]">
-                    {demande.nombreJoursOuvres} jour(s) ouvré(s)
-                  </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-2.5 bg-slate-50 border border-slate-200">
+                    <span className="font-black text-slate-900 block text-[11px]">▲ DOMINO</span>
+                    <p className="text-slate-600 m-0 mt-1 text-[11px]">{dominoText}</p>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 border border-slate-200">
+                    <span className="font-black text-slate-900 block text-[11px]">▲ WINDOWS</span>
+                    <p className="text-slate-600 m-0 mt-1 text-[11px]">{windowsText}</p>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 border border-slate-200">
+                    <span className="font-black text-slate-900 block text-[11px]">▲ INFRA / RÉSEAUX</span>
+                    <p className="text-slate-600 m-0 mt-1 text-[11px]">{infraText}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Frais prévisionnels estimés</span>
-                  <span className="font-mono font-black text-[#F0822A] text-base">
-                    {demande.fraisPrevisionnels
-                      ? `${Number(demande.fraisPrevisionnels).toLocaleString("fr-FR")} FCFA`
-                      : "Selon barème kilométrique"}
-                  </span>
-                  <span className="text-slate-500 block text-[10px]">
-                    Prise en charge intégrale Agilly
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-slate-500 font-semibold">Tarif contractuel :</span>
+                  <span className="font-mono font-black text-[#F0822A] text-sm">
+                    {tarifJour.toLocaleString("fr-FR")} FCFA / jour
                   </span>
                 </div>
               </div>
+            ) : (
+              <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-4 text-xs">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#C25E00] border-b border-slate-200 pb-2">
+                  {isMission ? "Détails de l'Ordre de Mission soumis" : "Détails de la demande soumise"}
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Collaborateur</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {demande.demandeur.prenom} {demande.demandeur.nom}
+                    </span>
+                    <span className="text-slate-500 block text-[11px]">
+                      Matricule : {demande.demandeur.matricule} • {demande.demandeur.poste}
+                    </span>
+                  </div>
+                  {isMission && (
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Destination &amp; Transport</span>
+                      <span className="font-bold text-slate-900 text-sm">
+                        {demande.destination || "Côte d'Ivoire"}
+                      </span>
+                      <span className="text-slate-500 block text-[11px]">
+                        Moyen de transport : {demande.moyenTransport || "Véhicule de service"}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Période sollicitée</span>
+                    <span className="font-mono font-bold text-slate-900 text-sm">
+                      Du {formatDateFr(demande.dateDebut)} au {formatDateFr(demande.dateFin)}
+                    </span>
+                    <span className="text-[#F0822A] font-bold block text-[11px]">
+                      {demande.nombreJoursOuvres} jour(s) ouvré(s)
+                    </span>
+                  </div>
+                  {isMission && (
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Frais de déplacement estimés</span>
+                      <span className="font-mono font-black text-[#F0822A] text-base">
+                        {demande.fraisPrevisionnels
+                          ? `${Number(demande.fraisPrevisionnels).toLocaleString("fr-FR")} FCFA`
+                          : "Selon barème kilométrique"}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold mb-1">Objet de la mission</span>
-                <p className="bg-slate-50 p-3 border border-slate-200 text-slate-800 m-0 leading-relaxed italic">
-                  &ldquo;{demande.motif}&rdquo;
-                </p>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold mb-1">
+                    {isMission ? "Objet de la mission" : "Motif"}
+                  </span>
+                  <p className="bg-slate-50 p-3 border border-slate-200 text-slate-800 m-0 leading-relaxed italic">
+                    &ldquo;{cleanMotif}&rdquo;
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex justify-end">
               <button
@@ -221,7 +366,7 @@ export function OfficialDocumentViewerModal({
             </div>
           </div>
         ) : (
-          /* ── CAS 2 : DOCUMENT OFFICIEL A4 (VALIDÉ OU BULLETIN DE CONGÉ SCELLÉ) ── */
+          /* ── CAS 2 : DOCUMENT OFFICIEL A4 VALIDÉ & SCELLÉ (PRÊT À TÉLÉCHARGER EN PDF) ── */
           <div className="p-4 sm:p-8 flex justify-center bg-slate-100/70">
             <div
               id="printable-a4-document"
@@ -270,8 +415,11 @@ export function OfficialDocumentViewerModal({
                         EQUIPE D&apos;INTERVENTION / EMPLOYES :
                       </span>
                       <div className="flex flex-col gap-1 pl-2 pt-1 font-bold text-slate-900">
-                        <span>• {demande.demandeur.prenom} {demande.demandeur.nom} (Intervenant Principal)</span>
-                        <span className="font-medium text-slate-800">• Équipe support &amp; réseaux Agilly</span>
+                        {equipeIntervention.map((membre, idx) => (
+                          <span key={idx} className={idx === 0 ? "font-extrabold text-slate-900" : "font-medium text-slate-800"}>
+                            • {membre}
+                          </span>
+                        ))}
                       </div>
                     </div>
 
@@ -287,7 +435,7 @@ export function OfficialDocumentViewerModal({
                             <span>▲</span> DOMINO :
                           </span>
                           <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                            Migration des serveurs vers la version 11 et installation de VERSE.
+                            {dominoText}
                           </p>
                         </div>
 
@@ -296,7 +444,7 @@ export function OfficialDocumentViewerModal({
                             <span>▲</span> WINDOWS :
                           </span>
                           <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                            Migration OS vers 2016 SERVER et passage à Edge.
+                            {windowsText}
                           </p>
                         </div>
 
@@ -305,7 +453,7 @@ export function OfficialDocumentViewerModal({
                             <span>▲</span> INFRASTRUCTURES / RÉSEAUX :
                           </span>
                           <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                            {demande.motif || "Sécurisation des routeurs et pare-feu principaux."}
+                            {infraText}
                           </p>
                         </div>
                       </div>
@@ -318,7 +466,10 @@ export function OfficialDocumentViewerModal({
                       </span>
                       <div className="pl-2 pt-1">
                         <span className="font-medium text-slate-800">
-                          Tarif contractuel : <strong className="font-extrabold text-slate-900">720 000 FCFA / jour</strong>
+                          Tarif contractuel :{" "}
+                          <strong className="font-extrabold text-slate-900">
+                            {tarifJour.toLocaleString("fr-FR")} FCFA / jour
+                          </strong>
                         </span>
                       </div>
                     </div>
@@ -401,7 +552,7 @@ export function OfficialDocumentViewerModal({
                           Objet de la mission :
                         </span>
                         <span className="col-span-7 font-bold uppercase text-slate-900">
-                          {demande.motif || "ASSISTANCE TECHNIQUE"}
+                          {cleanMotif || "ASSISTANCE TECHNIQUE"}
                         </span>
                       </div>
 
@@ -490,8 +641,12 @@ export function OfficialDocumentViewerModal({
                       1. IDENTIFICATION DU SALARIÉ
                     </span>
                     <div className="grid grid-cols-2 gap-2">
-                      <div>Demandeur : <strong>{demande.demandeur.prenom} {demande.demandeur.nom}</strong></div>
-                      <div>Matricule : <strong className="font-mono">{demande.demandeur.matricule}</strong></div>
+                      <div>
+                        Demandeur : <strong>{demande.demandeur.prenom} {demande.demandeur.nom}</strong>
+                      </div>
+                      <div>
+                        Matricule : <strong className="font-mono">{demande.demandeur.matricule}</strong>
+                      </div>
                       <div>Fonction : {demande.demandeur.poste}</div>
                       <div>Département : {demande.demandeur.departement}</div>
                     </div>
@@ -502,9 +657,15 @@ export function OfficialDocumentViewerModal({
                       2. PÉRIODE &amp; DÉCOMPTE
                     </span>
                     <div className="grid grid-cols-2 gap-2">
-                      <div>Du : <strong className="font-mono">{formatDateFr(demande.dateDebut)}</strong></div>
-                      <div>Au : <strong className="font-mono">{formatDateFr(demande.dateFin)}</strong></div>
-                      <div>Durée ouvrée : <strong className="text-[#F0822A]">{demande.nombreJoursOuvres} jour(s)</strong></div>
+                      <div>
+                        Du : <strong className="font-mono">{formatDateFr(demande.dateDebut)}</strong>
+                      </div>
+                      <div>
+                        Au : <strong className="font-mono">{formatDateFr(demande.dateFin)}</strong>
+                      </div>
+                      <div>
+                        Durée ouvrée : <strong className="text-[#F0822A]">{demande.nombreJoursOuvres} jour(s)</strong>
+                      </div>
                     </div>
                   </div>
 
@@ -512,7 +673,7 @@ export function OfficialDocumentViewerModal({
                     <span className="font-extrabold text-[11px] uppercase block mb-1 text-slate-800">
                       3. MOTIF
                     </span>
-                    <p className="italic text-slate-800 m-0">&ldquo;{demande.motif}&rdquo;</p>
+                    <p className="italic text-slate-800 m-0">&ldquo;{cleanMotif}&rdquo;</p>
                   </div>
 
                   <div className="pt-6 border-t border-slate-300 flex justify-between items-center text-[10px] text-slate-500">
@@ -524,7 +685,6 @@ export function OfficialDocumentViewerModal({
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

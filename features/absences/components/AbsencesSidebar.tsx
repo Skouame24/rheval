@@ -28,17 +28,24 @@ export function AbsencesSidebar() {
   const pathname = usePathname();
   const { currentPersona, pendingValidationsCount, setIsDemoDrawerOpen } = useAbsences();
   const [navigatingTo, setNavigatingTo] = React.useState<string | null>(null);
+  const [currentSearch, setCurrentSearch] = React.useState<string>("");
 
   // Réinitialiser la transition dès que la route a changé
   React.useEffect(() => {
     setNavigatingTo(null);
+    if (typeof window !== "undefined") {
+      setCurrentSearch(window.location.search);
+    }
   }, [pathname]);
 
   const isRouteActive = (href: string) => {
-    if (href === "/absences") {
+    const [basePath, queryPart] = href.split("?");
+    if (basePath === "/absences") {
       return pathname === "/absences";
     }
-    return pathname.startsWith(href);
+    if (!pathname.startsWith(basePath)) return false;
+    if (!queryPart) return true;
+    return currentSearch.includes(queryPart);
   };
 
   const role = currentPersona.role;
@@ -47,7 +54,7 @@ export function AbsencesSidebar() {
 
   const navSections: NavSection[] = [
     {
-      title: "Mon espace personnel",
+      title: "1. Congés & Permissions",
       items: [
         {
           label: "Tableau de bord",
@@ -62,8 +69,19 @@ export function AbsencesSidebar() {
           ),
         },
         {
-          label: "Mes demandes",
-          href: "/absences/demandes",
+          label: "Demander Congé / Permission",
+          href: "/absences/nouvelle?type=CONGES_ANNUELS",
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          ),
+        },
+        {
+          label: "Mes Congés & Permissions",
+          href: "/absences/demandes?univers=CONGES",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -92,6 +110,43 @@ export function AbsencesSidebar() {
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: "2. Missions & Interventions",
+      items: [
+        {
+          label: "Nouvel Ordre de Mission",
+          href: "/absences/nouvelle?type=MISSION_DEPLACEMENT",
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          ),
+        },
+        {
+          label: "Nouvelle Fiche d'Intervention",
+          href: "/absences/nouvelle?type=INTERVENTION_TERRAIN",
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          ),
+        },
+        {
+          label: "Suivi Missions & Interventions",
+          href: "/absences/demandes?univers=MISSIONS",
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
             </svg>
           ),
         },
@@ -189,7 +244,7 @@ export function AbsencesSidebar() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#F0822A]" />
               </div>
               <span className="text-[10px] text-[#C25E00] font-bold mt-0.5 tracking-tight">
-                Absences & Congés
+                Portail RH &amp; Missions
               </span>
             </div>
           </Link>
@@ -210,7 +265,11 @@ export function AbsencesSidebar() {
                     key={item.href}
                     href={item.href}
                     onClick={() => {
-                      if (!active) setNavigatingTo(item.href);
+                      const [, q] = item.href.split("?");
+                      setCurrentSearch(q ? `?${q}` : "");
+                      if (!active && item.href.split("?")[0] !== pathname) {
+                        setNavigatingTo(item.href);
+                      }
                     }}
                     className={`
                       flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-all

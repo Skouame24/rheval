@@ -20,9 +20,33 @@ import { DemandeRHItem, StatutDemandeRH } from "@/types/absences.types";
 import { DemandeWorkflowStepper } from "@/features/absences/components/DemandeWorkflowStepper";
 import { OfficialDocumentViewerModal } from "@/features/absences/components/OfficialDocumentViewerModal";
 
+function isInterventionDemande(d: DemandeRHItem): boolean {
+  return (
+    d.typeDemande === "INTERVENTION_TERRAIN" ||
+    d.libelleType?.toLowerCase().includes("intervention") ||
+    d.motif?.includes("||INTERVENTION_META:")
+  );
+}
+
+function isOrdreMissionDemande(d: DemandeRHItem): boolean {
+  if (isInterventionDemande(d)) return false;
+  return (
+    d.familleDemande === "MISSIONS" ||
+    d.typeDemande === "MISSION_DEPLACEMENT" ||
+    d.libelleType?.toLowerCase().includes("mission")
+  );
+}
+
+function isCongeOrPermissionDemande(d: DemandeRHItem): boolean {
+  return !isInterventionDemande(d) && !isOrdreMissionDemande(d);
+}
+
 function MesDemandesContent() {
   const searchParams = useSearchParams();
   const { myDemandes, annulerDemande, editerPermission, isLoading } = useAbsences();
+
+  // Onglet d'univers séparé : TOUS | CONGES | MISSIONS | INTERVENTIONS
+  const [universActif, setUniversActif] = useState<"TOUS" | "CONGES" | "MISSIONS" | "INTERVENTIONS">("TOUS");
 
   // Filtres
   const [filterStatut, setFilterStatut] = useState<string>("TOUS");
@@ -36,18 +60,62 @@ function MesDemandesContent() {
   const [demandeToCancel, setDemandeToCancel] = useState<DemandeRHItem | null>(null);
   const [bulletinToView, setBulletinToView] = useState<DemandeRHItem | null>(null);
 
-  // Synchronisation avec les query params si on vient du dashboard
+  // Synchronisation avec les query params (?statut=... & ?univers=...)
   useEffect(() => {
     const statutParam = searchParams.get("statut");
     if (statutParam) {
       setFilterStatut(statutParam);
     }
+    const universParam = searchParams.get("univers");
+    if (universParam === "CONGES" || universParam === "MISSIONS" || universParam === "INTERVENTIONS" || universParam === "TOUS") {
+      setUniversActif(universParam);
+      setCurrentPage(1);
+    }
   }, [searchParams]);
+
+  // Compteurs par univers séparé
+  const countConges = useMemo(() => myDemandes.filter(isCongeOrPermissionDemande).length, [myDemandes]);
+  const countMissions = useMemo(() => myDemandes.filter(isOrdreMissionDemande).length, [myDemandes]);
+  const countInterventions = useMemo(() => myDemandes.filter(isInterventionDemande).length, [myDemandes]);
+
+  const openOfficialDocument = (dem: DemandeRHItem) => {
+    if (dem.statut === "APPROUVEE" && !dem.documentPermission) {
+      editerPermission(dem.id);
+    }
+    const numSeq = dem.codeReference.replace(/\D/g, "").slice(-4) || "0018";
+    const isInterv = isInterventionDemande(dem);
+    const isMiss = isOrdreMissionDemande(dem);
+    const numUnique =
+      dem.documentPermission?.numeroUnique ||
+      (isInterv ? `FIT/2026-${numSeq}` : isMiss ? `JPC/2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`);
+
+    setBulletinToView({
+      ...dem,
+      documentPermission: dem.documentPermission || {
+        numeroUnique: numUnique,
+        qrCodeUrl: `/api/qr?data=${numUnique}`,
+        tokenVerification: `TOK-${Date.now().toString(36).toUpperCase()}`,
+        dateEmission: new Date().toISOString(),
+        emetteurAgentNom: "Direction des Ressources Humaines",
+        emetteurAgentMatricule: "DRH-001",
+        cachetOfficiel: true,
+        signatureElectronique: true,
+        hashSha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        dureeConservationAnnees: 10,
+        balanceCongesPayesSolde: 24,
+      },
+    });
+  };
 
   // Filtrage combiné rigoureux
   const filteredDemandes = useMemo(() => {
     return myDemandes
       .filter((dem) => {
+        // Filtre par Univers séparé
+        if (universActif === "CONGES" && !isCongeOrPermissionDemande(dem)) return false;
+        if (universActif === "MISSIONS" && !isOrdreMissionDemande(dem)) return false;
+        if (universActif === "INTERVENTIONS" && !isInterventionDemande(dem)) return false;
+
         // Filtre Statut étendu (cycle de vie complet)
         if (filterStatut === "EN_COURS") {
           if (!["EN_VALIDATION_N1", "EN_VALIDATION_DRH", "EN_VALIDATION_DG"].includes(dem.statut)) return false;
@@ -89,7 +157,7 @@ function MesDemandesContent() {
         }
         return 0;
       });
-  }, [myDemandes, filterStatut, filterType, searchQuery, sortBy]);
+  }, [myDemandes, universActif, filterStatut, filterType, searchQuery, sortBy]);
 
   // Pagination
   const totalPages = Math.ceil(filteredDemandes.length / itemsPerPage) || 1;
@@ -166,34 +234,103 @@ function MesDemandesContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── EN-TÊTE HARMONISÉ AVEC IDENTITÉ AGILLY ORANGE ── */}
+      {/* ── EN-TÊTE DYNAMIQUE SELON L'UNIVERS SÉLECTIONNÉ ── */}
       <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              Mes demandes d&apos;absences & permissions
+              {universActif === "CONGES" && "Mes demandes de Congés & Permissions"}
+              {universActif === "MISSIONS" && "Suivi de mes Ordres de Mission"}
+              {universActif === "INTERVENTIONS" && "Suivi de mes Fiches d'Intervention Technique"}
+              {universActif === "TOUS" && "Tableau de suivi (Congés, Ordres de Mission & Interventions)"}
             </h1>
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            Historique complet officiel Agilly, suivi des validations et téléchargement des autorisations scellées.
+            Cliquez sur <strong>Consulter</strong> sur une ligne du tableau pour voir l&apos;avancement du workflow et télécharger le document A4 officiel associé dès validation.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
-            href="/absences"
-            className="text-xs font-bold text-slate-700 hover:text-[#C25E00] border border-slate-300 hover:border-[#F0822A] px-3.5 py-1.5 bg-white transition-all shadow-2xs"
+            href="/absences/nouvelle?type=CONGES_ANNUELS"
+            className="text-xs font-bold text-slate-800 hover:text-[#C25E00] border border-slate-300 hover:border-[#F0822A] px-3 py-2 bg-white transition-all shadow-2xs"
           >
-            &larr; Tableau de bord
+            + Congé / Permission
           </Link>
           <Link
-            href="/absences/nouvelle"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#F0822A] to-[#D96F1D] hover:from-[#D96F1D] hover:to-[#B95914] text-white font-black text-xs py-2 px-4 transition-all shadow-sm hover:shadow-md active:scale-[0.99]"
+            href="/absences/nouvelle?type=MISSION_DEPLACEMENT"
+            className="text-xs font-bold text-white bg-[#F0822A] hover:bg-[#D96F1D] px-3.5 py-2 transition-all shadow-2xs"
           >
-            <span>+ Nouvelle demande</span>
+            + Ordre de Mission
+          </Link>
+          <Link
+            href="/absences/nouvelle?type=INTERVENTION_TERRAIN"
+            className="text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 transition-all shadow-2xs"
+          >
+            + Fiche d&apos;Intervention
           </Link>
         </div>
+      </div>
+
+      {/* ── ONGLETS DE SÉPARATION CLAIRE DES 3 UNIVERS ── */}
+      <div className="flex flex-wrap border-b border-slate-200 bg-white px-2">
+        <button
+          type="button"
+          onClick={() => { setUniversActif("CONGES"); setCurrentPage(1); }}
+          className={`py-3 px-4 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[1px] cursor-pointer ${
+            universActif === "CONGES"
+              ? "border-[#F0822A] text-[#C25E00] bg-orange-50/30"
+              : "border-transparent text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <span>1. Congés &amp; Permissions</span>
+          <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-slate-100 text-slate-800">
+            {countConges}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setUniversActif("MISSIONS"); setCurrentPage(1); }}
+          className={`py-3 px-4 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[1px] cursor-pointer ${
+            universActif === "MISSIONS"
+              ? "border-[#F0822A] text-[#C25E00] bg-orange-50/30"
+              : "border-transparent text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <span>2. Ordres de Mission</span>
+          <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-orange-100 text-[#C25E00]">
+            {countMissions}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setUniversActif("INTERVENTIONS"); setCurrentPage(1); }}
+          className={`py-3 px-4 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[1px] cursor-pointer ${
+            universActif === "INTERVENTIONS"
+              ? "border-slate-900 text-slate-900 bg-slate-50"
+              : "border-transparent text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <span>3. Fiches d&apos;Intervention Technique</span>
+          <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-slate-200 text-slate-900">
+            {countInterventions}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setUniversActif("TOUS"); setCurrentPage(1); }}
+          className={`py-3 px-4 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[1px] cursor-pointer ml-auto ${
+            universActif === "TOUS"
+              ? "border-[#F0822A] text-[#F0822A]"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <span>Tout afficher ({myDemandes.length})</span>
+        </button>
       </div>
 
       {/* ── 4 CARTES RAPIDES DU HAUT (CLIQUABLES POUR FILTRER IMMÉDIATEMENT) ── */}
@@ -486,39 +623,9 @@ function MesDemandesContent() {
                           {["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) && (
                             <button
                               type="button"
-                              onClick={() => {
-                                if (dem.statut === "APPROUVEE" && !dem.documentPermission) {
-                                  editerPermission(dem.id);
-                                }
-                                const numSeq = dem.codeReference.replace(/\D/g, "").slice(-5) || "00018";
-                                const isMission =
-                                  dem.familleDemande === "MISSIONS" ||
-                                  dem.typeDemande === "MISSION_DEPLACEMENT" ||
-                                  dem.typeDemande === "INTERVENTION_TERRAIN" ||
-                                  dem.libelleType?.toLowerCase().includes("mission");
-                                const numUnique =
-                                  dem.documentPermission?.numeroUnique ||
-                                  (isMission ? `AGY-ODM-2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`);
-
-                                setBulletinToView({
-                                  ...dem,
-                                  documentPermission: dem.documentPermission || {
-                                    numeroUnique: numUnique,
-                                    qrCodeUrl: `/api/qr?data=${numUnique}`,
-                                    tokenVerification: `TOK-${Date.now().toString(36).toUpperCase()}`,
-                                    dateEmission: new Date().toISOString(),
-                                    emetteurAgentNom: "Direction des Ressources Humaines",
-                                    emetteurAgentMatricule: "DRH-001",
-                                    cachetOfficiel: true,
-                                    signatureElectronique: true,
-                                    hashSha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                                    dureeConservationAnnees: 10,
-                                    balanceCongesPayesSolde: 24,
-                                  },
-                                });
-                              }}
+                              onClick={() => openOfficialDocument(dem)}
                               className="px-2.5 py-1 text-[11px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors cursor-pointer shadow-2xs active:scale-[0.98]"
-                              title="Consulter et imprimer l'autorisation officielle scellée"
+                              title="Télécharger / Imprimer le document officiel A4 (PDF)"
                             >
                               PDF
                             </button>
@@ -537,8 +644,8 @@ function MesDemandesContent() {
 
                           <button
                             type="button"
-                            onClick={() => setSelectedDemande(dem)}
-                            className="px-2.5 py-1 text-[11px] font-semibold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 cursor-pointer"
+                            onClick={() => openOfficialDocument(dem)}
+                            className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#F0822A] hover:bg-[#D96F1D] border border-[#F0822A] cursor-pointer transition-colors"
                           >
                             Consulter &rarr;
                           </button>
