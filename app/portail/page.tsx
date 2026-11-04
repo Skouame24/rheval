@@ -105,7 +105,7 @@ export default function PortailPage() {
         </div>
 
         {/* ─── Applications Grid (Charte Bords Carrés rounded-none) ─── */}
-        <div className="w-full max-w-[1150px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="w-full max-w-[1200px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           
           {/* 1. RHEVAL - ÉVALUATIONS ANNUELLES */}
           <button 
@@ -137,7 +137,7 @@ export default function PortailPage() {
 
           {/* 2. CONGÉS & PERMISSIONS */}
           <button 
-            onClick={() => router.push("/absences?tab=CONGES")}
+            onClick={() => router.push("/absences")}
             className="group relative flex flex-col bg-white border border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-blue-600"
           >
             <div className="p-6 pb-4">
@@ -156,7 +156,7 @@ export default function PortailPage() {
                 </h3>
               </div>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Demandes de congés annuels, permissions exceptionnelles, suivi des soldes acquis et édition des bulletins.
+                Demandes de congés annuels, permissions d&apos;absence, contrôle des soldes et bulletins officiels.
               </p>
             </div>
             
@@ -168,40 +168,75 @@ export default function PortailPage() {
             </div>
           </button>
 
-          {/* 3. MISSIONS & INTERVENTIONS TECHNIQUES */}
+          {/* 3. ORDRES DE MISSION */}
           <button 
-            onClick={() => router.push("/absences?tab=MISSIONS")}
-            className="group relative flex flex-col bg-white border border-slate-200 hover:border-emerald-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-emerald-600"
+            onClick={() => router.push("/absences/missions")}
+            className="group relative flex flex-col bg-white border border-slate-200 hover:border-[#F0822A] shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-[#F0822A]"
           >
             <div className="p-6 pb-4">
-              <div className="w-12 h-12 bg-emerald-50 text-emerald-700 flex items-center justify-center rounded-none mb-4 border border-emerald-200 group-hover:scale-105 transition-transform">
+              <div className="w-12 h-12 bg-orange-50 text-[#C25E00] flex items-center justify-center rounded-none mb-4 border border-orange-200 group-hover:scale-105 transition-transform">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="0" ry="0"/>
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
                 </svg>
               </div>
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                  Missions &amp; Interventions
+                <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-[#F0822A] transition-colors">
+                  Ordres de Mission
                 </h3>
-                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5">
-                  TERRAIN
+                <span className="text-[9px] font-black uppercase tracking-wider bg-orange-50 text-[#C25E00] border border-orange-200 px-1.5 py-0.5">
+                  DÉPLACEMENT
                 </span>
               </div>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Ordres de mission (frais kilométriques CI) et Fiches d&apos;intervention technique multi-employés sur site client.
+                Déplacements professionnels individuels, calcul automatique des frais selon la distance CI et Ordre de Mission signé DG.
               </p>
             </div>
             
-            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-emerald-50/50 transition-colors">
-              <span className="text-xs font-extrabold text-emerald-700">Espace Missions →</span>
-              <svg className="text-emerald-700 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-orange-50/50 transition-colors">
+              <span className="text-xs font-extrabold text-[#C25E00]">Ordres de Mission →</span>
+              <svg className="text-[#C25E00] transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
               </svg>
             </div>
           </button>
 
-          {/* 4. ÉVALUATION COMPÉTENCES - EN DÉVELOPPEMENT */}
+          {/* 4. INTERVENTIONS TECHNIQUES */}
+          <button 
+            onClick={() => router.push("/absences/interventions")}
+            className="group relative flex flex-col bg-white border border-slate-200 hover:border-slate-900 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-slate-900"
+          >
+            <div className="p-6 pb-4">
+              <div className="w-12 h-12 bg-slate-100 text-slate-900 flex items-center justify-center rounded-none mb-4 border border-slate-300 group-hover:scale-105 transition-transform">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-slate-900 transition-colors">
+                  Interventions Techniques
+                </h3>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-slate-200 text-slate-800 border border-slate-300 px-1.5 py-0.5">
+                  ÉQUIPE
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Fiches d&apos;intervention sur site client en équipe multi-employés, détails Domino / Windows / Infra et tarif journalier.
+              </p>
+            </div>
+            
+            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-slate-100 transition-colors">
+              <span className="text-xs font-extrabold text-slate-900">Interventions →</span>
+              <svg className="text-slate-900 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </div>
+          </button>
+
+          {/* 5. ÉVALUATION COMPÉTENCES - EN DÉVELOPPEMENT */}
           <div className="relative flex flex-col bg-white/80 border border-slate-200/80 opacity-80 select-none rounded-none border-t-4 border-t-purple-600">
             <div className="p-6 pb-4">
               <div className="w-12 h-12 bg-purple-50 text-purple-600 flex items-center justify-center rounded-none mb-4 border border-purple-100">
@@ -231,7 +266,7 @@ export default function PortailPage() {
       
       {/* ─── Footer ─── */}
       <footer className="text-center py-5 text-xs font-extrabold text-slate-400 uppercase tracking-widest border-t border-slate-200 bg-white/90 relative z-10">
-        AGILLY GROUP © {new Date().getFullYear()} — PORTAIL SSO DES APPLICATIONS D'ENTREPRISE
+        AGILLY GROUP &copy; {new Date().getFullYear()} &mdash; PORTAIL SSO DES APPLICATIONS D&apos;ENTREPRISE
       </footer>
     </div>
   );

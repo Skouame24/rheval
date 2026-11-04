@@ -1,7 +1,10 @@
 // ============================================================
 // features/absences/components/AbsencesSidebar.tsx
-// Barre latérale gauche — Logo Agilly officiel, suppression doublons
-// Respect strict du Design System IBM Carbon x Agilly Corporate
+// Barre latérale gauche — Navigation structurée en 3 univers étanches :
+//  1. Congés & Permissions
+//  2. Ordres de Mission (Déplacements & Frais CI)
+//  3. Interventions Techniques (Équipe & Prestations site client)
+// Respect strict du Design System Soft UI Enterprise (rounded-none)
 // ============================================================
 
 "use client";
@@ -26,26 +29,18 @@ interface NavSection {
 
 export function AbsencesSidebar() {
   const pathname = usePathname();
-  const { currentPersona, pendingValidationsCount, setIsDemoDrawerOpen } = useAbsences();
+  const { currentPersona, pendingValidationsCount } = useAbsences();
   const [navigatingTo, setNavigatingTo] = React.useState<string | null>(null);
-  const [currentSearch, setCurrentSearch] = React.useState<string>("");
 
-  // Réinitialiser la transition dès que la route a changé
   React.useEffect(() => {
     setNavigatingTo(null);
-    if (typeof window !== "undefined") {
-      setCurrentSearch(window.location.search);
-    }
   }, [pathname]);
 
   const isRouteActive = (href: string) => {
-    const [basePath, queryPart] = href.split("?");
-    if (basePath === "/absences") {
+    if (href === "/absences") {
       return pathname === "/absences";
     }
-    if (!pathname.startsWith(basePath)) return false;
-    if (!queryPart) return true;
-    return currentSearch.includes(queryPart);
+    return pathname.startsWith(href);
   };
 
   const role = currentPersona.role;
@@ -69,8 +64,8 @@ export function AbsencesSidebar() {
           ),
         },
         {
-          label: "Demander Congé / Permission",
-          href: "/absences/nouvelle?type=CONGES_ANNUELS",
+          label: "Demander un Congé",
+          href: "/absences/nouvelle",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -81,7 +76,7 @@ export function AbsencesSidebar() {
         },
         {
           label: "Mes Congés & Permissions",
-          href: "/absences/demandes?univers=CONGES",
+          href: "/absences/demandes",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -116,11 +111,11 @@ export function AbsencesSidebar() {
       ],
     },
     {
-      title: "2. Missions & Interventions",
+      title: "2. Ordres de Mission",
       items: [
         {
           label: "Nouvel Ordre de Mission",
-          href: "/absences/nouvelle?type=MISSION_DEPLACEMENT",
+          href: "/absences/missions/nouvelle",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -129,8 +124,23 @@ export function AbsencesSidebar() {
           ),
         },
         {
+          label: "Suivi des Missions",
+          href: "/absences/missions",
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: "3. Interventions Techniques",
+      items: [
+        {
           label: "Nouvelle Fiche d'Intervention",
-          href: "/absences/nouvelle?type=INTERVENTION_TERRAIN",
+          href: "/absences/interventions/nouvelle",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -141,12 +151,13 @@ export function AbsencesSidebar() {
           ),
         },
         {
-          label: "Suivi Missions & Interventions",
-          href: "/absences/demandes?univers=MISSIONS",
+          label: "Suivi des Interventions",
+          href: "/absences/interventions",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="14" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              <rect x="3" y="3" width="18" height="18" rx="0" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="9" y1="21" x2="9" y2="9" />
             </svg>
           ),
         },
@@ -184,8 +195,8 @@ export function AbsencesSidebar() {
                       href: "/absences/workflows",
                       icon: (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="6" height="6" rx="1" />
-                          <rect x="15" y="15" width="6" height="6" rx="1" />
+                          <rect x="3" y="3" width="6" height="6" rx="0" />
+                          <rect x="15" y="15" width="6" height="6" rx="0" />
                           <path d="M6 9v3a3 3 0 0 0 3 3h6" />
                           <polyline points="12 12 15 15 12 18" />
                         </svg>
@@ -222,11 +233,10 @@ export function AbsencesSidebar() {
 
   return (
     <aside className="w-60 bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col justify-between shrink-0 select-none z-30">
-      {/* ── EN-TÊTE AVEC LE LOGO AGILLY ET IDENTITÉ ORANGE ── */}
       <div className="flex flex-col">
         <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-orange-50/60 to-white">
           <Link href="/absences" className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 flex items-center justify-center p-0.5 rounded-xs bg-white shadow-2xs border border-orange-100">
+            <div className="relative w-8 h-8 flex items-center justify-center p-0.5 rounded-none bg-white border border-orange-100">
               <Image
                 src="/logo.png"
                 alt="Logo Agilly"
@@ -244,17 +254,16 @@ export function AbsencesSidebar() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#F0822A]" />
               </div>
               <span className="text-[10px] text-[#C25E00] font-bold mt-0.5 tracking-tight">
-                Portail RH &amp; Missions
+                Portail RH &amp; Terrain
               </span>
             </div>
           </Link>
         </div>
 
-        {/* ── NAVIGATION ADAPTÉE AU RÔLE AVEC TOUCHES AGILLY ORANGE ── */}
-        <nav className="p-3 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-160px)] mt-2">
+        <nav className="p-3 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-140px)] mt-2">
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="flex flex-col gap-1">
-              <span className="px-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+              <span className="px-2.5 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-0.5">
                 {section.title}
               </span>
               {section.items.map((item) => {
@@ -265,14 +274,10 @@ export function AbsencesSidebar() {
                     key={item.href}
                     href={item.href}
                     onClick={() => {
-                      const [, q] = item.href.split("?");
-                      setCurrentSearch(q ? `?${q}` : "");
-                      if (!active && item.href.split("?")[0] !== pathname) {
-                        setNavigatingTo(item.href);
-                      }
+                      if (!active) setNavigatingTo(item.href);
                     }}
                     className={`
-                      flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-all
+                      flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-all rounded-none
                       ${
                         active
                           ? "bg-gradient-to-r from-orange-100/80 via-orange-50/60 to-transparent text-[#C25E00] font-extrabold border-l-4 border-[#F0822A] shadow-2xs"
@@ -297,7 +302,7 @@ export function AbsencesSidebar() {
                     </div>
 
                     {item.badge !== undefined && !isNavigating && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#F0822A] text-white leading-tight shadow-2xs">
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 bg-[#F0822A] text-white leading-tight">
                         {item.badge}
                       </span>
                     )}
@@ -309,11 +314,10 @@ export function AbsencesSidebar() {
         </nav>
       </div>
 
-      {/* ── BAS : RETOUR PORTAIL ── */}
       <div className="border-t border-slate-200 bg-slate-50/70 p-3 flex flex-col gap-2">
         <Link
           href="/portail"
-          className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+          className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15 18 9 12 15 6" />

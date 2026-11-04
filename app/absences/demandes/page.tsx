@@ -45,8 +45,8 @@ function MesDemandesContent() {
   const searchParams = useSearchParams();
   const { myDemandes, annulerDemande, editerPermission, isLoading } = useAbsences();
 
-  // Onglet d'univers séparé : TOUS | CONGES | MISSIONS | INTERVENTIONS
-  const [universActif, setUniversActif] = useState<"TOUS" | "CONGES" | "MISSIONS" | "INTERVENTIONS">("TOUS");
+  // Onglet d'univers séparé : CONGES par défaut pour Mes Congés & Permissions
+  const [universActif, setUniversActif] = useState<"TOUS" | "CONGES" | "MISSIONS" | "INTERVENTIONS">("CONGES");
 
   // Filtres
   const [filterStatut, setFilterStatut] = useState<string>("TOUS");
