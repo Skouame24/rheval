@@ -1,7 +1,9 @@
 // ============================================================
 // app/absences/nouvelle/page.tsx
-// Formulaire DÉDIÉ UNIQUEMENT aux Congés & Permissions d'absence
-// (Les Ordres de Mission et Interventions Techniques ont leurs propres pages dédiées)
+// Parcours direct et étanche pour les demandes RH
+// - Écran de sélection initial clair (4 choix bien séparés)
+// - Dès qu'un choix est cliqué : affichage DIRECT du formulaire concerné
+//   (AUCUNE autre carte ni onglet persistant ne reste visible au-dessus)
 // ============================================================
 
 "use client";
@@ -198,35 +200,50 @@ function NouvelleDemandeForm() {
   const searchParams = useSearchParams();
   const { currentPersona, soldeConges, addDemande } = useAbsences();
 
-  // Onglet Congés vs Permissions
-  const [familleActive, setFamilleActive] = useState<"CONGES" | "PERMISSIONS">("CONGES");
+  // État de sélection : null = écran de choix initial (4 cartes)
+  // "CONGES" = formulaire de Congé direct
+  // "PERMISSIONS" = formulaire de Permission direct
+  const [familleActive, setFamilleActive] = useState<"CONGES" | "PERMISSIONS" | null>(null);
   const [typeDemande, setTypeDemande] = useState<TypeDemandeRH>("CONGES_ANNUELS");
 
   useEffect(() => {
     const typeParam = searchParams.get("type");
+    const familleParam = searchParams.get("famille");
+
+    if (typeParam === "MISSION_DEPLACEMENT") {
+      router.replace("/absences/missions/nouvelle");
+      return;
+    }
+    if (typeParam === "INTERVENTION_TERRAIN") {
+      router.replace("/absences/interventions/nouvelle");
+      return;
+    }
+
     if (typeParam) {
-      if (typeParam === "MISSION_DEPLACEMENT") {
-        router.replace("/absences/missions/nouvelle");
-        return;
-      }
-      if (typeParam === "INTERVENTION_TERRAIN") {
-        router.replace("/absences/interventions/nouvelle");
-        return;
-      }
       const found = MOTIFS_CATALOGUE.find((m) => m.id === typeParam);
       if (found) {
         setFamilleActive(found.famille === "PERMISSIONS" ? "PERMISSIONS" : "CONGES");
         setTypeDemande(found.id);
+        return;
       }
+    }
+
+    if (familleParam === "CONGES") {
+      setFamilleActive("CONGES");
+      setTypeDemande("CONGES_ANNUELS");
+    } else if (familleParam === "PERMISSIONS") {
+      setFamilleActive("PERMISSIONS");
+      setTypeDemande("PERMISSION_MARIAGE");
     }
   }, [searchParams, router]);
 
   const motifsFamille = useMemo(() => {
+    if (!familleActive) return [];
     return MOTIFS_CATALOGUE.filter((m) => m.famille === familleActive);
   }, [familleActive]);
 
   useEffect(() => {
-    if (!motifsFamille.some((m) => m.id === typeDemande)) {
+    if (familleActive && !motifsFamille.some((m) => m.id === typeDemande)) {
       if (motifsFamille[0]) {
         setTypeDemande(motifsFamille[0].id);
       }
@@ -378,107 +395,203 @@ function NouvelleDemandeForm() {
     return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
   };
 
+  // ══════════════════════════════════════════════════════════════
+  // ÉCRAN 1 : CHOIX INITIAL SÉPARÉ (VISIBLE UNIQUEMENT SI RIEN N'EST CHOISI)
+  // DÈS QU'ON CLIQUE, CE BLOC DISPARAÎT ET ON ENTRE DIRECTEMENT DANS LE FORMULAIRE
+  // ══════════════════════════════════════════════════════════════
+  if (familleActive === null) {
+    return (
+      <div className="flex flex-col gap-6 max-w-5xl mx-auto">
+        <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-[#F0822A]" />
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                Nouvelle demande &mdash; Choisissez la nature de votre démarche
+              </h1>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Chaque démarche dispose de son propre formulaire dédié. Cliquez sur l&apos;option voulue pour ouvrir son formulaire direct.
+            </p>
+          </div>
+
+          <Link
+            href="/absences/demandes"
+            className="text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-1.5 bg-white transition-all self-start sm:self-auto shadow-2xs whitespace-nowrap"
+          >
+            &larr; Retour à mes demandes
+          </Link>
+        </div>
+
+        {/* GRILLE DES 4 CHOIX ÉTANCHES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* 1. CONGÉS */}
+          <button
+            type="button"
+            onClick={() => {
+              setFamilleActive("CONGES");
+              setTypeDemande("CONGES_ANNUELS");
+            }}
+            className="group p-6 bg-white border border-slate-200 hover:border-blue-600 text-left cursor-pointer transition-all border-t-4 border-t-blue-600 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-black uppercase text-blue-900 tracking-wider">
+                  1. Congés Payés &amp; Repos Légal
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 font-bold">
+                  6 motifs
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors mb-2">
+                Congé Annuel, Maladie, Maternité, Sans solde
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed m-0">
+                Décompté de votre solde annuel acquis de 2,2 jours/mois ou soumis à un justificatif officiel (arrêt de travail, maternité, stage).
+              </p>
+            </div>
+            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-600 group-hover:text-blue-700">
+              <span>Remplir une demande de Congé</span>
+              <span>&rarr;</span>
+            </div>
+          </button>
+
+          {/* 2. PERMISSIONS */}
+          <button
+            type="button"
+            onClick={() => {
+              setFamilleActive("PERMISSIONS");
+              setTypeDemande("PERMISSION_MARIAGE");
+            }}
+            className="group p-6 bg-white border border-slate-200 hover:border-indigo-600 text-left cursor-pointer transition-all border-t-4 border-t-indigo-600 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-black uppercase text-indigo-900 tracking-wider">
+                  2. Permissions Exceptionnelles
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">
+                  9 motifs
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-700 transition-colors mb-2">
+                Événements familiaux, Médical &amp; Sortie en heures
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed m-0">
+                Mariage, naissance, obsèques, rendez-vous médical ou sortie en cours de journée. Le solde de vos congés payés reste préservé.
+              </p>
+            </div>
+            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-indigo-600 group-hover:text-indigo-700">
+              <span>Remplir une demande de Permission</span>
+              <span>&rarr;</span>
+            </div>
+          </button>
+
+          {/* 3. ORDRE DE MISSION */}
+          <button
+            type="button"
+            onClick={() => router.push("/absences/missions/nouvelle")}
+            className="group p-6 bg-white border border-slate-200 hover:border-[#F0822A] text-left cursor-pointer transition-all border-t-4 border-t-[#F0822A] shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-black uppercase text-[#C25E00] tracking-wider">
+                  3. Ordre de Mission Professionnel
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 bg-orange-50 text-[#C25E00] border border-orange-200 font-bold">
+                  Déplacement CI
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-[#F0822A] transition-colors mb-2">
+                Mission Professionnelle Individuelle
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed m-0">
+                Déplacement professionnel avec calcul automatique des frais selon le barème kilométrique officiel et édition de l&apos;Ordre de Mission signé DG.
+              </p>
+            </div>
+            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#F0822A] group-hover:text-[#D96F1D]">
+              <span>Établir un Ordre de Mission</span>
+              <span>&rarr;</span>
+            </div>
+          </button>
+
+          {/* 4. INTERVENTION TECHNIQUE */}
+          <button
+            type="button"
+            onClick={() => router.push("/absences/interventions/nouvelle")}
+            className="group p-6 bg-white border border-slate-200 hover:border-slate-900 text-left cursor-pointer transition-all border-t-4 border-t-slate-900 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-black uppercase text-slate-900 tracking-wider">
+                  4. Intervention Technique
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-300 font-bold">
+                  Équipe &amp; Client
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 transition-colors mb-2">
+                Fiche d&apos;Intervention sur Site Client
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed m-0">
+                Intervention technique en équipe multi-salariés, spécifications Domino, Windows, Infrastructure/Réseau et tarif contractuel journalier.
+              </p>
+            </div>
+            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
+              <span>Établir une Fiche d&apos;Intervention</span>
+              <span>&rarr;</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ÉCRAN 2 : FORMULAIRE DIRECT CONGÉ OU PERMISSION
+  // (AUCUNE AUTRE CARTE NI ONGLETS D'AUTRES TYPES N'EST AFFICHÉ AU-DESSUS !)
+  // ══════════════════════════════════════════════════════════════
+  const isConge = familleActive === "CONGES";
+
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-      {/* ── EN-TÊTE DÉDIÉ CONGÉS & PERMISSIONS ── */}
-      <div className="bg-white border border-slate-200 border-t-4 border-t-blue-600 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+      {/* ── EN-TÊTE DÉDIÉ SANS AUCUN TAB POLLUANT ── */}
+      <div className={`bg-white border border-slate-200 border-t-4 ${isConge ? "border-t-blue-600" : "border-t-indigo-600"} p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs`}>
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-blue-600" />
+            <span className={`w-2.5 h-2.5 ${isConge ? "bg-blue-600" : "bg-indigo-600"}`} />
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              Demande de Congé ou Permission d&apos;Absence
+              {isConge ? "Demande de Congé Payé ou Statut Légal" : "Demande de Permission d'Absence Exceptionnelle"}
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Formulaire officiel Agilly pour la pose de vos congés annuels, arrêts maladie ou permissions conventionnelles.
+            {isConge
+              ? "Formulaire officiel de pose de vos congés annuels, arrêts de travail ou congés légaux conventionnés."
+              : "Formulaire officiel pour autorisations d'absence exceptionnelles (mariage, naissance, obsèques, rendez-vous médical, sortie en heures)."}
           </p>
         </div>
 
-        <Link
-          href="/absences/demandes"
-          className="text-xs font-bold text-slate-600 hover:text-blue-700 border border-slate-300 hover:border-blue-600 px-3.5 py-1.5 bg-white transition-all self-start sm:self-auto shadow-2xs whitespace-nowrap"
-        >
-          &larr; Mes demandes de congés
-        </Link>
-      </div>
-
-      {/* ── BANDEAU D'ORIENTATION CLAIRE VERS MISSIONS ET INTERVENTIONS ── */}
-      <div className="bg-slate-50 border border-slate-200 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <span className="text-slate-600 font-medium">
-          Vous devez déclarer un déplacement ou une intervention technique ?
-        </span>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/absences/missions/nouvelle"
-            className="font-bold text-[#F0822A] hover:underline bg-white border border-orange-200 px-2.5 py-1"
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setFamilleActive(null)}
+            className="text-xs font-bold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-1.5 bg-white transition-all shadow-2xs cursor-pointer"
           >
-            &rarr; Ouvrir l&apos;Ordre de Mission
-          </Link>
+            &larr; Choisir une autre démarche
+          </button>
           <Link
-            href="/absences/interventions/nouvelle"
-            className="font-bold text-slate-900 hover:underline bg-white border border-slate-300 px-2.5 py-1"
+            href="/absences/demandes"
+            className="text-xs font-bold text-slate-600 hover:text-blue-700 border border-slate-300 hover:border-blue-600 px-3.5 py-1.5 bg-white transition-all shadow-2xs whitespace-nowrap"
           >
-            &rarr; Ouvrir la Fiche d&apos;Intervention
+            Mes demandes
           </Link>
         </div>
       </div>
 
-      {/* ── CHOIX : 1. CONGÉS ou 2. PERMISSIONS (SEULEMENT CES DEUX-LÀ !) ── */}
-      <div className="bg-white border border-slate-200 p-4 flex flex-col gap-3 shadow-2xs">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
-          Sélectionnez la nature de votre repos :
-        </span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setFamilleActive("CONGES")}
-            className={`p-3.5 text-left cursor-pointer transition-all border rounded-none ${
-              familleActive === "CONGES"
-                ? "bg-blue-50/70 border-2 border-blue-600 shadow-xs"
-                : "bg-white border border-slate-200 hover:border-blue-300"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className={`text-xs font-black uppercase ${familleActive === "CONGES" ? "text-blue-900" : "text-slate-800"}`}>
-                1. Congés (Décomptés du solde ou statut légal)
-              </span>
-              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${familleActive === "CONGES" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}>
-                6 motifs {familleActive === "CONGES" && "✓"}
-              </span>
-            </div>
-            <p className="text-[11px] leading-snug text-slate-500 m-0">
-              Congé annuel payé, arrêt maladie, maternité, paternité, sans solde, formation.
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFamilleActive("PERMISSIONS")}
-            className={`p-3.5 text-left cursor-pointer transition-all border rounded-none ${
-              familleActive === "PERMISSIONS"
-                ? "bg-blue-50/70 border-2 border-blue-600 shadow-xs"
-                : "bg-white border border-slate-200 hover:border-blue-300"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className={`text-xs font-black uppercase ${familleActive === "PERMISSIONS" ? "text-blue-900" : "text-slate-800"}`}>
-                2. Permissions (Solde annuel CP préservé)
-              </span>
-              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${familleActive === "PERMISSIONS" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}>
-                9 motifs {familleActive === "PERMISSIONS" && "✓"}
-              </span>
-            </div>
-            <p className="text-[11px] leading-snug text-slate-500 m-0">
-              Mariage, naissance, obsèques, urgence familiale, médical, sortie en heures.
-            </p>
-          </button>
-        </div>
-      </div>
-
-      {/* ── FORMULAIRE PROPRE CONGÉS / PERMISSIONS ── */}
+      {/* ── FORMULAIRE DIRECT PROPRE (PLEINE PAGE, SANS ENCOMBREMENT) ── */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-8 bg-white border border-slate-200 p-6 flex flex-col gap-5 text-xs shadow-2xs">
-          {/* Identité */}
+          {/* Identité du demandeur */}
           <div className="p-3.5 bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <span className="text-slate-500 text-[10px] block uppercase font-bold">Demandeur</span>
@@ -498,10 +611,10 @@ function NouvelleDemandeForm() {
             </div>
           </div>
 
-          {/* Motif précis */}
+          {/* Motif précis sélectionné */}
           <div>
             <label htmlFor="select-motif" className="block text-slate-900 font-bold mb-1.5">
-              Motif exact de l&apos;absence <span className="text-blue-600">*</span>
+              Motif exact de votre {isConge ? "congé" : "permission"} <span className={isConge ? "text-blue-600" : "text-indigo-600"}>*</span>
             </label>
             <div className="relative">
               <select
@@ -512,271 +625,301 @@ function NouvelleDemandeForm() {
               >
                 {motifsFamille.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.titre} — {m.sousTitre}
+                    {m.titre} &mdash; {m.sousTitre}
                   </option>
                 ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 font-bold">
-                ▼
+                &#9660;
               </div>
             </div>
 
-            <div className="mt-2 p-2.5 bg-blue-50/50 border-l-2 border-blue-600 text-slate-700">
+            {/* Fiche d'information sur le motif actif */}
+            <div className="mt-2.5 p-3 bg-slate-50 border-l-3 border-l-blue-600 border border-slate-200 flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-slate-900">{motifActif.titre}</span>
-                <span className="font-mono font-semibold text-[10px] px-1.5 py-0.2 bg-white border border-slate-300 text-slate-700">
+                <span className="text-[10px] font-mono font-bold bg-white px-2 py-0.5 border border-slate-200 text-slate-700">
                   {motifActif.badgeLegal}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5 m-0">{motifActif.decompteLabel}</p>
+              <p className="text-[11px] text-slate-600 m-0">{motifActif.decompteLabel}</p>
             </div>
           </div>
 
-          {/* Plage horaire ou Dates */}
-          {motifActif.isSortieHeures ? (
-            <div className="p-4 bg-orange-50/50 border border-orange-200 flex flex-col gap-3">
-              <div className="flex items-center justify-between pb-1 border-b border-orange-200">
-                <span className="font-bold text-orange-950 text-xs">
-                  Plage horaire de la sortie temporaire
-                </span>
-                <span className="font-mono font-bold text-xs text-[#B95914]">
-                  {dureeHeuresMinutes?.text}
-                </span>
+          {/* Période / Dates */}
+          {!motifActif.isSortieHeures ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="date-debut" className="block text-slate-900 font-bold mb-1">
+                  Date de début <span className="text-blue-600">*</span>
+                </label>
+                <input
+                  id="date-debut"
+                  type="date"
+                  value={dateDebut}
+                  onChange={(e) => setDateDebut(e.target.value)}
+                  className="w-full h-10 px-3 text-xs bg-white border border-slate-300 focus:border-blue-600 focus:outline-none rounded-none font-medium"
+                  required
+                />
+                <label className="flex items-center gap-2 mt-1.5 cursor-pointer text-[11px] text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={estDemiJourneeDebut}
+                    onChange={(e) => setEstDemiJourneeDebut(e.target.checked)}
+                    className="accent-blue-600"
+                  />
+                  <span>Commence à la mi-journée (après-midi)</span>
+                </label>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Date de sortie *</label>
+              <div>
+                <label htmlFor="date-fin" className="block text-slate-900 font-bold mb-1">
+                  Date de fin incluse <span className="text-blue-600">*</span>
+                </label>
+                <input
+                  id="date-fin"
+                  type="date"
+                  value={dateFin}
+                  min={dateDebut}
+                  onChange={(e) => setDateFin(e.target.value)}
+                  className="w-full h-10 px-3 text-xs bg-white border border-slate-300 focus:border-blue-600 focus:outline-none rounded-none font-medium"
+                  required
+                />
+                <label className="flex items-center gap-2 mt-1.5 cursor-pointer text-[11px] text-slate-600">
                   <input
-                    type="date"
-                    value={dateDebut}
-                    onChange={(e) => {
-                      setDateDebut(e.target.value);
-                      setDateFin(e.target.value);
-                    }}
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
+                    type="checkbox"
+                    checked={estDemiJourneeFin}
+                    onChange={(e) => setEstDemiJourneeFin(e.target.checked)}
+                    className="accent-blue-600"
                   />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Heure de départ *</label>
-                  <input
-                    type="time"
-                    value={heureDebut}
-                    onChange={(e) => setHeureDebut(e.target.value)}
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Heure de retour prévue *</label>
-                  <input
-                    type="time"
-                    value={heureFin}
-                    onChange={(e) => setHeureFin(e.target.value)}
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
-                  />
-                </div>
+                  <span>Se termine à la mi-journée (matin)</span>
+                </label>
               </div>
             </div>
           ) : (
-            <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col gap-3">
-              <span className="font-bold text-slate-900 text-xs pb-1 border-b border-slate-200">
-                Période de l&apos;absence
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Du (inclus) *</label>
-                  <input
-                    type="date"
-                    value={dateDebut}
-                    onChange={(e) => setDateDebut(e.target.value)}
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
-                  />
-                  <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer text-slate-600 text-[11px]">
-                    <input
-                      type="checkbox"
-                      checked={estDemiJourneeDebut}
-                      onChange={(e) => setEstDemiJourneeDebut(e.target.checked)}
-                      className="accent-blue-600"
-                    />
-                    <span>Départ l&apos;après-midi (demi-journée)</span>
-                  </label>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Au (inclus) *</label>
-                  <input
-                    type="date"
-                    value={dateFin}
-                    onChange={(e) => setDateFin(e.target.value)}
-                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
-                  />
-                  <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer text-slate-600 text-[11px]">
-                    <input
-                      type="checkbox"
-                      checked={estDemiJourneeFin}
-                      onChange={(e) => setEstDemiJourneeFin(e.target.checked)}
-                      className="accent-blue-600"
-                    />
-                    <span>Retour le matin (demi-journée)</span>
-                  </label>
-                </div>
+            /* Cas spécial : Sortie ponctuelle en heures */
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="date-sortie" className="block text-slate-900 font-bold mb-1">
+                  Date de la sortie <span className="text-blue-600">*</span>
+                </label>
+                <input
+                  id="date-sortie"
+                  type="date"
+                  value={dateDebut}
+                  onChange={(e) => {
+                    setDateDebut(e.target.value);
+                    setDateFin(e.target.value);
+                  }}
+                  className="w-full h-10 px-3 text-xs bg-white border border-slate-300 focus:border-blue-600 focus:outline-none rounded-none font-medium"
+                  required
+                />
               </div>
-
-              <div className="flex items-center justify-between text-slate-700 pt-2 border-t border-slate-200 text-xs">
-                <span>Décompte retenu :</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {joursCalendaires} j calendaires ({joursOuvres} j ouvrés)
-                </span>
+              <div>
+                <label htmlFor="heure-depart" className="block text-slate-900 font-bold mb-1">
+                  Heure de départ prévue <span className="text-blue-600">*</span>
+                </label>
+                <input
+                  id="heure-depart"
+                  type="time"
+                  value={heureDebut}
+                  onChange={(e) => setHeureDebut(e.target.value)}
+                  className="w-full h-10 px-3 text-xs bg-white border border-slate-300 focus:border-blue-600 focus:outline-none rounded-none font-medium"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="heure-retour" className="block text-slate-900 font-bold mb-1">
+                  Heure de retour prévue <span className="text-blue-600">*</span>
+                </label>
+                <input
+                  id="heure-retour"
+                  type="time"
+                  value={heureFin}
+                  onChange={(e) => setHeureFin(e.target.value)}
+                  className="w-full h-10 px-3 text-xs bg-white border border-slate-300 focus:border-blue-600 focus:outline-none rounded-none font-medium"
+                  required
+                />
               </div>
             </div>
           )}
 
-          {/* Motif */}
+          {/* Motif explicite */}
           <div>
-            <label className="block text-slate-900 font-bold mb-1">
-              Motif ou justification de l&apos;absence <span className="text-blue-600">*</span>
+            <label htmlFor="motif-detail" className="block text-slate-900 font-bold mb-1">
+              Motif explicite et précisions <span className="text-blue-600">*</span>
             </label>
             <textarea
+              id="motif-detail"
               rows={3}
               value={motif}
               onChange={(e) => setMotif(e.target.value)}
-              placeholder="Précisez la situation ou justification de votre demande..."
-              className="w-full bg-slate-50 border border-slate-300 p-2.5 text-slate-900 text-xs focus:bg-white focus:outline-none focus:border-blue-600 rounded-none"
+              placeholder="Explicitez les raisons précises de votre demande à destination de votre responsable hiérarchique..."
+              className="w-full p-3 text-xs bg-white border border-slate-300 focus:border-blue-600 focus:outline-none rounded-none font-medium leading-relaxed"
               required
             />
           </div>
 
-          {/* Contact pendant l'absence */}
+          {/* Adresse & contact */}
           <div>
-            <label className="block text-slate-900 font-bold mb-1">
-              Contact ou adresse pendant l&apos;absence
+            <label htmlFor="contact-urgence" className="block text-slate-900 font-bold mb-1">
+              Contact ou adresse d&apos;urgence pendant l&apos;absence
             </label>
             <input
+              id="contact-urgence"
               type="text"
               value={adresseContact}
               onChange={(e) => setAdresseContact(e.target.value)}
-              placeholder="Ex: Abidjan Cocody, +225 07 00 00 00 00"
-              className="w-full bg-slate-50 border border-slate-300 p-2 text-slate-900 text-xs focus:bg-white focus:outline-none focus:border-blue-600 rounded-none"
+              placeholder="Numéro de téléphone d'urgence ou ville de séjour..."
+              className="w-full h-10 px-3 text-xs bg-white border border-slate-300 focus:border-blue-600 focus:outline-none rounded-none font-medium"
             />
           </div>
 
-          {/* Pièce justificative */}
-          {motifActif.id !== "CONGES_ANNUELS" && (motifActif.justificatifRequis || Boolean(motifActif.justificatifLabel)) && (
-            <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-slate-800 block">
-                    Pièce justificative {motifActif.justificatifRequis ? "(Obligatoire)" : "(Facultatif)"}
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    {motifActif.justificatifLabel || "Certificat médical, convocation, etc."}
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-medium">PDF, JPEG, PNG (max 5 Mo)</span>
-              </div>
+          {/* Pièces justificatives */}
+          <div className="border border-slate-200 p-4 bg-slate-50 flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-900">
+                Pièce justificative {motifActif.justificatifRequis && <span className="text-red-600 font-bold">* Obligatoire</span>}
+              </span>
+              <span className="text-[10px] text-slate-500">PDF, JPG, PNG &bull; max 5 Mo</span>
+            </div>
 
+            {motifActif.justificatifLabel && (
+              <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 font-medium m-0">
+                {motifActif.justificatifLabel}
+              </p>
+            )}
+
+            <div className="flex items-center gap-3">
               <input
-                type="file"
                 ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                type="file"
                 multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleFileChange}
                 className="hidden"
               />
-
-              {fichiersList.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {fichiersList.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between p-2.5 bg-white border border-slate-200">
-                      <span className="text-xs font-bold text-slate-800 truncate">{f.nom}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(i)}
-                        className="text-xs text-red-600 hover:text-red-800 font-bold px-2 py-0.5 hover:bg-red-50 cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-slate-300 hover:border-blue-600 bg-white hover:bg-blue-50/30 p-4 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer text-center rounded-none"
+                className="bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold px-3 py-1.5 text-xs transition-colors cursor-pointer"
               >
-                <span className="text-xs font-bold text-slate-800">
-                  Cliquez pour joindre un justificatif
-                </span>
+                + Joindre un document justificatif
               </button>
             </div>
-          )}
 
-          {/* Engagement */}
-          <div className="p-3 border border-slate-300 bg-white">
+            {fichiersList.length > 0 && (
+              <div className="flex flex-col gap-1.5 mt-2">
+                {fichiersList.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 bg-white border border-slate-200 text-[11px]">
+                    <span className="font-mono text-slate-800 truncate">{f.nom} ({f.taille})</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="text-red-600 hover:text-red-800 font-bold cursor-pointer ml-2"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Engagement sur l'honneur */}
+          <div className="pt-2">
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={engagementHonneur}
                 onChange={(e) => setEngagementHonneur(e.target.checked)}
-                className="mt-0.5 accent-blue-600 w-4 h-4 cursor-pointer"
+                className="accent-blue-600 mt-0.5"
+                required
               />
-              <div className="text-[11px] text-slate-700 leading-relaxed">
-                <span className="font-bold text-slate-900 block">
-                  Engagement sur l&apos;honneur
-                </span>
-                Je certifie l&apos;exactitude des mentions indiquées et sollicite l&apos;approbation de ma hiérarchie.
-              </div>
+              <span className="text-[11px] text-slate-700 leading-snug">
+                Je certifie sur l&apos;honneur l&apos;exactitude des informations fournies et m&apos;engage à transmettre les justificatifs originaux requis auprès des Ressources Humaines dès mon retour.
+              </span>
             </label>
           </div>
 
-          <div className="pt-2 flex justify-end">
+          {/* Bouton de soumission */}
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setFamilleActive(null)}
+              className="text-slate-600 hover:text-slate-900 font-bold text-xs"
+            >
+              Annuler et changer de type
+            </button>
+
             <button
               type="submit"
-              disabled={isSubmitting || !engagementHonneur}
-              className={`inline-flex items-center justify-center gap-2 px-8 py-3 text-xs font-black text-white shadow-md cursor-pointer transition-all rounded-none ${
-                isSubmitting || !engagementHonneur
-                  ? "bg-slate-300 cursor-not-allowed shadow-none"
-                  : "bg-blue-600 hover:bg-blue-700 active:scale-[0.99]"
-              }`}
+              disabled={isSubmitting || (motifActif.impactSolde && !soldeSuffisant)}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-6 transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed"
             >
-              <span>{isSubmitting ? "Transmission en cours..." : "Transmettre ma demande →"}</span>
+              {isSubmitting ? "Transmission en cours..." : "Transmettre pour validation N+1 \u2192"}
             </button>
           </div>
         </div>
 
-        {/* Colonne droite : Récapitulatif */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 border-t-4 border-t-blue-600 p-5 flex flex-col gap-4 sticky top-20 text-xs shadow-2xs">
-          <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 block">
-                Récapitulatif de ma demande
-              </span>
-              <h3 className="font-extrabold text-slate-900 text-sm mt-0.5 m-0">
-                {motifActif.titre}
-              </h3>
+        {/* ── COLONNE DE RÉCAPITULATIF & SOLDE ── */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-4">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Récapitulatif de la demande
+            </span>
+
+            <div className="flex flex-col gap-2 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Nature :</span>
+                <span className="font-bold text-slate-900">{motifActif.titre}</span>
+              </div>
+
+              {!motifActif.isSortieHeures ? (
+                <>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-slate-500 font-medium">Période :</span>
+                    <span className="font-mono text-slate-800 text-[11px]">
+                      {formatFrShort(dateDebut)} &rarr; {formatFrShort(dateFin)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-slate-500 font-medium">Durée ouvrée :</span>
+                    <span className="font-mono font-black text-slate-900 text-sm">
+                      {joursOuvres} jour{joursOuvres > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-slate-500 font-medium">Durée calendaire :</span>
+                    <span className="font-mono text-slate-600 text-xs">
+                      {joursCalendaires} jour{joursCalendaires > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-slate-500 font-medium">Date sortie :</span>
+                    <span className="font-mono text-slate-800 text-xs">{formatFrShort(dateDebut)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-slate-500 font-medium">Plage horaire :</span>
+                    <span className="font-mono text-slate-800 text-xs">{heureDebut} &agrave; {heureFin}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-slate-500 font-medium">Durée estimée :</span>
+                    <span className="font-mono font-black text-slate-900 text-sm">
+                      {dureeHeuresMinutes?.text}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
           </div>
 
-          <div className="p-3.5 bg-blue-50/40 border border-blue-200/80 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-bold">Durée totale :</span>
-              <span className="text-base font-black text-blue-700 font-mono">
-                {motifActif.isSortieHeures ? dureeHeuresMinutes?.text : `${joursOuvres} jour(s) ouvré(s)`}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] pt-2 border-t border-blue-200/60">
-              <span className="text-slate-500 font-medium">Dates :</span>
-              <span className="font-mono font-bold text-slate-800">
-                {formatFrShort(dateDebut)} {dateFin && dateFin !== dateDebut ? `au ${formatFrShort(dateFin)}` : ""}
-              </span>
-            </div>
-          </div>
-
+          {/* Bloc d'impact sur le Solde CP */}
           {motifActif.impactSolde ? (
-            <div className="p-3.5 bg-orange-50/50 border border-orange-200 flex flex-col gap-2">
+            <div className="p-4 bg-orange-50/70 border border-orange-200 flex flex-col gap-2">
               <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wide">
                 Solde de Congés Payés
               </span>
@@ -792,7 +935,7 @@ function NouvelleDemandeForm() {
               </div>
             </div>
           ) : (
-            <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 flex flex-col gap-1.5">
+            <div className="p-4 bg-emerald-50/70 border border-emerald-200 flex flex-col gap-1.5">
               <span className="text-[10px] font-black uppercase text-emerald-900">
                 Solde de Congés Payés Préservé
               </span>
@@ -802,7 +945,8 @@ function NouvelleDemandeForm() {
             </div>
           )}
 
-          <div className="p-3.5 bg-slate-50 border border-slate-200 flex flex-col gap-2">
+          {/* Workflow prévu */}
+          <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col gap-2">
             <span className="text-[10px] font-black uppercase text-slate-600">
               Circuit de validation prévu
             </span>

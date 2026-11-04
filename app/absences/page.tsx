@@ -155,22 +155,28 @@ function AbsencesDashboardContent() {
                 Tableau de mes congés
               </Link>
               <Link
-                href="/absences/nouvelle?type=CONGES_ANNUELS"
-                className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+                href="/absences/nouvelle?famille=PERMISSIONS"
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-300 font-bold text-xs py-2 px-3.5 transition-all shadow-2xs"
               >
-                <span>+ Nouvelle demande de congé</span>
+                <span>+ Demander une permission</span>
+              </Link>
+              <Link
+                href="/absences/nouvelle?type=CONGES_ANNUELS"
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+              >
+                <span>+ Poser un congé</span>
               </Link>
             </>
           ) : (
             <>
               <Link
-                href="/absences/nouvelle?type=MISSION_DEPLACEMENT"
+                href="/absences/missions/nouvelle"
                 className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
               >
                 <span>+ Nouvel Ordre de Mission</span>
               </Link>
               <Link
-                href="/absences/nouvelle?type=INTERVENTION_TERRAIN"
+                href="/absences/interventions/nouvelle"
                 className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
               >
                 <span>+ Nouvelle Fiche d&apos;Intervention</span>

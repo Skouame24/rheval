@@ -253,19 +253,19 @@ function MesDemandesContent() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <Link
-            href="/absences/nouvelle?type=CONGES_ANNUELS"
-            className="text-xs font-bold text-slate-800 hover:text-[#C25E00] border border-slate-300 hover:border-[#F0822A] px-3 py-2 bg-white transition-all shadow-2xs"
+            href="/absences/nouvelle"
+            className="text-xs font-bold text-slate-800 hover:text-blue-700 border border-slate-300 hover:border-blue-600 px-3 py-2 bg-white transition-all shadow-2xs"
           >
             + Congé / Permission
           </Link>
           <Link
-            href="/absences/nouvelle?type=MISSION_DEPLACEMENT"
+            href="/absences/missions/nouvelle"
             className="text-xs font-bold text-white bg-[#F0822A] hover:bg-[#D96F1D] px-3.5 py-2 transition-all shadow-2xs"
           >
             + Ordre de Mission
           </Link>
           <Link
-            href="/absences/nouvelle?type=INTERVENTION_TERRAIN"
+            href="/absences/interventions/nouvelle"
             className="text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 transition-all shadow-2xs"
           >
             + Fiche d&apos;Intervention
