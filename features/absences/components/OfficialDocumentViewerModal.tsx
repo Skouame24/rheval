@@ -22,6 +22,7 @@ interface OfficialDocumentViewerModalProps {
 interface InterventionMeta {
   clientSite?: string;
   equipe?: string[];
+  prestations?: string;
   developpement?: string;
   domino?: string;
   windows?: string;
@@ -429,59 +430,62 @@ export function OfficialDocumentViewerModal({
                       </span>
 
                       <div className="flex flex-col gap-3 pl-2 pt-1">
-                        {devText ? (
-                          <div>
-                            <span className="font-black text-slate-900 flex items-center gap-1.5">
-                              <span>▲</span> DÉVELOPPEMENT &amp; APPLICATIONS :
-                            </span>
-                            <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                              {devText}
-                            </p>
-                          </div>
-                        ) : null}
+                        {meta?.prestations ? (
+                          <p className="m-0 text-slate-800 leading-relaxed pl-2 whitespace-pre-line font-medium text-xs">
+                            {meta.prestations}
+                          </p>
+                        ) : (
+                          <>
+                            {devText ? (
+                              <div>
+                                <span className="font-black text-slate-900 flex items-center gap-1.5">
+                                  <span>▲</span> DÉVELOPPEMENT &amp; APPLICATIONS :
+                                </span>
+                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
+                                  {devText}
+                                </p>
+                              </div>
+                            ) : null}
 
-                        {infraText ? (
-                          <div>
-                            <span className="font-black text-slate-900 flex items-center gap-1.5">
-                              <span>▲</span> INFRASTRUCTURES &amp; RÉSEAUX :
-                            </span>
-                            <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                              {infraText}
-                            </p>
-                          </div>
-                        ) : null}
+                            {infraText ? (
+                              <div>
+                                <span className="font-black text-slate-900 flex items-center gap-1.5">
+                                  <span>▲</span> INFRASTRUCTURES &amp; RÉSEAUX :
+                                </span>
+                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
+                                  {infraText}
+                                </p>
+                              </div>
+                            ) : null}
 
-                        {windowsText ? (
-                          <div>
-                            <span className="font-black text-slate-900 flex items-center gap-1.5">
-                              <span>▲</span> SYSTÈMES &amp; CLOUD :
-                            </span>
-                            <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                              {windowsText}
-                            </p>
-                          </div>
-                        ) : null}
+                            {windowsText ? (
+                              <div>
+                                <span className="font-black text-slate-900 flex items-center gap-1.5">
+                                  <span>▲</span> SYSTÈMES &amp; CLOUD :
+                                </span>
+                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
+                                  {windowsText}
+                                </p>
+                              </div>
+                            ) : null}
 
-                        {dominoText ? (
-                          <div>
-                            <span className="font-black text-slate-900 flex items-center gap-1.5">
-                              <span>▲</span> DOMINO &amp; MESSAGERIE HISTORIQUE :
-                            </span>
-                            <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                              {dominoText}
-                            </p>
-                          </div>
-                        ) : null}
+                            {dominoText ? (
+                              <div>
+                                <span className="font-black text-slate-900 flex items-center gap-1.5">
+                                  <span>▲</span> DOMINO &amp; MESSAGERIE HISTORIQUE :
+                                </span>
+                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
+                                  {dominoText}
+                                </p>
+                              </div>
+                            ) : null}
 
-                        {!devText && !infraText && !windowsText && !dominoText && (
-                          <div>
-                            <span className="font-black text-slate-900 flex items-center gap-1.5">
-                              <span>▲</span> PRESTATION TECHNIQUE :
-                            </span>
-                            <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                              {cleanMotif || "Intervention technique sur site client"}
-                            </p>
-                          </div>
+                            {!devText && !infraText && !windowsText && !dominoText && (
+                              <p className="m-0 text-slate-700 leading-relaxed pl-2">
+                                {cleanMotif || "Intervention technique sur site client"}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
