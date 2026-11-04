@@ -146,18 +146,37 @@ function AbsencesDashboardContent() {
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0 flex-nowrap">
-          <Link
-            href="/absences/demandes"
-            className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs whitespace-nowrap"
-          >
-            Mes demandes
-          </Link>
-          <Link
-            href="/absences/nouvelle"
-            className="inline-flex items-center justify-center gap-1.5 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
-          >
-            <span>+ Nouvelle demande</span>
-          </Link>
+          {activeTab === "CONGES" ? (
+            <>
+              <Link
+                href="/absences/demandes?univers=CONGES"
+                className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs whitespace-nowrap"
+              >
+                Mes demandes
+              </Link>
+              <Link
+                href="/absences/nouvelle"
+                className="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
+              >
+                <span>+ Poser un congé / permission</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/absences/missions/nouvelle"
+                className="inline-flex items-center justify-center gap-1.5 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-3.5 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
+              >
+                <span>+ Nouvel Ordre de Mission</span>
+              </Link>
+              <Link
+                href="/absences/interventions/nouvelle"
+                className="inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 px-3.5 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
+              >
+                <span>+ Nouvelle Fiche d&apos;Intervention</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

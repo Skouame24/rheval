@@ -200,10 +200,8 @@ function NouvelleDemandeForm() {
   const searchParams = useSearchParams();
   const { currentPersona, soldeConges, addDemande } = useAbsences();
 
-  // État de sélection : null = écran de choix initial (4 cartes)
-  // "CONGES" = formulaire de Congé direct
-  // "PERMISSIONS" = formulaire de Permission direct
-  const [familleActive, setFamilleActive] = useState<"CONGES" | "PERMISSIONS" | null>(null);
+  // "CONGES" ou "PERMISSIONS" uniquement — direct, sans écran intermédiaire
+  const [familleActive, setFamilleActive] = useState<"CONGES" | "PERMISSIONS">("CONGES");
   const [typeDemande, setTypeDemande] = useState<TypeDemandeRH>("CONGES_ANNUELS");
 
   useEffect(() => {
@@ -228,22 +226,21 @@ function NouvelleDemandeForm() {
       }
     }
 
-    if (familleParam === "CONGES") {
-      setFamilleActive("CONGES");
-      setTypeDemande("CONGES_ANNUELS");
-    } else if (familleParam === "PERMISSIONS") {
+    if (familleParam === "PERMISSIONS") {
       setFamilleActive("PERMISSIONS");
       setTypeDemande("PERMISSION_MARIAGE");
+    } else {
+      setFamilleActive("CONGES");
+      setTypeDemande("CONGES_ANNUELS");
     }
   }, [searchParams, router]);
 
   const motifsFamille = useMemo(() => {
-    if (!familleActive) return [];
     return MOTIFS_CATALOGUE.filter((m) => m.famille === familleActive);
   }, [familleActive]);
 
   useEffect(() => {
-    if (familleActive && !motifsFamille.some((m) => m.id === typeDemande)) {
+    if (!motifsFamille.some((m) => m.id === typeDemande)) {
       if (motifsFamille[0]) {
         setTypeDemande(motifsFamille[0].id);
       }
@@ -396,117 +393,13 @@ function NouvelleDemandeForm() {
   };
 
   // ══════════════════════════════════════════════════════════════
-  // ÉCRAN 1 : CHOIX INITIAL ÉPURÉ ET SIMPLE
-  // (AUCUNE SURCHARGE : LES DÉTAILS SE FONT DIRECTEMENT DANS LE FORMULAIRE)
-  // ══════════════════════════════════════════════════════════════
-  if (familleActive === null) {
-    return (
-      <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-        <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 bg-[#F0822A]" />
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                Nouvelle demande &mdash; Quel type de démarche souhaitez-vous faire ?
-              </h1>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Sélectionnez ci-dessous pour ouvrir directement le formulaire correspondant :
-            </p>
-          </div>
-
-          <Link
-            href="/absences/demandes"
-            className="text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-1.5 bg-white transition-all self-start sm:self-auto shadow-2xs whitespace-nowrap"
-          >
-            &larr; Retour à mes demandes
-          </Link>
-        </div>
-
-        {/* 3 CARTES SIMPLES ET ÉPURÉES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* 1. CONGÉS & PERMISSIONS */}
-          <button
-            type="button"
-            onClick={() => {
-              setFamilleActive("CONGES");
-              setTypeDemande("CONGES_ANNUELS");
-            }}
-            className="group p-5 bg-white border border-slate-200 hover:border-blue-600 text-left cursor-pointer transition-all border-t-4 border-t-blue-600 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
-          >
-            <div>
-              <span className="text-[10px] font-black uppercase text-blue-900 tracking-wider block mb-2">
-                1. Absences &amp; Repos
-              </span>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors mb-1.5">
-                Congé ou Permission
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed m-0">
-                Congé payé, arrêt maladie, motif familial ou sortie en heures.
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-600 group-hover:text-blue-700">
-              <span>Remplir &rarr;</span>
-            </div>
-          </button>
-
-          {/* 2. ORDRE DE MISSION */}
-          <button
-            type="button"
-            onClick={() => router.push("/absences/missions/nouvelle")}
-            className="group p-5 bg-white border border-slate-200 hover:border-[#F0822A] text-left cursor-pointer transition-all border-t-4 border-t-[#F0822A] shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
-          >
-            <div>
-              <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wider block mb-2">
-                2. Déplacement Pro
-              </span>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-[#F0822A] transition-colors mb-1.5">
-                Ordre de Mission
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed m-0">
-                Déplacement individuel et calcul automatique des frais de route.
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#F0822A] group-hover:text-[#D96F1D]">
-              <span>Remplir &rarr;</span>
-            </div>
-          </button>
-
-          {/* 3. INTERVENTION TECHNIQUE */}
-          <button
-            type="button"
-            onClick={() => router.push("/absences/interventions/nouvelle")}
-            className="group p-5 bg-white border border-slate-200 hover:border-slate-900 text-left cursor-pointer transition-all border-t-4 border-t-slate-900 shadow-2xs hover:shadow-md rounded-none flex flex-col justify-between"
-          >
-            <div>
-              <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider block mb-2">
-                3. Prestation Client
-              </span>
-              <h3 className="text-base font-bold text-slate-900 transition-colors mb-1.5">
-                Intervention Technique
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed m-0">
-                Intervention sur site client avec équipe technique.
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
-              <span>Remplir &rarr;</span>
-            </div>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // ÉCRAN 2 : FORMULAIRE DIRECT CONGÉ OU PERMISSION
-  // (AUCUNE AUTRE CARTE NI ONGLETS D'AUTRES TYPES N'EST AFFICHÉ AU-DESSUS !)
+  // FORMULAIRE DIRECT CONGÉS & PERMISSIONS (ZÉRO ÉCRAN INTERMÉDIAIRE)
   // ══════════════════════════════════════════════════════════════
   const isConge = familleActive === "CONGES";
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-      {/* ── EN-TÊTE DÉDIÉ SANS AUCUN TAB POLLUANT ── */}
+      {/* ── EN-TÊTE DIRECT CONGÉ OU PERMISSION ── */}
       <div className={`bg-white border border-slate-200 border-t-4 ${isConge ? "border-t-blue-600" : "border-t-indigo-600"} p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs`}>
         <div>
           <div className="flex items-center gap-2">
@@ -523,18 +416,43 @@ function NouvelleDemandeForm() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setFamilleActive(null)}
-            className="text-xs font-bold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-1.5 bg-white transition-all shadow-2xs cursor-pointer"
-          >
-            &larr; Choisir une autre démarche
-          </button>
+          {/* Bascule rapide entre Congé et Permission */}
+          <div className="flex items-center border border-slate-200 bg-slate-50 p-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setFamilleActive("CONGES");
+                setTypeDemande("CONGES_ANNUELS");
+              }}
+              className={`px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                isConge
+                  ? "bg-blue-600 text-white shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              1. Congés (6)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFamilleActive("PERMISSIONS");
+                setTypeDemande("PERMISSION_MARIAGE");
+              }}
+              className={`px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                !isConge
+                  ? "bg-indigo-600 text-white shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              2. Permissions (9)
+            </button>
+          </div>
+
           <Link
             href="/absences/demandes"
             className="text-xs font-bold text-slate-600 hover:text-blue-700 border border-slate-300 hover:border-blue-600 px-3.5 py-1.5 bg-white transition-all shadow-2xs whitespace-nowrap"
           >
-            Mes demandes
+            &larr; Mes demandes
           </Link>
         </div>
       </div>
@@ -797,10 +715,10 @@ function NouvelleDemandeForm() {
           <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => setFamilleActive(null)}
-              className="text-slate-600 hover:text-slate-900 font-bold text-xs"
+              onClick={() => router.push("/absences")}
+              className="text-slate-600 hover:text-slate-900 font-bold text-xs cursor-pointer"
             >
-              Annuler et changer de type
+              Annuler et retour
             </button>
 
             <button
