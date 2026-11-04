@@ -235,8 +235,8 @@ function MesDemandesContent() {
   return (
     <div className="flex flex-col gap-6">
       {/* ── EN-TÊTE DYNAMIQUE SELON L'UNIVERS SÉLECTIONNÉ ── */}
-      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-        <div>
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
+        <div className="min-w-0 pr-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
@@ -246,27 +246,27 @@ function MesDemandesContent() {
               {universActif === "TOUS" && "Tableau de suivi (Congés, Ordres de Mission & Interventions)"}
             </h1>
           </div>
-          <p className="text-xs text-slate-600 mt-1">
+          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
             Cliquez sur <strong>Consulter</strong> sur une ligne du tableau pour voir l&apos;avancement du workflow et télécharger le document A4 officiel associé dès validation.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2.5 shrink-0 flex-nowrap">
           <Link
             href="/absences/nouvelle"
-            className="text-xs font-bold text-slate-800 hover:text-blue-700 border border-slate-300 hover:border-blue-600 px-3 py-2 bg-white transition-all shadow-2xs"
+            className="text-xs font-bold text-slate-800 hover:text-blue-700 border border-slate-300 hover:border-blue-600 px-3.5 py-2 bg-white transition-all shadow-2xs whitespace-nowrap"
           >
             + Congé / Permission
           </Link>
           <Link
             href="/absences/missions/nouvelle"
-            className="text-xs font-bold text-white bg-[#F0822A] hover:bg-[#D96F1D] px-3.5 py-2 transition-all shadow-2xs"
+            className="text-xs font-bold text-white bg-[#F0822A] hover:bg-[#D96F1D] px-3.5 py-2 transition-all shadow-2xs whitespace-nowrap"
           >
             + Ordre de Mission
           </Link>
           <Link
             href="/absences/interventions/nouvelle"
-            className="text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 transition-all shadow-2xs"
+            className="text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 transition-all shadow-2xs whitespace-nowrap"
           >
             + Fiche d&apos;Intervention
           </Link>

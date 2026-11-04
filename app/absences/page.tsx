@@ -127,8 +127,8 @@ function AbsencesDashboardContent() {
   return (
     <div className="flex flex-col gap-6">
       {/* ── 1. EN-TÊTE CORPORATE HARMONISÉ ── */}
-      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-        <div>
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
+        <div className="min-w-0 pr-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#F0822A]" />
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -137,7 +137,7 @@ function AbsencesDashboardContent() {
                 : "Espace Missions & Interventions Techniques"}
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
             Bonjour <strong>{currentPersona.prenom} {currentPersona.nom}</strong> •{" "}
             {activeTab === "CONGES"
               ? "Gestion de vos congés payés, permissions exceptionnelles et soldes acquis."
@@ -145,43 +145,43 @@ function AbsencesDashboardContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0 sm:flex-nowrap">
           {activeTab === "CONGES" ? (
             <>
               <Link
                 href="/absences/demandes?univers=CONGES"
-                className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs"
+                className="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3.5 py-2 bg-white transition-all shadow-2xs text-center whitespace-nowrap"
               >
                 Tableau de mes congés
               </Link>
               <Link
                 href="/absences/nouvelle?famille=PERMISSIONS"
-                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-300 font-bold text-xs py-2 px-3.5 transition-all shadow-2xs"
+                className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-300 font-bold text-xs py-2 px-3.5 transition-all shadow-2xs text-center whitespace-nowrap"
               >
                 <span>+ Demander une permission</span>
               </Link>
               <Link
                 href="/absences/nouvelle?type=CONGES_ANNUELS"
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs text-center whitespace-nowrap active:scale-[0.99]"
               >
                 <span>+ Poser un congé</span>
               </Link>
             </>
           ) : (
-            <>
+            <div className="flex items-center gap-2.5 shrink-0 flex-nowrap">
               <Link
                 href="/absences/missions/nouvelle"
-                className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+                className="inline-flex items-center justify-center gap-1.5 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-3.5 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
               >
                 <span>+ Nouvel Ordre de Mission</span>
               </Link>
               <Link
                 href="/absences/interventions/nouvelle"
-                className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+                className="inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 px-3.5 transition-all shadow-2xs whitespace-nowrap active:scale-[0.99]"
               >
                 <span>+ Nouvelle Fiche d&apos;Intervention</span>
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>
