@@ -2,7 +2,7 @@
 // features/absences/components/OfficialDocumentViewerModal.tsx
 // Visualiseur officiel universel :
 //  - Bulletin Individuel de Permission & Congé
-//  - Ordre de Mission Officiel (ODM) & Déplacement Professionnel
+//  - Ordre de Mission Officiel (ODM A4) & Fiche d'Intervention Technique
 // Conforme au modèle certifié d'entreprise Agilly
 // Respect strict du Design System Soft UI Enterprise (rounded-none)
 // ============================================================
@@ -11,6 +11,7 @@
 
 import React from "react";
 import { DemandeRHItem } from "@/types/absences.types";
+import { MissionsDocumentEditor } from "./MissionsDocumentEditor";
 
 interface OfficialDocumentViewerModalProps {
   isOpen: boolean;
@@ -37,11 +38,25 @@ export function OfficialDocumentViewerModal({
 
   const isMission = isMissionItem(demande);
 
-  // Sécurisation du document officiel (si pas encore scellé, générer une référence de certification immédiate)
+  // Si c'est un Ordre de Mission ou une Intervention Technique, afficher l'éditeur & visualiseur A4 officiel avec les onglets
+  if (isMission) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div className="bg-white border border-slate-300 w-full max-w-6xl max-h-[96vh] overflow-y-auto shadow-2xl flex flex-col font-sans rounded-none p-4 sm:p-6">
+          <MissionsDocumentEditor
+            initialDemande={demande}
+            isModal={true}
+            onClose={onClose}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Sinon, afficher le Bulletin Individuel de Permission & Congé standard
   const numSeq = demande.codeReference.replace(/\D/g, "").slice(-5) || "00018";
   const numUnique =
-    demande.documentPermission?.numeroUnique ||
-    (isMission ? `AGY-ODM-2026-${numSeq}` : `AGY-PERM-2026-${numSeq}`);
+    demande.documentPermission?.numeroUnique || `AGY-PERM-2026-${numSeq}`;
 
   const dateEmission = demande.documentPermission?.dateEmission || demande.dateCreation || new Date().toISOString();
   const emetteurNom = demande.documentPermission?.emetteurAgentNom || "Direction des Ressources Humaines";

@@ -53,7 +53,7 @@ async function fetchGraphProfile(accessToken: string): Promise<{
   }
 }
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID || "f351e4f4-6b70-462e-9c80-eea701265f0d",

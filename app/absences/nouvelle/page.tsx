@@ -13,7 +13,8 @@ import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
-import { TypeDemandeRH, FamilleDemandeRH } from "@/types/absences.types";
+import { TypeDemandeRH, FamilleDemandeRH, DemandeRHItem } from "@/types/absences.types";
+import { MissionsDocumentEditor } from "@/features/absences/components/MissionsDocumentEditor";
 import {
   VILLES_CI_CATALOGUE,
   MOYENS_TRANSPORT_CATALOGUE,
@@ -24,7 +25,49 @@ import {
   CalculFraisMissionResult,
 } from "@/lib/api/missions.api";
 
-export interface BaremeMission {
+// ── BARÈME OFFICIEL SELON LA DISTANCE (IMAGE 3) ──
+const PALIER_TIERS_CI = [
+  { label: "0 - 50 km", min: 0, max: 50, price: 2000, labelPrice: "2 000 FCFA" },
+  { label: "51 - 100 km", min: 51, max: 100, price: 9000, labelPrice: "9 000 FCFA" },
+  { label: "101 - 250 km", min: 101, max: 250, price: 18000, labelPrice: "18 000 FCFA" },
+  { label: "251 - 400 km", min: 251, max: 400, price: 35000, labelPrice: "35 000 FCFA" },
+  { label: "401 - 600 km", min: 401, max: 600, price: 50000, labelPrice: "50 000 FCFA" },
+  {
+    label: "Plus de 600 km",
+    min: 601,
+    max: 10000,
+    price: (km: number) => 50000 + Math.max(0, km - 600) * 50,
+    labelPrice: "50 000 + 50 / km au-delà",
+  },
+];
+
+const DESTINATIONS_CI_CATALOGUE = [
+  { nom: "Bouaké", distance: 387 },
+  { nom: "Yamoussoukro", distance: 240 },
+  { nom: "San-Pédro", distance: 350 },
+  { nom: "Korhogo", distance: 570 },
+  { nom: "Man", distance: 580 },
+  { nom: "Daloa", distance: 385 },
+  { nom: "Gagnoa", distance: 290 },
+  { nom: "Grand-Bassam", distance: 35 },
+  { nom: "Dabou", distance: 48 },
+  { nom: "Aboisso", distance: 115 },
+  { nom: "Abengourou", distance: 210 },
+  { nom: "Bondoukou", distance: 420 },
+  { nom: "Soubré", distance: 370 },
+  { nom: "Odienné", distance: 670 },
+  { nom: "Ferkessédougou", distance: 595 },
+  { nom: "Bouna", distance: 600 },
+  { nom: "Séguéla", distance: 500 },
+  { nom: "Divo", distance: 185 },
+  { nom: "Daoukro", distance: 235 },
+  { nom: "Oumé", distance: 250 },
+  { nom: "Agboville", distance: 80 },
+  { nom: "Adzopé", distance: 105 },
+  { nom: "Sassandra", distance: 280 },
+];
+
+interface BaremeMission {
   id: string;
   nom: string;
   distance: string;
@@ -32,7 +75,7 @@ export interface BaremeMission {
   description: string;
 }
 
-export const BAREMES_MISSION: BaremeMission[] = [
+const BAREMES_MISSION: BaremeMission[] = [
   {
     id: "GRAND_ABIDJAN",
     nom: "Zone 1 : Grand Abidjan & Périphérie",
@@ -70,7 +113,7 @@ export const BAREMES_MISSION: BaremeMission[] = [
   },
 ];
 
-export interface MotifConfig {
+interface MotifConfig {
   id: TypeDemandeRH;
   famille: FamilleDemandeRH;
   titre: string;
@@ -83,7 +126,7 @@ export interface MotifConfig {
   isSortieHeures?: boolean;
 }
 
-export const MOTIFS_CATALOGUE: MotifConfig[] = [
+const MOTIFS_CATALOGUE: MotifConfig[] = [
   // ── 1. CONGÉS FORMELS ──
   {
     id: "CONGES_ANNUELS",
@@ -370,6 +413,120 @@ function NouvelleDemandeForm() {
     setFichiers((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  // ── ÉTATS SPÉCIFIQUES POUR LA DEMANDE DE MISSION (IMAGE 3) ──
+  const [missionDemandeurNom, setMissionDemandeurNom] = useState(
+    currentPersona ? `M. ${currentPersona.prenom} ${currentPersona.nom.toUpperCase()}` : "M. KOUASSI Emmanuel"
+  );
+  const [missionDemandeurMatricule, setMissionDemandeurMatricule] = useState(
+    currentPersona?.matricule || "M-0452"
+  );
+  const [missionDemandeurService, setMissionDemandeurService] = useState(
+    currentPersona?.departement || "Exploitation"
+  );
+  const [missionDemandeurFonction, setMissionDemandeurFonction] = useState(
+    currentPersona?.poste || "Technicien Réseau"
+  );
+
+  const [missionType, setMissionType] = useState<"Mission" | "Intervention">("Mission");
+  const [missionClientSite, setMissionClientSite] = useState("Site B");
+  const [missionObjet, setMissionObjet] = useState("Installation infrastructure réseau");
+  const [missionDateDepart, setMissionDateDepart] = useState(defaultDates.debut);
+  const [missionDateRetour, setMissionDateRetour] = useState(defaultDates.fin);
+
+  const [missionVilleDepart, setMissionVilleDepart] = useState("Abidjan");
+  const [missionDestination, setMissionDestination] = useState("Bouaké");
+  const [missionDistanceKm, setMissionDistanceKm] = useState(387);
+  const [missionTrajetType, setMissionTrajetType] = useState<"ALLER_RETOUR" | "ALLER_SIMPLE">("ALLER_RETOUR");
+  const [missionAjustementValideur, setMissionAjustementValideur] = useState(0);
+
+  const [demandeMissionEtablie, setDemandeMissionEtablie] = useState<DemandeRHItem | null>(null);
+
+  // Synchronisation avec le persona actif
+  useEffect(() => {
+    if (currentPersona) {
+      setMissionDemandeurNom(`M. ${currentPersona.prenom} ${currentPersona.nom.toUpperCase()}`);
+      setMissionDemandeurMatricule(currentPersona.matricule);
+      setMissionDemandeurService(currentPersona.departement || "Exploitation");
+      setMissionDemandeurFonction(currentPersona.poste || "Technicien Réseau");
+    }
+  }, [currentPersona]);
+
+  // Calcul dynamique du palier actif de distance
+  const activePalier = useMemo(() => {
+    for (let i = 0; i < PALIER_TIERS_CI.length; i++) {
+      const t = PALIER_TIERS_CI[i];
+      if (missionDistanceKm >= t.min && missionDistanceKm <= t.max) {
+        const unit = typeof t.price === "function" ? t.price(missionDistanceKm) : t.price;
+        return { ...t, index: i, unitPrice: unit };
+      }
+    }
+    const last = PALIER_TIERS_CI[PALIER_TIERS_CI.length - 1];
+    const unit = typeof last.price === "function" ? last.price(missionDistanceKm) : 50000;
+    return { ...last, index: PALIER_TIERS_CI.length - 1, unitPrice: unit };
+  }, [missionDistanceKm]);
+
+  const isAllerRetourMission = missionTrajetType === "ALLER_RETOUR";
+  const totalDistanceMissionKm = isAllerRetourMission ? missionDistanceKm * 2 : missionDistanceKm;
+  const fraisDeplacementEstimes = (activePalier.unitPrice * (isAllerRetourMission ? 2 : 1)) + (Number(missionAjustementValideur) || 0);
+
+  // Calcul jours de mission
+  const { joursOuvresMission, joursCalMission } = useMemo(() => {
+    if (!missionDateDepart || !missionDateRetour) return { joursOuvresMission: 3, joursCalMission: 3 };
+    const d1 = new Date(missionDateDepart);
+    const d2 = new Date(missionDateRetour);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime()) || d2 < d1) return { joursOuvresMission: 1, joursCalMission: 1 };
+    let ouv = 0;
+    let cal = 0;
+    const c = new Date(d1);
+    while (c <= d2) {
+      cal++;
+      if (c.getDay() !== 0 && c.getDay() !== 6) ouv++;
+      c.setDate(c.getDate() + 1);
+    }
+    return { joursOuvresMission: Math.max(1, ouv), joursCalMission: Math.max(1, cal) };
+  }, [missionDateDepart, missionDateRetour]);
+
+  const periodeMissionLabel = useMemo(() => {
+    const f = (d: string) => {
+      if (!d) return "-";
+      const parts = d.split("T")[0].split("-");
+      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+    };
+    return `${f(missionDateDepart)} au ${f(missionDateRetour)} (${joursCalMission} jours)`;
+  }, [missionDateDepart, missionDateRetour, joursCalMission]);
+
+  // Handler Établir l'ordre de mission
+  const handleEtablirMission = async () => {
+    if (!missionObjet.trim()) {
+      alert("Veuillez renseigner l'objet de la mission.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const isIntervention = missionType === "Intervention";
+      const typeCode: TypeDemandeRH = isIntervention ? "INTERVENTION_TERRAIN" : "MISSION_DEPLACEMENT";
+      const newDemande = await addDemande({
+        typeDemande: typeCode,
+        libelleType: isIntervention ? "Fiche d'intervention technique" : "Ordre de mission officiel",
+        dateDebut: missionDateDepart,
+        dateFin: missionDateRetour,
+        nombreJoursOuvres: joursOuvresMission,
+        nombreJoursCalendaires: joursCalMission,
+        motif: missionObjet,
+        adresseContactPendantAbsence: missionClientSite || missionDestination,
+        destination: `${missionVilleDepart} → ${missionDestination} (${missionDistanceKm} km)`,
+        moyenTransport: "VÉHICULE DE SERVICE",
+        fraisPrevisionnels: fraisDeplacementEstimes,
+      });
+      setDemandeMissionEtablie(newDemande);
+    } catch (err: any) {
+      console.error("[handleEtablirMission] Erreur:", err);
+      alert(err?.message || "Erreur lors de l'établissement de l'ordre de mission.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Calcul dynamique durée en heures (pour permission de sortie)
   const dureeHeuresMinutes = useMemo(() => {
     if (!motifActif.isSortieHeures) return null;
@@ -602,8 +759,406 @@ function NouvelleDemandeForm() {
         </div>
       </div>
 
-      {/* ── ÉTAPE 2 : SÉLECTION DU MOTIF PRÉCIS ET FORMULAIRE DYNAMIQUE ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* ── CAS 1 : FAMILLE MISSIONS (CONFORME PIXEL-PERFECT IMAGE 3) ── */}
+      {familleActive === "MISSIONS" ? (
+        demandeMissionEtablie ? (
+          /* ── DEMANDE ÉTABLIE AVEC SUCCÈS : APERÇU OFFICIEL ET IMPRESSION A4 ── */
+          <div className="flex flex-col gap-6">
+            <div className="bg-emerald-50 border-2 border-emerald-400 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                  <span className="text-emerald-950 font-black text-sm uppercase tracking-wide">
+                    ✓ Ordre de mission établi avec succès
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-800 mt-1 m-0">
+                  Votre ordre de mission officiel a été enregistré et transmis dans le circuit de validation. Vous pouvez imprimer ou exporter votre document A4 ci-dessous.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDemandeMissionEtablie(null)}
+                  className="px-3.5 py-2 bg-white border border-emerald-300 hover:bg-emerald-100 text-xs font-bold text-emerald-900 rounded-none cursor-pointer transition-colors"
+                >
+                  + Établir une autre mission
+                </button>
+                <Link
+                  href="/absences/demandes"
+                  className="px-4 py-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white text-xs font-bold rounded-none shadow-xs transition-colors"
+                >
+                  Consulter mes demandes →
+                </Link>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 p-4 sm:p-6 shadow-xs">
+              <MissionsDocumentEditor initialDemande={demandeMissionEtablie} />
+            </div>
+          </div>
+        ) : (
+          /* ── FORMULAIRE DE MISSION (IMAGE 3 : 2 COLONNES, SLIDER, TABLE PALIERS, APERÇU) ── */
+          <div className="flex flex-col gap-4">
+            {/* SOUS-TITRE OFFICIEL */}
+            <div className="text-xs font-semibold text-slate-500">
+              Établissement de la validation officielle. Les frais de déplacement sont calculés selon la distance.
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* ── COLONNE GAUCHE (7 cols) : 3 CARTES ── */}
+              <div className="lg:col-span-7 flex flex-col gap-5">
+                
+                {/* 1. Informations du demandeur */}
+                <div className="bg-white border border-slate-200 p-5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 border-b border-slate-200 pb-2">
+                    1. Informations du demandeur
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Nom et prénom(s) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={missionDemandeurNom}
+                        onChange={(e) => setMissionDemandeurNom(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Matricule
+                      </label>
+                      <input
+                        type="text"
+                        value={missionDemandeurMatricule}
+                        onChange={(e) => setMissionDemandeurMatricule(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs font-mono font-bold text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Service / Département
+                      </label>
+                      <select
+                        value={missionDemandeurService}
+                        onChange={(e) => setMissionDemandeurService(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none cursor-pointer"
+                      >
+                        <option value="Exploitation">Exploitation</option>
+                        <option value="Direction Technique">Direction Technique</option>
+                        <option value="Direction Commerciale">Direction Commerciale</option>
+                        <option value="Support & Réseaux">Support & Réseaux</option>
+                        <option value="Administration & Finance">Administration & Finance</option>
+                        <option value="Ressources Humaines">Ressources Humaines</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Fonction
+                      </label>
+                      <input
+                        type="text"
+                        value={missionDemandeurFonction}
+                        onChange={(e) => setMissionDemandeurFonction(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Détails de la mission */}
+                <div className="bg-white border border-slate-200 p-5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 border-b border-slate-200 pb-2">
+                    2. Détails de la mission
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Type
+                      </label>
+                      <select
+                        value={missionType}
+                        onChange={(e) => setMissionType(e.target.value as "Mission" | "Intervention")}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none cursor-pointer"
+                      >
+                        <option value="Mission">Mission</option>
+                        <option value="Intervention">Intervention</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Client / Site
+                      </label>
+                      <input
+                        type="text"
+                        value={missionClientSite}
+                        onChange={(e) => setMissionClientSite(e.target.value)}
+                        placeholder="Ex: Site B"
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Objet de la mission <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={missionObjet}
+                        onChange={(e) => setMissionObjet(e.target.value)}
+                        placeholder="Ex: Installation infrastructure réseau"
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Date de départ <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={missionDateDepart}
+                        onChange={(e) => setMissionDateDepart(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs font-mono text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Date de retour <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={missionDateRetour}
+                        onChange={(e) => setMissionDateRetour(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs font-mono text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Trajet de la mission */}
+                <div className="bg-white border border-slate-200 p-5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 border-b border-slate-200 pb-2">
+                    3. Trajet de la mission
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Ville de départ
+                      </label>
+                      <input
+                        type="text"
+                        value={missionVilleDepart}
+                        onChange={(e) => setMissionVilleDepart(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Destination
+                      </label>
+                      <select
+                        value={missionDestination}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setMissionDestination(val);
+                          const found = DESTINATIONS_CI_CATALOGUE.find((v) => v.nom === val);
+                          if (found) setMissionDistanceKm(found.distance);
+                        }}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none cursor-pointer"
+                      >
+                        {DESTINATIONS_CI_CATALOGUE.map((v) => (
+                          <option key={v.nom} value={v.nom}>
+                            {v.nom} ({v.distance} km)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Jauge / Slider interactif de distance */}
+                  <div className="mt-5 pt-4 border-t border-slate-200">
+                    <div className="flex items-baseline justify-between mb-2">
+                      <span className="text-xs font-semibold text-slate-700">
+                        Distance (aller simple)
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900">
+                          {missionDistanceKm}
+                        </span>
+                        <span className="text-xs font-bold text-slate-500">km</span>
+                      </div>
+                    </div>
+
+                    {/* Input range */}
+                    <input
+                      type="range"
+                      min={0}
+                      max={1000}
+                      step={1}
+                      value={missionDistanceKm}
+                      onChange={(e) => setMissionDistanceKm(Number(e.target.value))}
+                      className="w-full h-2 bg-slate-200 rounded-none appearance-none cursor-pointer accent-[#F0822A]"
+                    />
+
+                    {/* Graduations sous le slider */}
+                    <div className="flex justify-between text-[11px] text-slate-400 mt-1 font-mono">
+                      <span>0</span>
+                      <span>250</span>
+                      <span>500</span>
+                      <span>750</span>
+                      <span>1000 km</span>
+                    </div>
+
+                    {/* Toggles Aller simple / Aller-retour */}
+                    <div className="flex items-center gap-3 mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setMissionTrajetType("ALLER_SIMPLE")}
+                        className={`px-4 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-none border ${
+                          missionTrajetType === "ALLER_SIMPLE"
+                            ? "bg-[#F0822A] text-white border-[#F0822A] shadow-xs"
+                            : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        Aller simple
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMissionTrajetType("ALLER_RETOUR")}
+                        className={`px-4 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-none border ${
+                          missionTrajetType === "ALLER_RETOUR"
+                            ? "bg-[#F0822A] text-white border-[#F0822A] shadow-xs"
+                            : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        Aller-retour
+                      </button>
+                    </div>
+
+                    {/* Ajustement par le valideur */}
+                    <div className="mt-4 pt-3 border-t border-slate-100">
+                      <label className="block text-slate-700 text-xs font-semibold mb-1">
+                        Ajustement par le valideur (FCFA, optionnel)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={missionAjustementValideur}
+                        onChange={(e) => setMissionAjustementValideur(Number(e.target.value))}
+                        className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs font-mono text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-2 m-0">
+                        La restauration et l&apos;hébergement ne sont pas inclus dans ce barème.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* ── COLONNE DROITE (5 cols) : FRAIS ESTIMÉS & APERÇU ── */}
+              <div className="lg:col-span-5 flex flex-col gap-5">
+                
+                {/* Frais de déplacement estimés */}
+                <div className="bg-white border border-slate-200 p-5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 border-b border-slate-200 pb-2">
+                    Frais de déplacement estimés
+                  </h3>
+
+                  {/* Encadré orange grand format */}
+                  <div className="bg-[#FFF8F2] border border-orange-200 p-4 text-center mb-4">
+                    <span className="text-[11px] text-slate-600 block mb-1">
+                      Montant estimé (dans l&apos;ordre de mission)
+                    </span>
+                    <span className="text-2xl sm:text-3xl font-black text-[#F0822A] tracking-tight block">
+                      {fraisDeplacementEstimes.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                      {activePalier.unitPrice.toLocaleString("fr-FR")} FCFA {isAllerRetourMission ? "x 2 (aller-retour)" : "x 1 (aller simple)"}
+                    </span>
+                  </div>
+
+                  {/* Grille des paliers officiels */}
+                  <div className="border border-slate-200 overflow-hidden text-xs">
+                    <div className="bg-slate-100 px-3 py-2 grid grid-cols-12 font-bold text-slate-700 border-b border-slate-200">
+                      <span className="col-span-7">Distance (aller simple)</span>
+                      <span className="col-span-5 text-right">Frais</span>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {PALIER_TIERS_CI.map((tier, idx) => {
+                        const isCurrent = activePalier.index === idx;
+                        return (
+                          <div
+                            key={tier.label}
+                            className={`px-3 py-2 grid grid-cols-12 items-center transition-colors ${
+                              isCurrent
+                                ? "bg-[#FFF2E6] text-[#C25E00] font-bold border-l-2 border-[#F0822A]"
+                                : "text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            <span className="col-span-7">{tier.label}</span>
+                            <span className={`col-span-5 text-right font-mono ${isCurrent ? "font-bold text-[#F0822A]" : ""}`}>
+                              {tier.labelPrice}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Aperçu de l'ordre de mission */}
+                <div className="bg-white border border-slate-200 p-5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 border-b border-slate-200 pb-2">
+                    Aperçu de l&apos;ordre de mission
+                  </h3>
+
+                  <div className="flex flex-col gap-2.5 text-xs mb-5">
+                    <div className="grid grid-cols-12 gap-1 py-1 border-b border-slate-100">
+                      <span className="col-span-4 text-slate-500 font-medium">Demandeur</span>
+                      <span className="col-span-8 font-bold text-slate-900 text-right">{missionDemandeurNom}</span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-1 py-1 border-b border-slate-100">
+                      <span className="col-span-4 text-slate-500 font-medium">Objet</span>
+                      <span className="col-span-8 font-semibold text-slate-800 text-right">{missionObjet || "-"}</span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-1 py-1 border-b border-slate-100">
+                      <span className="col-span-4 text-slate-500 font-medium">Période</span>
+                      <span className="col-span-8 font-mono text-slate-800 text-right">{periodeMissionLabel}</span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-1 py-1 border-b border-slate-100">
+                      <span className="col-span-4 text-slate-500 font-medium">Trajet</span>
+                      <span className="col-span-8 font-bold text-slate-900 text-right">{missionVilleDepart} - {missionDestination}</span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-1 py-1 border-b border-slate-100">
+                      <span className="col-span-4 text-slate-500 font-medium">Distance totale</span>
+                      <span className="col-span-8 font-mono font-bold text-slate-900 text-right">{totalDistanceMissionKm} km</span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-1 py-1">
+                      <span className="col-span-4 text-slate-500 font-medium">Frais estimés</span>
+                      <span className="col-span-8 font-mono font-black text-[#F0822A] text-right">{fraisDeplacementEstimes.toLocaleString("fr-FR")} FCFA</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleEtablirMission}
+                    className="w-full bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-3 px-4 rounded-none transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <span>Établir l&apos;ordre de mission</span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        )
+      ) : (
+        /* ── CAS 2 : FORMULAIRE CLASSIQUE CONGÉS & PERMISSIONS ── */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Colonne gauche (8 cols) : Saisie du dossier */}
         <div className="lg:col-span-8 bg-white border border-slate-200 p-6 flex flex-col gap-5 text-xs shadow-2xs">
           {/* Identité du demandeur avec bandeau Agilly */}
@@ -1360,6 +1915,7 @@ function NouvelleDemandeForm() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
