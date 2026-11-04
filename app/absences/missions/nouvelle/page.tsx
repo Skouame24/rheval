@@ -1,10 +1,8 @@
 // ============================================================
 // app/absences/missions/nouvelle/page.tsx
 // Formulaire de saisie de l'Ordre de Mission
-// Rendu conforme au modèle :
-//  - Carte épurée "Paramètres de l'Ordre de Mission"
-//  - Le document officiel signé par la Direction Générale
-//    est généré à la fin dans le tableau dès validation.
+// Rendu optimisé : prend correctement l'espace (max-w-4xl)
+// Bouton d'action simple : "Soumettre"
 // ============================================================
 
 "use client";
@@ -102,13 +100,13 @@ function NouvelleMissionContent() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto">
-      {/* ── EN-TÊTE ÉPURÉ DE NAVIGATION ── */}
-      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
+      {/* ── EN-TÊTE CORPORATE HARMONISÉ ── */}
+      <div className="bg-white border border-slate-200 border-t-4 border-t-[#F0822A] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#F0822A]" />
-            <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               Demande d&apos;Ordre de Mission
             </h1>
           </div>
@@ -125,108 +123,108 @@ function NouvelleMissionContent() {
         </Link>
       </div>
 
-      {/* ── CARTE EXACTE DU MODÈLE UTILISATEUR ── */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 shadow-sm flex flex-col gap-5">
+      {/* ── CARTE PARAMÈTRES PRENANT BIEN TOUT L'ESPACE ── */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 shadow-sm flex flex-col gap-6">
         <div className="border-b border-slate-100 pb-3">
           <h2 className="text-base font-bold text-slate-900 m-0">
             Paramètres de l&apos;Ordre de Mission
           </h2>
-          <span className="text-[11px] text-slate-500 mt-0.5 block">
+          <span className="text-xs text-slate-500 mt-1 block">
             Informations requises pour l&apos;établissement du document officiel par la Direction Générale
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-xs">
-          {/* 1. Numéro d'Ordre de Mission */}
-          <div>
-            <label htmlFor="num-ordre" className="block text-slate-700 font-semibold mb-1.5">
-              Numéro d&apos;Ordre de Mission
-            </label>
-            <input
-              id="num-ordre"
-              type="text"
-              value={numOrdreMission}
-              onChange={(e) => setNumOrdreMission(e.target.value)}
-              placeholder="Ex: JPC/2020-01"
-              className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 1. Numéro d'Ordre de Mission */}
+            <div>
+              <label htmlFor="num-ordre" className="block text-slate-700 font-semibold mb-1.5">
+                Numéro d&apos;Ordre de Mission
+              </label>
+              <input
+                id="num-ordre"
+                type="text"
+                value={numOrdreMission}
+                onChange={(e) => setNumOrdreMission(e.target.value)}
+                placeholder="Ex: JPC/2020-01"
+                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
+                required
+              />
+            </div>
 
-          {/* 2. Donne ordre à (Nom & Prénom) */}
-          <div>
-            <label htmlFor="donne-ordre" className="block text-slate-700 font-semibold mb-1.5">
-              Donne ordre à (Nom &amp; Prénom)
-            </label>
-            <input
-              id="donne-ordre"
-              type="text"
-              value={donneOrdreA}
-              onChange={(e) => setDonneOrdreA(e.target.value)}
-              placeholder="Ex: M. Alain COULIBALY"
-              className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
-              required
-            />
-          </div>
+            {/* 2. Donne ordre à (Nom & Prénom) */}
+            <div>
+              <label htmlFor="donne-ordre" className="block text-slate-700 font-semibold mb-1.5">
+                Donne ordre à (Nom &amp; Prénom)
+              </label>
+              <input
+                id="donne-ordre"
+                type="text"
+                value={donneOrdreA}
+                onChange={(e) => setDonneOrdreA(e.target.value)}
+                placeholder="Ex: M. Alain COULIBALY"
+                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
+                required
+              />
+            </div>
 
-          {/* 3. Pour se rendre en mission à */}
-          <div>
-            <label htmlFor="mission-destination" className="block text-slate-700 font-semibold mb-1.5">
-              Pour se rendre en mission à
-            </label>
-            <input
-              id="mission-destination"
-              type="text"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              placeholder="Ex: AU MALAWI – TRANSIT PAR L’ÉTHIOPIE"
-              className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
-              required
-            />
-          </div>
+            {/* 3. Pour se rendre en mission à */}
+            <div>
+              <label htmlFor="mission-destination" className="block text-slate-700 font-semibold mb-1.5">
+                Pour se rendre en mission à
+              </label>
+              <input
+                id="mission-destination"
+                type="text"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="Ex: AU MALAWI – TRANSIT PAR L’ÉTHIOPIE"
+                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
+                required
+              />
+            </div>
 
-          {/* 4. Objet de la mission */}
-          <div>
-            <label htmlFor="mission-objet" className="block text-slate-700 font-semibold mb-1.5">
-              Objet de la mission
-            </label>
-            <input
-              id="mission-objet"
-              type="text"
-              value={objetMission}
-              onChange={(e) => setObjetMission(e.target.value)}
-              placeholder="Ex: ASSISTANCE TECHNIQUE"
-              className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
-              required
-            />
-          </div>
-
-          {/* 5. Moyen de transport */}
-          <div>
-            <label htmlFor="moyen-transport" className="block text-slate-700 font-semibold mb-1.5">
-              Moyen de transport
-            </label>
-            <div className="relative">
-              <select
-                id="moyen-transport"
-                value={moyenTransport}
-                onChange={(e) => setMoyenTransport(e.target.value)}
-                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 pr-8 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none appearance-none transition-colors cursor-pointer"
-              >
-                <option value="AVION">AVION</option>
-                <option value="VÉHICULE DE SERVICE">VÉHICULE DE SERVICE</option>
-                <option value="VÉHICULE PERSONNEL">VÉHICULE PERSONNEL</option>
-                <option value="TRANSPORT EN COMMUN / CAR">TRANSPORT EN COMMUN / CAR</option>
-                <option value="BATEAU">BATEAU</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-600 font-bold">
-                &#9660;
+            {/* 4. Moyen de transport */}
+            <div>
+              <label htmlFor="moyen-transport" className="block text-slate-700 font-semibold mb-1.5">
+                Moyen de transport
+              </label>
+              <div className="relative">
+                <select
+                  id="moyen-transport"
+                  value={moyenTransport}
+                  onChange={(e) => setMoyenTransport(e.target.value)}
+                  className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 pr-8 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none appearance-none transition-colors cursor-pointer"
+                >
+                  <option value="AVION">AVION</option>
+                  <option value="VÉHICULE DE SERVICE">VÉHICULE DE SERVICE</option>
+                  <option value="VÉHICULE PERSONNEL">VÉHICULE PERSONNEL</option>
+                  <option value="TRANSPORT EN COMMUN / CAR">TRANSPORT EN COMMUN / CAR</option>
+                  <option value="BATEAU">BATEAU</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-600 font-bold">
+                  &#9660;
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 6. Date départ & Date retour */}
-          <div className="grid grid-cols-2 gap-3">
+            {/* 5. Objet de la mission (Pleine largeur sur 2 colonnes) */}
+            <div className="md:col-span-2">
+              <label htmlFor="mission-objet" className="block text-slate-700 font-semibold mb-1.5">
+                Objet de la mission
+              </label>
+              <input
+                id="mission-objet"
+                type="text"
+                value={objetMission}
+                onChange={(e) => setObjetMission(e.target.value)}
+                placeholder="Ex: ASSISTANCE TECHNIQUE"
+                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
+                required
+              />
+            </div>
+
+            {/* 6. Date départ & Date retour */}
             <div>
               <label htmlFor="date-depart" className="block text-slate-700 font-semibold mb-1.5">
                 Date départ
@@ -236,7 +234,7 @@ function NouvelleMissionContent() {
                 type="date"
                 value={dateDepart}
                 onChange={(e) => setDateDepart(e.target.value)}
-                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
+                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
                 required
               />
             </div>
@@ -251,14 +249,14 @@ function NouvelleMissionContent() {
                 value={dateRetour}
                 min={dateDepart}
                 onChange={(e) => setDateRetour(e.target.value)}
-                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
+                className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
                 required
               />
             </div>
           </div>
 
           {/* 7. Information workflow */}
-          <div className="p-3 bg-amber-50/70 border border-amber-200 text-amber-900 rounded-lg flex items-start gap-2.5 mt-2">
+          <div className="p-3.5 bg-amber-50/70 border border-amber-200 text-amber-900 rounded-lg flex items-start gap-2.5 mt-2">
             <span className="text-sm">ℹ️</span>
             <div className="flex flex-col text-[11px] leading-relaxed">
               <span className="font-bold">Circuit de validation officiel :</span>
@@ -268,14 +266,16 @@ function NouvelleMissionContent() {
             </div>
           </div>
 
-          {/* 8. Bouton de soumission */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-[#F0822A] hover:bg-[#D96F1D] disabled:bg-slate-300 text-white font-bold text-xs py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer disabled:cursor-not-allowed mt-2 active:scale-[0.99]"
-          >
-            <span>{isSubmitting ? "Transmission en cours..." : "Transmettre pour validation N+1 \u2192"}</span>
-          </button>
+          {/* 8. Bouton d'action épuré : Soumettre */}
+          <div className="pt-2 flex items-center justify-end">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto min-w-[200px] bg-[#F0822A] hover:bg-[#D96F1D] disabled:bg-slate-300 text-white font-bold text-xs py-3 px-8 rounded-lg flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer disabled:cursor-not-allowed active:scale-[0.99]"
+            >
+              <span>{isSubmitting ? "Soumission en cours..." : "Soumettre"}</span>
+            </button>
+          </div>
         </form>
       </div>
     </div>
