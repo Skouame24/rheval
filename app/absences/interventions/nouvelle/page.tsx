@@ -58,15 +58,16 @@ function NouvelleInterventionContent() {
   const [dateDebut, setDateDebut] = useState(defaultDates.debut);
   const [dateFin, setDateFin] = useState(defaultDates.fin);
 
-  const [prestaDomino, setPrestaDomino] = useState(
-    "Migration des serveurs vers la version 11 et installation de VERSE."
-  );
-  const [prestaWindows, setPrestaWindows] = useState(
-    "Migration OS vers 2016 SERVER et passage à Edge."
+  const [prestaDev, setPrestaDev] = useState(
+    "Développement d'application web & mobile, APIs, intégration et recette technique."
   );
   const [prestaInfra, setPrestaInfra] = useState(
     "Sécurisation des routeurs et pare-feu principaux."
   );
+  const [prestaWindows, setPrestaWindows] = useState(
+    "Administration serveurs Windows / Linux et Cloud."
+  );
+  const [prestaDomino, setPrestaDomino] = useState("");
   const [tarifContractuelJour, setTarifContractuelJour] = useState<number>(720000);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,6 +132,7 @@ function NouvelleInterventionContent() {
       const metaPayload = {
         clientSite,
         equipe: equipeComplete,
+        developpement: prestaDev,
         domino: prestaDomino,
         windows: prestaWindows,
         infra: prestaInfra,
@@ -347,45 +349,75 @@ function NouvelleInterventionContent() {
             </div>
           </div>
 
-          {/* 3. Prestations Techniques */}
+          {/* 3. Prestations Techniques (Adapté aux Développeurs, Systèmes, Infra et Historique) */}
           <div className="bg-white border border-slate-200 p-5 shadow-2xs">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 border-b border-slate-200 pb-2">
-              3. Description des Prestations Techniques
-            </h3>
+            <div className="border-b border-slate-200 pb-2 mb-3">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide m-0">
+                3. Description des Prestations Techniques
+              </h3>
+              <span className="text-[11px] text-slate-500 mt-0.5 block">
+                Renseignez le(s) volet(s) technique(s) correspondant à l&apos;intervention (Développeur, Infra, Cloud ou Historique).
+              </span>
+            </div>
+
             <div className="flex flex-col gap-4">
-              <div>
-                <label className="block text-slate-900 text-xs font-black mb-1">
-                  ▲ DOMINO :
+              {/* Volet Développeurs */}
+              <div className="p-3 bg-amber-50/40 border border-amber-200/80">
+                <label className="block text-slate-900 text-xs font-black mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span>▲</span> DÉVELOPPEMENT &amp; APPLICATIONS (Web, Mobile, APIs, Intégrations) :
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100/70 px-2 py-0.5">Profil Développeur</span>
                 </label>
                 <textarea
                   rows={2}
-                  value={prestaDomino}
-                  onChange={(e) => setPrestaDomino(e.target.value)}
-                  className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                  value={prestaDev}
+                  onChange={(e) => setPrestaDev(e.target.value)}
+                  placeholder="Ex: Conception et intégration de modules, APIs backend, tests de recette, débogage et mise en production..."
+                  className="w-full bg-white border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
                 />
               </div>
 
+              {/* Volet Infrastructure & Réseaux */}
               <div>
                 <label className="block text-slate-900 text-xs font-black mb-1">
-                  ▲ WINDOWS :
-                </label>
-                <textarea
-                  rows={2}
-                  value={prestaWindows}
-                  onChange={(e) => setPrestaWindows(e.target.value)}
-                  className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-900 text-xs font-black mb-1">
-                  ▲ INFRASTRUCTURES / RÉSEAUX :
+                  ▲ INFRASTRUCTURES &amp; RÉSEAUX / SÉCURITÉ :
                 </label>
                 <textarea
                   rows={2}
                   value={prestaInfra}
                   onChange={(e) => setPrestaInfra(e.target.value)}
+                  placeholder="Ex: Routeurs, switchs, pare-feu, câblage, segmentation réseau..."
                   className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                />
+              </div>
+
+              {/* Volet Systèmes & Cloud */}
+              <div>
+                <label className="block text-slate-900 text-xs font-black mb-1">
+                  ▲ SYSTÈMES &amp; CLOUD (Windows Server, Linux, Cloud) :
+                </label>
+                <textarea
+                  rows={2}
+                  value={prestaWindows}
+                  onChange={(e) => setPrestaWindows(e.target.value)}
+                  placeholder="Ex: Déploiement et migration OS, Active Directory, serveurs de fichiers..."
+                  className="w-full bg-slate-50/70 border border-slate-300 p-2 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
+                />
+              </div>
+
+              {/* Volet Historique Domino */}
+              <div>
+                <label className="block text-slate-600 text-xs font-bold mb-1 flex items-center justify-between">
+                  <span>▲ DOMINO &amp; MESSAGERIE HISTORIQUE (Optionnel) :</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Clients spécifiques</span>
+                </label>
+                <textarea
+                  rows={1}
+                  value={prestaDomino}
+                  onChange={(e) => setPrestaDomino(e.target.value)}
+                  placeholder="Renseigner uniquement si l'intervention concerne la messagerie Lotus / HCL Domino..."
+                  className="w-full bg-slate-50/70 border border-slate-200 p-2 text-xs text-slate-700 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
                 />
               </div>
             </div>
@@ -453,9 +485,13 @@ function NouvelleInterventionContent() {
               <div className="border-b border-slate-100 pb-2">
                 <span className="text-[10px] font-bold uppercase text-slate-800 block">Prestations</span>
                 <div className="mt-1 space-y-1 text-[11px] text-slate-700">
-                  <p className="m-0"><strong>▲ DOMINO :</strong> {prestaDomino || "-"}</p>
-                  <p className="m-0"><strong>▲ WINDOWS :</strong> {prestaWindows || "-"}</p>
-                  <p className="m-0"><strong>▲ INFRA :</strong> {prestaInfra || "-"}</p>
+                  {prestaDev && <p className="m-0"><strong>▲ DÉV &amp; APPS :</strong> {prestaDev}</p>}
+                  {prestaInfra && <p className="m-0"><strong>▲ INFRA :</strong> {prestaInfra}</p>}
+                  {prestaWindows && <p className="m-0"><strong>▲ SYSTÈMES :</strong> {prestaWindows}</p>}
+                  {prestaDomino && <p className="m-0"><strong>▲ DOMINO :</strong> {prestaDomino}</p>}
+                  {!prestaDev && !prestaInfra && !prestaWindows && !prestaDomino && (
+                    <p className="m-0 text-slate-400 italic">Aucune spécification renseignée</p>
+                  )}
                 </div>
               </div>
               <div className="pt-1">
