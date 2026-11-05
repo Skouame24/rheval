@@ -56,7 +56,18 @@ export function NotificationsView({
   const fetchNotifications = useCallback(async () => {
     try {
       const data = await notificationsApi.getAll();
-      setNotifications(data);
+      // Filtrer pour ne conserver que les notifications d'évaluation dans RH EVAL
+      const evalOnly = data.filter(
+        (n) =>
+          !n.lien?.startsWith("/absences") &&
+          !n.lien?.includes("demandes") &&
+          !n.titre?.toLowerCase().includes("demande rh") &&
+          !n.titre?.toLowerCase().includes("congé") &&
+          !n.titre?.toLowerCase().includes("permission") &&
+          !n.titre?.toLowerCase().includes("ordre de mission") &&
+          !n.titre?.toLowerCase().includes("intervention")
+      );
+      setNotifications(evalOnly);
     } catch (e) {
       console.error("Erreur chargement notifications:", e);
     } finally {

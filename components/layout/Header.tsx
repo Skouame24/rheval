@@ -68,11 +68,24 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
   const [isNotifLoading, setIsNotifLoading] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  // Séparation stricte : ne conserver que les notifications relatives au cycle d'évaluation RH EVAL
+  const isAbsenceNotif = (n: AppNotification) =>
+    Boolean(
+      n.lien?.startsWith("/absences") ||
+      n.lien?.includes("demandes") ||
+      n.titre?.toLowerCase().includes("demande rh") ||
+      n.titre?.toLowerCase().includes("congé") ||
+      n.titre?.toLowerCase().includes("permission") ||
+      n.titre?.toLowerCase().includes("ordre de mission") ||
+      n.titre?.toLowerCase().includes("intervention")
+    );
+
   const fetchHeaderNotifs = useCallback(async () => {
     setIsNotifLoading(true);
     try {
       const list = await notificationsApi.getAll();
-      setHeaderNotifs(list);
+      const evalOnly = list.filter((n) => !isAbsenceNotif(n));
+      setHeaderNotifs(evalOnly);
     } catch {
       setHeaderNotifs([]);
     } finally {
