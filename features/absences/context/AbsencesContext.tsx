@@ -485,12 +485,12 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
 
   const pendingValidationsCount = pendingForCurrentRoleDemandes.length;
 
-  // Création d'une nouvelle demande (enregistrement réel dans PostgreSQL dédié + fallback résilient)
+  // Création d'une nouvelle demande (enregistrement réel dans PostgreSQL dédié + fallback résilient hors-ligne)
   const addDemande = async (payload: Partial<DemandeRHItem>): Promise<DemandeRHItem> => {
     const backendTypeCode = mapFrontendTypeToBackend(payload.typeDemande || "CONGES_ANNUELS");
 
     try {
-      // 1. Tenter l'appel API direct avec un timeout court (3s)
+      // 1. Tenter l'appel API direct avec un timeout de 8s
       const realCreated = await Promise.race([
         demandesApi.creerDemande({
           typeCode: backendTypeCode,
@@ -504,22 +504,38 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
           fraisEstimes: payload.fraisPrevisionnels,
         }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Délai d'attente serveur dépassé")), 3000)
+          setTimeout(() => reject(new Error("Délai d'attente serveur dépassé")), 8000)
         ),
       ]);
 
-      setDemandes((prev) => [realCreated, ...prev.filter((d) => d.id !== realCreated.id)]);
+      // Préserver le libellé / type spécifique (ex: INTERVENTION_TERRAIN) si le backend renvoie un type générique
+      const enrichedCreated: DemandeRHItem = {
+        ...realCreated,
+        typeDemande: payload.typeDemande || realCreated.typeDemande,
+        libelleType: payload.libelleType || realCreated.libelleType,
+      };
+
+      setDemandes((prev) => [enrichedCreated, ...prev.filter((d) => d.id !== enrichedCreated.id)]);
 
       // Recharger le solde réel après soumission
       demandesApi.getMonSolde().then((s) => {
         if (s) setSoldeConges(s);
       }).catch(() => {});
 
-      return realCreated;
-    } catch (err) {
-      console.warn("[AbsencesContext] Enregistrement en mode résilient immédiat:", err);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("absences-notifications-updated"));
+      }
 
-      // Mode immédiat garanti : crée la demande en mémoire et met à jour l'interface
+      return enrichedCreated;
+    } catch (err: any) {
+      // Ne jamais masquer une erreur métier (400 chevauchement de dates, solde insuffisant, 422, etc.)
+      if (err && typeof err === "object" && "statusCode" in err && err.statusCode >= 400 && err.statusCode < 500) {
+        throw err;
+      }
+
+      console.warn("[AbsencesContext] Serveur indisponible, enregistrement en mode résilient local:", err);
+
+      // Mode immédiat garanti uniquement en cas de coupure réseau / serveur hors-ligne
       const newRef = `DEM-2026-${Math.floor(10000 + Math.random() * 90000)}`;
       const localDemande: DemandeRHItem = {
         id: `dem-${Date.now()}`,
@@ -579,6 +595,10 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         }));
       }
 
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("absences-notifications-updated"));
+      }
+
       return localDemande;
     }
   };
@@ -586,6 +606,11 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   // Validation hiérarchique selon le circuit à 3 niveaux
   const validerDemande = (id: string, motif?: string) => {
     const nowIso = new Date().toISOString();
+    const notifyUpdate = () => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("absences-notifications-updated"));
+      }
+    };
 
     setDemandes((prev) =>
       prev.map((dem) => {
@@ -598,7 +623,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         if (dem.statut === "EN_VALIDATION_N1") {
           nextStatut = "EN_VALIDATION_DRH";
           nextEtape = "DRH";
-          demandesApi.deciderN1(id, "APPROUVE", motif).catch(() => {});
+          demandesApi.deciderN1(id, "APPROUVE", motif).then(notifyUpdate).catch(() => {});
         } else if (dem.statut === "EN_VALIDATION_DRH") {
           const isCourt =
             dem.nombreJoursOuvres <= 2 &&
@@ -610,11 +635,11 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
             nextStatut = "EN_VALIDATION_DG";
             nextEtape = "DIRECTION_DG";
           }
-          demandesApi.deciderDRH(id, "APPROUVE", motif).catch(() => {});
+          demandesApi.deciderDRH(id, "APPROUVE", motif).then(notifyUpdate).catch(() => {});
         } else if (dem.statut === "EN_VALIDATION_DG") {
           nextStatut = "APPROUVEE";
           nextEtape = "AGENT_DRH";
-          demandesApi.deciderDG(id, "APPROUVE", motif).catch(() => {});
+          demandesApi.deciderDG(id, "APPROUVE", motif).then(notifyUpdate).catch(() => {});
         }
 
         const newHist = [
@@ -641,11 +666,18 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         };
       })
     );
+
+    setTimeout(notifyUpdate, 50);
   };
 
   // Refus avec motif obligatoire et retour à l'étape précédente (§3.2)
   const refuserDemande = (id: string, motif: string) => {
     const nowIso = new Date().toISOString();
+    const notifyUpdate = () => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("absences-notifications-updated"));
+      }
+    };
 
     setDemandes((prev) =>
       prev.map((dem) => {
@@ -662,15 +694,15 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
           if (dem.statut === "EN_VALIDATION_N1") {
             nextStatut = "RETOURNEE_EMPLOYE";
             nextEtape = "SUPERIEUR_N1";
-            demandesApi.deciderN1(id, "REFUSE", motif).catch(() => {});
+            demandesApi.deciderN1(id, "REFUSE", motif).then(notifyUpdate).catch(() => {});
           } else if (dem.statut === "EN_VALIDATION_DRH") {
             nextStatut = "EN_VALIDATION_N1";
             nextEtape = "SUPERIEUR_N1";
-            demandesApi.deciderDRH(id, "RETOURNE", motif).catch(() => {});
+            demandesApi.deciderDRH(id, "RETOURNE", motif).then(notifyUpdate).catch(() => {});
           } else if (dem.statut === "EN_VALIDATION_DG") {
             nextStatut = "EN_VALIDATION_DRH";
             nextEtape = "DRH";
-            demandesApi.deciderDG(id, "RETOURNE", motif).catch(() => {});
+            demandesApi.deciderDG(id, "RETOURNE", motif).then(notifyUpdate).catch(() => {});
           }
         }
 
@@ -705,14 +737,21 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         };
       })
     );
+
+    setTimeout(notifyUpdate, 50);
   };
 
   // Édition de la permission PDF numérotée (Agent DRH)
   const editerPermission = (id: string) => {
     const nowIso = new Date().toISOString();
     const permNum = `AGY-PERM-2026-000${Math.floor(Math.random() * 80) + 20}`;
+    const notifyUpdate = () => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("absences-notifications-updated"));
+      }
+    };
 
-    demandesApi.editerPermission(id).catch((err) => {
+    demandesApi.editerPermission(id).then(notifyUpdate).catch((err) => {
       console.warn("[AbsencesContext] editerPermission backend:", err);
     });
 

@@ -36,14 +36,25 @@ const isAbsenceNotif = (n: AppNotification) =>
 export function AbsencesTopBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentPersona, setCurrentPersona, allPersonas, pendingValidationsCount, isLoading, refreshDemandes } = useAbsences();
+  const { currentPersona, setCurrentPersona, allPersonas, pendingValidationsCount, isLoading, refreshDemandes, demandes } = useAbsences();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
   // Boîte de notifications Absences
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [absenceNotifs, setAbsenceNotifs] = useState<AppNotification[]>([]);
+  const [remoteNotifs, setRemoteNotifs] = useState<AppNotification[]>([]);
   const [isNotifLoading, setIsNotifLoading] = useState(false);
+  const [localReadIds, setLocalReadIds] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("agy_absences_read_notifs");
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
   const notifRef = useRef<HTMLDivElement>(null);
 
   const title = TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Accueil";
@@ -53,9 +64,9 @@ export function AbsencesTopBar() {
     try {
       const list = await notificationsApi.getAll();
       const onlyAbsences = list.filter(isAbsenceNotif);
-      setAbsenceNotifs(onlyAbsences);
+      setRemoteNotifs(onlyAbsences);
     } catch {
-      setAbsenceNotifs([]);
+      setRemoteNotifs([]);
     } finally {
       setIsNotifLoading(false);
     }
@@ -64,6 +75,202 @@ export function AbsencesTopBar() {
   useEffect(() => {
     fetchAbsenceNotifs();
   }, [fetchAbsenceNotifs]);
+
+  // Écouter les mises à jour en direct émises par AbsencesContext
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchAbsenceNotifs();
+    };
+    window.addEventListener("absences-notifications-updated", handleUpdate);
+    window.addEventListener("notifications-updated", handleUpdate);
+    return () => {
+      window.removeEventListener("absences-notifications-updated", handleUpdate);
+      window.removeEventListener("notifications-updated", handleUpdate);
+    };
+  }, [fetchAbsenceNotifs]);
+
+  // Notifications dynamiques déduites du workflow pour le persona actif
+  const synthesizedNotifs: AppNotification[] = React.useMemo(() => {
+    const list: AppNotification[] = [];
+    const readSet = new Set(localReadIds);
+    const pId = currentPersona.id;
+    const pMatricule = currentPersona.matricule;
+    const pEmail = currentPersona.email;
+
+    // 1. Alertes d'action selon le rôle du valideur connecté
+    if (currentPersona.role === "SUPERIEUR_N1") {
+      demandes
+        .filter((d) => d.statut === "EN_VALIDATION_N1")
+        .forEach((d) => {
+          list.push({
+            id: `wf-n1-${d.id}`,
+            userId: pId,
+            titre: `Demande RH à valider : ${d.demandeur.prenom} ${d.demandeur.nom}`,
+            message: `${d.libelleType} (${d.nombreJoursOuvres} j) en attente de votre avis N+1.`,
+            type: "ACTION",
+            lien: "/absences/validations",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-n1-${d.id}`),
+          });
+        });
+    } else if (currentPersona.role === "DRH") {
+      demandes
+        .filter((d) => d.statut === "EN_VALIDATION_DRH")
+        .forEach((d) => {
+          list.push({
+            id: `wf-drh-${d.id}`,
+            userId: pId,
+            titre: `Demande RH en attente DRH : ${d.demandeur.prenom} ${d.demandeur.nom}`,
+            message: `${d.libelleType} (${d.nombreJoursOuvres} j) visée par le N+1, à vérifier par la DRH.`,
+            type: "ACTION",
+            lien: "/absences/validations",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-drh-${d.id}`),
+          });
+        });
+    } else if (currentPersona.role === "DIRECTION_DG") {
+      demandes
+        .filter((d) => d.statut === "EN_VALIDATION_DG")
+        .forEach((d) => {
+          list.push({
+            id: `wf-dg-${d.id}`,
+            userId: pId,
+            titre: `Demande RH soumise à la Direction : ${d.demandeur.prenom} ${d.demandeur.nom}`,
+            message: `${d.libelleType} (${d.nombreJoursOuvres} j) vérifiée par la DRH, en attente d'accord DG.`,
+            type: "ACTION",
+            lien: "/absences/validations",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-dg-${d.id}`),
+          });
+        });
+    } else if (currentPersona.role === "AGENT_DRH") {
+      demandes
+        .filter((d) => d.statut === "APPROUVEE")
+        .forEach((d) => {
+          list.push({
+            id: `wf-adrh-${d.id}`,
+            userId: pId,
+            titre: `Titre officiel à éditer : ${d.demandeur.prenom} ${d.demandeur.nom}`,
+            message: `${d.libelleType} accordée par la Direction, prête à être scellée en GED.`,
+            type: "ACTION",
+            lien: "/absences/validations",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-adrh-${d.id}`),
+          });
+        });
+    }
+
+    // 2. Alertes pour le demandeur (ses propres demandes qui avancent ou sont terminées)
+    demandes
+      .filter(
+        (d) =>
+          d.demandeur.id === pId ||
+          d.demandeur.matricule === pMatricule ||
+          (pEmail && d.demandeur.email === pEmail)
+      )
+      .forEach((d) => {
+        if (d.statut === "APPROUVEE") {
+          list.push({
+            id: `wf-app-${d.id}`,
+            userId: pId,
+            titre: `Demande approuvée par la DG : ${d.libelleType}`,
+            message: `Votre demande (${d.nombreJoursOuvres} j) a été validée par la Direction Générale. Document officiel A4 disponible.`,
+            type: "VALIDATION",
+            lien: "/absences/demandes",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-app-${d.id}`),
+          });
+        } else if (d.statut === "PERMISSION_EDITEE") {
+          list.push({
+            id: `wf-edit-${d.id}`,
+            userId: pId,
+            titre: `Titre officiel scellé : ${d.libelleType}`,
+            message: `Votre document officiel numéroté ${d.documentPermission?.numeroUnique || "AGY"} a été délivré par la DRH.`,
+            type: "INFO",
+            lien: "/absences/demandes",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-edit-${d.id}`),
+          });
+        } else if (d.statut === "RETOURNEE_EMPLOYE") {
+          list.push({
+            id: `wf-ret-${d.id}`,
+            userId: pId,
+            titre: `Demande à corriger : ${d.libelleType}`,
+            message: `Votre responsable a formulé des observations sur votre demande. Veuillez la modifier.`,
+            type: "ALERTE",
+            lien: "/absences/demandes",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-ret-${d.id}`),
+          });
+        } else if (d.statut === "REFUSEE_DEFINITIVEMENT") {
+          list.push({
+            id: `wf-ref-${d.id}`,
+            userId: pId,
+            titre: `Demande refusée : ${d.libelleType}`,
+            message: `Votre demande a été refusée définitivement.`,
+            type: "ALERTE",
+            lien: "/absences/demandes",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-ref-${d.id}`),
+          });
+        } else if (d.statut === "EN_VALIDATION_DRH") {
+          list.push({
+            id: `wf-n1ok-${d.id}`,
+            userId: pId,
+            titre: `Avis favorable N+1 : ${d.libelleType}`,
+            message: `Votre responsable N+1 a accordé son accord. Votre demande a été transmise à la DRH.`,
+            type: "INFO",
+            lien: "/absences/demandes",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-n1ok-${d.id}`),
+          });
+        } else if (d.statut === "EN_VALIDATION_DG") {
+          list.push({
+            id: `wf-drhok-${d.id}`,
+            userId: pId,
+            titre: `Visa DRH favorable : ${d.libelleType}`,
+            message: `La DRH a validé la conformité de votre demande. Dossier soumis à la Direction Générale.`,
+            type: "INFO",
+            lien: "/absences/demandes",
+            createdAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            updatedAt: d.dateDerniereAction || d.dateCreation || new Date().toISOString(),
+            lu: readSet.has(`wf-drhok-${d.id}`),
+          });
+        }
+      });
+
+    return list;
+  }, [demandes, currentPersona, localReadIds]);
+
+  // Fusionner les notifications distantes et synthétisées
+  const absenceNotifs = React.useMemo(() => {
+    const combined = [...synthesizedNotifs];
+    const seenTitles = new Set(combined.map((n) => n.titre.trim().toLowerCase()));
+
+    for (const r of remoteNotifs) {
+      const key = (r.titre || "").trim().toLowerCase();
+      if (!seenTitles.has(key)) {
+        seenTitles.add(key);
+        combined.push({
+          ...r,
+          lu: r.lu || localReadIds.includes(r.id),
+        });
+      }
+    }
+
+    return combined.sort(
+      (a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime()
+    );
+  }, [synthesizedNotifs, remoteNotifs, localReadIds]);
 
   const unreadCount = absenceNotifs.filter((n) => !n.lu).length;
 
@@ -78,8 +285,15 @@ export function AbsencesTopBar() {
 
   const handleNotificationClick = async (notif: AppNotification) => {
     if (!notif.lu) {
-      await notificationsApi.markAsRead(notif.id);
-      setAbsenceNotifs((prev) => prev.map((n) => (n.id === notif.id ? { ...n, lu: true } : n)));
+      const updated = Array.from(new Set([...localReadIds, notif.id]));
+      setLocalReadIds(updated);
+      try {
+        sessionStorage.setItem("agy_absences_read_notifs", JSON.stringify(updated));
+      } catch {}
+
+      if (!notif.id.startsWith("wf-")) {
+        await notificationsApi.markAsRead(notif.id).catch(() => {});
+      }
     }
     setIsNotifOpen(false);
     const targetLink = notif.lien?.startsWith("/absences") ? notif.lien : "/absences/demandes";
@@ -87,8 +301,14 @@ export function AbsencesTopBar() {
   };
 
   const handleMarkAllRead = async () => {
-    await notificationsApi.markAllAsRead();
-    setAbsenceNotifs((prev) => prev.map((n) => ({ ...n, lu: true })));
+    const allIds = absenceNotifs.map((n) => n.id);
+    const updated = Array.from(new Set([...localReadIds, ...allIds]));
+    setLocalReadIds(updated);
+    try {
+      sessionStorage.setItem("agy_absences_read_notifs", JSON.stringify(updated));
+    } catch {}
+
+    await notificationsApi.markAllAsRead().catch(() => {});
   };
 
   // Fermeture des dropdowns au clic en dehors

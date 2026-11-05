@@ -58,8 +58,9 @@ export function mapFrontendTypeToBackend(frontendType: string): string {
     case "CONGES_MALADIE":
       return "REPOS_MALADIE";
     case "MISSION_DEPLACEMENT":
-    case "INTERVENTION_TERRAIN":
       return "ORDRE_MISSION";
+    case "INTERVENTION_TERRAIN":
+      return "INTERVENTION_TERRAIN";
     case "PERMISSION_MARIAGE":
     case "PERMISSION_NAISSANCE":
     case "PERMISSION_DECES":
@@ -118,8 +119,13 @@ function mapBackendStatutToFrontend(status: string): StatutDemandeRH {
 
 // Transformateur d'une entité backend vers DemandeRHItem
 export function transformBackendDemande(b: any): DemandeRHItem {
-  const typeCode = b.typeDemande?.code || b.typeCode || "CONGE_ANNUEL";
-  const libelleType = b.typeDemande?.libelle || b.type?.libelle || b.typeCode || "Congé / Absence";
+  const isInterventionMeta = typeof b.motif === "string" && b.motif.includes("||INTERVENTION_META:");
+  const typeCode = isInterventionMeta
+    ? "INTERVENTION_TERRAIN"
+    : b.typeDemande?.code || b.typeCode || "CONGE_ANNUEL";
+  const libelleType = isInterventionMeta
+    ? "Fiche d'Intervention Technique"
+    : b.typeDemande?.libelle || b.type?.libelle || b.typeCode || "Congé / Absence";
   const nbJours = Number(b.nombreJours ?? b.nombreJoursOuvres ?? 0);
 
   const etapeCourante =
