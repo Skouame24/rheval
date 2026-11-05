@@ -119,7 +119,7 @@ function NouvelleInterventionContent() {
     setIsSubmitting(true);
     try {
       const equipeComplete = [
-        `${intervenantPrincipal} (Intervenant Principal)`,
+        intervenantPrincipal,
         ...collaborateurs,
       ];
       const metaPayload = {
@@ -144,7 +144,7 @@ function NouvelleInterventionContent() {
         fraisPrevisionnels: (Number(tarifContractuelJour) || 720000) * joursOuvres,
       });
 
-      router.push("/absences/interventions");
+      router.push("/absences/demandes");
     } catch (err: any) {
       alert(err?.message || "Erreur lors de la création de la fiche d'intervention.");
     } finally {
@@ -193,14 +193,14 @@ function NouvelleInterventionContent() {
 
             <div className="mb-4">
               <label className="block text-slate-700 text-xs font-semibold mb-1">
-                Collaborateur demandeur (votre nom) <span className="text-red-500">*</span>
+                Collaborateur demandeur (connecté) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={intervenantPrincipal}
-                onChange={(e) => setIntervenantPrincipal(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 p-2 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none"
-                required
+                disabled
+                readOnly
+                className="w-full bg-slate-100 border border-slate-300 p-2 text-xs font-bold text-slate-500 rounded-none cursor-not-allowed select-none"
               />
             </div>
 

@@ -175,7 +175,7 @@ function NouvelleMissionContent() {
         fraisPrevisionnels: fraisDeplacementEstimes,
       });
 
-      router.push("/absences/demandes?univers=MISSIONS");
+      router.push("/absences/demandes");
     } catch (err: any) {
       alert(err?.message || "Erreur lors de la transmission de l'ordre de mission.");
     } finally {
@@ -244,16 +244,15 @@ function NouvelleMissionContent() {
               {/* Donne ordre à (Nom & Prénom) */}
               <div>
                 <label htmlFor="donne-ordre" className="block text-slate-700 font-semibold mb-1.5">
-                  Donne ordre à (Nom &amp; Prénom)
+                  Donne ordre à (collaborateur connecté)
                 </label>
                 <input
                   id="donne-ordre"
                   type="text"
                   value={donneOrdreA}
-                  onChange={(e) => setDonneOrdreA(e.target.value)}
-                  placeholder="Ex: M. Alain COULIBALY"
-                  className="w-full bg-slate-50/70 border border-slate-300 px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:border-[#F0822A] focus:outline-none transition-colors"
-                  required
+                  disabled
+                  readOnly
+                  className="w-full bg-slate-100 border border-slate-300 px-3.5 py-2.5 text-xs text-slate-500 font-bold rounded-none cursor-not-allowed select-none"
                 />
               </div>
 

@@ -111,7 +111,7 @@ export function OfficialDocumentViewerModal({
     meta?.equipe && meta.equipe.length > 0
       ? meta.equipe
       : [
-          `${demande.demandeur.prenom} ${demande.demandeur.nom.toUpperCase()} (Intervenant Principal)`,
+          `${demande.demandeur.prenom} ${demande.demandeur.nom.toUpperCase()}`,
           "M. KOFFI Marc — Ingénieur Systèmes & Cloud",
           "Mme TRAORÉ Awa — Ingénieure Réseaux & Sécurité",
         ];
@@ -276,19 +276,13 @@ export function OfficialDocumentViewerModal({
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-2.5 bg-slate-50 border border-slate-200">
-                    <span className="font-black text-slate-900 block text-[11px]">▲ DOMINO</span>
-                    <p className="text-slate-600 m-0 mt-1 text-[11px]">{dominoText}</p>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 border border-slate-200">
-                    <span className="font-black text-slate-900 block text-[11px]">▲ WINDOWS</span>
-                    <p className="text-slate-600 m-0 mt-1 text-[11px]">{windowsText}</p>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 border border-slate-200">
-                    <span className="font-black text-slate-900 block text-[11px]">▲ INFRA / RÉSEAUX</span>
-                    <p className="text-slate-600 m-0 mt-1 text-[11px]">{infraText}</p>
-                  </div>
+                <div className="p-3 bg-slate-50 border border-slate-200">
+                  <span className="font-bold text-slate-800 block text-[11px] uppercase mb-1">
+                    Description de la mission :
+                  </span>
+                  <p className="text-slate-700 m-0 text-xs leading-relaxed whitespace-pre-line font-medium">
+                    {meta?.prestations || cleanMotif || "Intervention technique sur site client"}
+                  </p>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                   <span className="text-slate-500 font-semibold">Tarif contractuel :</span>
