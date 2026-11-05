@@ -68,7 +68,7 @@ function NouvelleInterventionContent() {
   useEffect(() => {
     if (currentPersona) {
       setIntervenantPrincipal(
-        `${currentPersona.prenom} ${currentPersona.nom.toUpperCase()} (${currentPersona.poste || "Chef d'équipe"})`
+        `${currentPersona.prenom} ${currentPersona.nom.toUpperCase()} (${currentPersona.poste || "Collaborateur"})`
       );
     }
   }, [currentPersona]);
@@ -193,7 +193,7 @@ function NouvelleInterventionContent() {
 
             <div className="mb-4">
               <label className="block text-slate-700 text-xs font-semibold mb-1">
-                Intervenant Principal / Responsable technique <span className="text-red-500">*</span>
+                Collaborateur demandeur (votre nom) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -258,7 +258,7 @@ function NouvelleInterventionContent() {
               <div className="mt-1 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between bg-orange-50/80 border border-orange-200 px-3 py-1.5 text-xs">
                   <span className="font-bold text-slate-900">• {intervenantPrincipal}</span>
-                  <span className="text-[10px] font-bold text-[#C25E00] uppercase">Chef d&apos;équipe</span>
+                  <span className="text-[10px] font-bold text-[#C25E00] uppercase">Demandeur</span>
                 </div>
                 {collaborateurs.map((collab, idx) => (
                   <div
@@ -403,7 +403,7 @@ function NouvelleInterventionContent() {
                 ÉQUIPE D&apos;INTERVENTION ({1 + collaborateurs.length}) :
               </span>
               <div className="flex flex-col gap-1 font-medium text-slate-900 text-[11px]">
-                <span className="font-bold">• {intervenantPrincipal} (Principal)</span>
+                <span className="font-bold">• {intervenantPrincipal} (Demandeur)</span>
                 {collaborateurs.map((c, i) => (
                   <span key={i}>• {c}</span>
                 ))}
