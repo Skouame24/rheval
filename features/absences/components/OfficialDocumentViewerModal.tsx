@@ -175,25 +175,9 @@ export function OfficialDocumentViewerModal({
           </div>
         </div>
 
-        {/* ── CAS 1 : DEMANDE EN COURS DE VALIDATION (DOCUMENT GÉNÉRÉ UNIQUEMENT APRÈS VALIDATION) ── */}
+        {/* ── CAS 1 : DEMANDE EN COURS DE VALIDATION ── */}
         {!isApproved ? (
           <div className="p-6 sm:p-8 flex flex-col gap-6 bg-slate-50">
-            {/* Bannière explicative */}
-            <div className="bg-amber-50/90 border border-amber-300 p-4 flex items-start gap-3">
-              <span className="text-amber-700 text-lg font-bold">⏳</span>
-              <div>
-                <span className="text-xs font-black uppercase text-amber-950 block">
-                  {isIntervention
-                    ? "Fiche d'Intervention en cours de validation"
-                    : isMission
-                    ? "Ordre de Mission en cours de validation"
-                    : "Demande de Congé / Permission en cours de validation"}
-                </span>
-                <p className="text-xs text-amber-900 mt-0.5 m-0 leading-relaxed">
-                  Conformément aux règles Agilly, le <strong>document officiel A4 signé et téléchargeable en PDF</strong> est généré uniquement après la validation complète du workflow hiérarchique.
-                </p>
-              </div>
-            </div>
 
             {/* Circuit de validation stepper */}
             <div className="bg-white border border-slate-200 p-5 shadow-2xs flex flex-col gap-3">
