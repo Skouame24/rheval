@@ -423,70 +423,16 @@ export function OfficialDocumentViewerModal({
                       </div>
                     </div>
 
-                    {/* Section 1 : Description des Prestations Techniques */}
+                    {/* Section 1 : Description de la mission */}
                     <div className="flex flex-col gap-2 text-xs">
                       <span className="font-extrabold underline text-slate-900 text-xs">
-                        1 - Description des Prestations Techniques
+                        1 - Description de la mission
                       </span>
 
-                      <div className="flex flex-col gap-3 pl-2 pt-1">
-                        {meta?.prestations ? (
-                          <p className="m-0 text-slate-800 leading-relaxed pl-2 whitespace-pre-line font-medium text-xs">
-                            {meta.prestations}
-                          </p>
-                        ) : (
-                          <>
-                            {devText ? (
-                              <div>
-                                <span className="font-black text-slate-900 flex items-center gap-1.5">
-                                  <span>▲</span> DÉVELOPPEMENT &amp; APPLICATIONS :
-                                </span>
-                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                                  {devText}
-                                </p>
-                              </div>
-                            ) : null}
-
-                            {infraText ? (
-                              <div>
-                                <span className="font-black text-slate-900 flex items-center gap-1.5">
-                                  <span>▲</span> INFRASTRUCTURES &amp; RÉSEAUX :
-                                </span>
-                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                                  {infraText}
-                                </p>
-                              </div>
-                            ) : null}
-
-                            {windowsText ? (
-                              <div>
-                                <span className="font-black text-slate-900 flex items-center gap-1.5">
-                                  <span>▲</span> SYSTÈMES &amp; CLOUD :
-                                </span>
-                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                                  {windowsText}
-                                </p>
-                              </div>
-                            ) : null}
-
-                            {dominoText ? (
-                              <div>
-                                <span className="font-black text-slate-900 flex items-center gap-1.5">
-                                  <span>▲</span> DOMINO &amp; MESSAGERIE HISTORIQUE :
-                                </span>
-                                <p className="m-0 mt-0.5 text-slate-700 leading-relaxed pl-4">
-                                  {dominoText}
-                                </p>
-                              </div>
-                            ) : null}
-
-                            {!devText && !infraText && !windowsText && !dominoText && (
-                              <p className="m-0 text-slate-700 leading-relaxed pl-2">
-                                {cleanMotif || "Intervention technique sur site client"}
-                              </p>
-                            )}
-                          </>
-                        )}
+                      <div className="pl-2 pt-1">
+                        <p className="m-0 text-slate-800 leading-relaxed pl-2 whitespace-pre-line font-medium text-xs">
+                          {meta?.prestations || meta?.developpement || meta?.infra || meta?.windows || meta?.domino || cleanMotif || "Intervention technique sur site client"}
+                        </p>
                       </div>
                     </div>
 

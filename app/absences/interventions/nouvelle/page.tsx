@@ -59,7 +59,7 @@ function NouvelleInterventionContent() {
   const [dateFin, setDateFin] = useState(defaultDates.fin);
 
   const [descriptionPrestations, setDescriptionPrestations] = useState(
-    "Développement d'application web & mobile, intégration des APIs, paramétrage technique et sécurisation des accès sur le site client."
+    "Intervention et assistance technique sur site client."
   );
   const [tarifContractuelJour, setTarifContractuelJour] = useState<number>(720000);
 
@@ -339,26 +339,21 @@ function NouvelleInterventionContent() {
             </div>
           </div>
 
-          {/* 3. Prestations Techniques (Une seule description claire et complète) */}
+          {/* 3. Description de la mission (Un seul champ simple) */}
           <div className="bg-white border border-slate-200 p-5 shadow-2xs">
-            <div className="border-b border-slate-200 pb-2 mb-3">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide m-0">
-                3. Description des Prestations Techniques
-              </h3>
-              <span className="text-[11px] text-slate-500 mt-0.5 block">
-                Décrivez en détail les travaux et prestations à réaliser lors de l&apos;intervention sur site.
-              </span>
-            </div>
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 border-b border-slate-200 pb-2">
+              3. Description de la mission
+            </h3>
 
             <div>
               <label className="block text-slate-700 text-xs font-semibold mb-1.5">
-                Détail des prestations à exécuter <span className="text-red-500">*</span>
+                Décrivez votre mission <span className="text-red-500">*</span>
               </label>
               <textarea
                 rows={4}
                 value={descriptionPrestations}
                 onChange={(e) => setDescriptionPrestations(e.target.value)}
-                placeholder="Ex: Développement et intégration de modules applicatifs, déploiement d'APIs, recette technique, paramétrage de serveurs, sécurisation réseau et assistance sur site client..."
+                placeholder="Décrivez simplement votre mission et les travaux à réaliser sur le site client..."
                 className="w-full bg-slate-50/70 border border-slate-300 p-3 text-xs text-slate-900 focus:bg-white focus:border-[#F0822A] focus:outline-none rounded-none leading-relaxed"
                 required
               />
@@ -425,7 +420,7 @@ function NouvelleInterventionContent() {
                 <span className="font-mono font-bold text-slate-900">{periodeLabel}</span>
               </div>
               <div className="border-b border-slate-100 pb-2">
-                <span className="text-[10px] font-bold uppercase text-slate-800 block">Prestations</span>
+                <span className="text-[10px] font-bold uppercase text-slate-800 block">Description de la mission</span>
                 <p className="mt-1 text-[11px] text-slate-700 leading-relaxed m-0 line-clamp-4">
                   {descriptionPrestations || "-"}
                 </p>
