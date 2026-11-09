@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { notificationsApi, AppNotification } from "@/lib/api/notifications.api";
+import { isAbsenceNotif } from "@/lib/utils/notificationScope";
 
 const TITLES: [string, string][] = [
   ["/absences/demandes", "Mes demandes"],
@@ -21,17 +22,6 @@ const TITLES: [string, string][] = [
   ["/absences/registre", "Archives & GED"],
   ["/absences/rapports", "Rapports & SLA"],
 ];
-
-const isAbsenceNotif = (n: AppNotification) =>
-  Boolean(
-    n.lien?.startsWith("/absences") ||
-    n.lien?.includes("demandes") ||
-    n.titre?.toLowerCase().includes("demande rh") ||
-    n.titre?.toLowerCase().includes("congé") ||
-    n.titre?.toLowerCase().includes("permission") ||
-    n.titre?.toLowerCase().includes("ordre de mission") ||
-    n.titre?.toLowerCase().includes("intervention")
-  );
 
 export function AbsencesTopBar() {
   const pathname = usePathname();

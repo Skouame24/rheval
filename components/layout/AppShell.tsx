@@ -11,6 +11,7 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { notificationsApi } from "@/lib/api";
+import { isEvalNotif } from "@/lib/utils/notificationScope";
 
 interface AppShellProps {
   role?: Role;
@@ -40,8 +41,9 @@ export function AppShell({
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const count = await notificationsApi.getUnreadCount();
-      setUnreadCount(count);
+      // Compter uniquement les notifications RH EVAL non lues (hors Absences & Missions)
+      const list = await notificationsApi.getAll();
+      setUnreadCount(list.filter((n) => isEvalNotif(n) && !n.lu).length);
     } catch {
       // Ignorer silencieusement si hors ligne ou non authentifié
     }

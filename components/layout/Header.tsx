@@ -12,6 +12,7 @@ import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import { notificationsApi, type AppNotification } from "@/lib/api";
+import { isAbsenceNotif as isAbsenceScope } from "@/lib/utils/notificationScope";
 
 function formatRelativeTime(dateStr?: string) {
   if (!dateStr) return "";
@@ -69,16 +70,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
   const notifRef = useRef<HTMLDivElement>(null);
 
   // Séparation stricte : ne conserver que les notifications relatives au cycle d'évaluation RH EVAL
-  const isAbsenceNotif = (n: AppNotification) =>
-    Boolean(
-      n.lien?.startsWith("/absences") ||
-      n.lien?.includes("demandes") ||
-      n.titre?.toLowerCase().includes("demande rh") ||
-      n.titre?.toLowerCase().includes("congé") ||
-      n.titre?.toLowerCase().includes("permission") ||
-      n.titre?.toLowerCase().includes("ordre de mission") ||
-      n.titre?.toLowerCase().includes("intervention")
-    );
+  const isAbsenceNotif = isAbsenceScope;
 
   const fetchHeaderNotifs = useCallback(async () => {
     setIsNotifLoading(true);

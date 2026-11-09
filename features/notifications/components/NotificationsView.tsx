@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { notificationsApi, type AppNotification } from "@/lib/api";
+import { isEvalNotif } from "@/lib/utils/notificationScope";
 import { Card, Button } from "@/components/ui";
 import { CheckIcon, ClockIcon, CheckCircleIcon } from "@/components/ui/Icons";
 
@@ -57,16 +58,7 @@ export function NotificationsView({
     try {
       const data = await notificationsApi.getAll();
       // Filtrer pour ne conserver que les notifications d'évaluation dans RH EVAL
-      const evalOnly = data.filter(
-        (n) =>
-          !n.lien?.startsWith("/absences") &&
-          !n.lien?.includes("demandes") &&
-          !n.titre?.toLowerCase().includes("demande rh") &&
-          !n.titre?.toLowerCase().includes("congé") &&
-          !n.titre?.toLowerCase().includes("permission") &&
-          !n.titre?.toLowerCase().includes("ordre de mission") &&
-          !n.titre?.toLowerCase().includes("intervention")
-      );
+      const evalOnly = data.filter(isEvalNotif);
       setNotifications(evalOnly);
     } catch (e) {
       console.error("Erreur chargement notifications:", e);
