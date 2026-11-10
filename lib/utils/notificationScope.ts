@@ -11,3 +11,4 @@ export const isAbsenceNotif = (n: Pick<AppNotification, "lien">): boolean =>
 
 export const isEvalNotif = (n: Pick<AppNotification, "lien">): boolean =>
   !isAbsenceNotif(n);
+

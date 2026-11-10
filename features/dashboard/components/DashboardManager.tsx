@@ -425,7 +425,7 @@ export function DashboardManager() {
 
           <div className="text-right">
             <span className="text-xs font-extrabold text-[#F0822A] bg-[#FFF7ED] border border-[#F0822A]/30 px-3 py-1 inline-block">
-              👑 PDG · Christian BAMBA (Vue Consolidée)
+              👑 PDG · {user ? `${user.prenom ? user.prenom + " " : ""}${user.nom}`.trim() : "Direction Générale"} (Vue Consolidée)
             </span>
           </div>
         </div>

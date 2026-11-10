@@ -335,7 +335,6 @@ export function DashboardN2() {
                 <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="p-3">Collaborateur</th>
                   <th className="p-3">Poste</th>
-                  <th className="p-3 text-center">Auto-Note</th>
                   <th className="p-3 text-center">Note Manager</th>
                   <th className="p-3 text-center">Formations</th>
                   <th className="p-3">Statut Dossier</th>
@@ -347,7 +346,6 @@ export function DashboardN2() {
                   const nom = ev.salarie?.nom || "Collaborateur";
                   const prenom = ev.salarie?.prenom || "";
                   const poste = ev.salarie?.poste || "Collaborateur";
-                  const autoNote = ev.noteAutoEvaluation !== undefined ? Number(ev.noteAutoEvaluation).toFixed(2) : "—";
                   const noteN1 = ev.noteGlobale !== undefined ? Number(ev.noteGlobale).toFixed(2) : "—";
                   const formCount = ev.formations?.length || 0;
 
@@ -358,7 +356,6 @@ export function DashboardN2() {
                         <span className="text-[10px] text-slate-400 font-mono">{ev.salarie?.email}</span>
                       </td>
                       <td className="p-3 text-xs text-slate-600">{poste}</td>
-                      <td className="p-3 text-xs font-semibold text-slate-700 text-center">{autoNote}</td>
                       <td className="p-3 text-xs font-black text-agilly-primary text-center">{noteN1}</td>
                       <td className="p-3 text-center">
                         {formCount > 0 ? (
