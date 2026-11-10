@@ -26,7 +26,7 @@ export default function LoginPage() {
             Portail Agilly
           </h2>
           <p className="text-sm text-gray-500 mb-8">
-            Vous n'avez pas de compte ? <a href="#" className="text-agilly-primary hover:underline font-medium">Contactez la DRH</a>
+            Vous n'avez pas de compte ? <span className="text-agilly-primary font-medium">Contactez le service support</span>
           </p>
 
           <LoginForm />
@@ -34,7 +34,7 @@ export default function LoginPage() {
 
         <div className="mt-12">
           <p className="text-xs text-gray-500">
-            Besoin d'aide ? <a href="#" className="text-agilly-primary hover:underline font-medium">Support IT Agilly</a>
+            Besoin d'aide ? <span className="text-agilly-primary font-medium">Support IT Agilly</span>
           </p>
         </div>
       </div>
