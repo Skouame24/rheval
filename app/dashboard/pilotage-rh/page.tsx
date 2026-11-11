@@ -637,13 +637,15 @@ export default function RhDashboardPage() {
                         <EyeIcon size={14} /> Fiche Détaillée
                       </button>
 
-                      <button
-                        onClick={() => exportEvaluationToExcel(item)}
-                        className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        title="Exporter au format Excel officiel Agilly"
-                      >
-                        <FileSpreadsheetIcon size={14} color="#059669" /> Excel
-                      </button>
+                      {(item.statut === "VALIDE" || item.statut === "CLOTURE" || item.statut === "CLOTUREE") && (
+                        <button
+                          onClick={() => exportEvaluationToExcel(item)}
+                          className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Exporter au format Excel officiel Agilly"
+                        >
+                          <FileSpreadsheetIcon size={14} color="#059669" /> Excel
+                        </button>
+                      )}
 
                       {isArbitrage && (
                         <button

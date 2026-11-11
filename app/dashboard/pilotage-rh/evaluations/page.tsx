@@ -262,25 +262,27 @@ export default function RhEvaluationsPage() {
                     >
                       <EyeIcon size={14} color="#FFFFFF" /> Consulter la Fiche
                     </button>
-                    <button
-                      onClick={() => exportEvaluationToExcel(item)}
-                      title="Télécharger la fiche Excel officielle"
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: 0,
-                        border: "1px solid #A7F3D0",
-                        background: "#ECFDF5",
-                        color: "#059669",
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <FileSpreadsheetIcon size={14} color="#059669" /> Excel
-                    </button>
+                    {(item.statut === "VALIDE" || item.statut === "CLOTURE" || item.statut === "CLOTUREE") && (
+                      <button
+                        onClick={() => exportEvaluationToExcel(item)}
+                        title="Télécharger la fiche Excel officielle"
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: 0,
+                          border: "1px solid #A7F3D0",
+                          background: "#ECFDF5",
+                          color: "#059669",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <FileSpreadsheetIcon size={14} color="#059669" /> Excel
+                      </button>
+                    )}
                   </div>
                 </Card>
               );

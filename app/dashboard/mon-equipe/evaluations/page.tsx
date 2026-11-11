@@ -650,14 +650,16 @@ export default function EvaluationsEquipePage() {
                               </Button>
                             )}
 
-                            <button
-                              onClick={() => handleExportSingle(item)}
-                              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-300 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                              title="Télécharger la fiche individuelle sous format Excel (.xlsx)"
-                            >
-                              <FileSpreadsheetIcon size={14} className="text-emerald-700" />
-                              <span className="hidden sm:inline">Excel</span>
-                            </button>
+                            {(item.statut === "VALIDE" || item.statut === "CLOTURE" || item.statut === "CLOTUREE") && (
+                              <button
+                                onClick={() => handleExportSingle(item)}
+                                className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-300 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                title="Télécharger la fiche individuelle sous format Excel (.xlsx)"
+                              >
+                                <FileSpreadsheetIcon size={14} className="text-emerald-700" />
+                                <span className="hidden sm:inline">Excel</span>
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
