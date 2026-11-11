@@ -76,6 +76,7 @@ export function FicheEvaluationModal({
   const [activeTab, setActiveTab] = useState<"N1" | "N2" | "RH">("N1");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingFiche, setIsLoadingFiche] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [fetchedEval, setFetchedEval] = useState<any | null>(null);
 
@@ -120,6 +121,7 @@ export function FicheEvaluationModal({
   useEffect(() => {
     if (isOpen) {
       if (resolvedFicheId) {
+        setIsLoadingFiche(true);
         evaluationsApi.getById(resolvedFicheId).then((data) => {
           if (data) {
             setFetchedEval(data);
@@ -143,9 +145,12 @@ export function FicheEvaluationModal({
           }
         }).catch((err) => {
           console.error("[FicheEvaluationModal] Erreur chargement fiche:", err);
+        }).finally(() => {
+          setIsLoadingFiche(false);
         });
       } else {
         // Fallback intelligent si l'identifiant n'a pas été transmis directement par le composant parent
+        setIsLoadingFiche(true);
         evaluationsApi.getAllForRh().then((allFiches) => {
           if (allFiches && allFiches.length > 0) {
             const targetNom = (dossier?.nom || "").toLowerCase().trim();
@@ -168,11 +173,14 @@ export function FicheEvaluationModal({
           }
         }).catch((err) => {
           console.error("[FicheEvaluationModal] Erreur fallback fiches RH:", err);
+        }).finally(() => {
+          setIsLoadingFiche(false);
         });
       }
     } else if (!isOpen) {
       setFetchedEval(null);
       setSaveSuccessMsg(null);
+      setIsLoadingFiche(false);
     }
   }, [isOpen, resolvedFicheId, dossier?.nom, dossier?.prenom]);
 
@@ -447,7 +455,7 @@ export function FicheEvaluationModal({
     bonusIcon = "✕";
   }
 
-  const hasNotes = noteAffichee > 0 || (objectifs && objectifs.some((o: any) => o.noteObtenue !== undefined && o.noteObtenue !== null && o.noteObtenue !== ""));
+  const hasNotes = !isPhaseObjectifs && (noteAffichee > 0 || (objectifs && objectifs.some((o: any) => Number(o.noteObtenue) > 0)));
 
   let dynamicStep: number = 1;
   if (isFicheCloturee) {
@@ -918,7 +926,20 @@ export function FicheEvaluationModal({
 
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             {/* ── INDICATEURS DE PERFORMANCE CONSOLIDÉS (Montés en haut) ── */}
-            {hasNotes && (
+            {isPhaseObjectifs ? (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 12px",
+                background: "#EFF6FF",
+                border: "1px solid #BFDBFE",
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#1D4ED8" }}>
+                  📌 Phase 1 · Fixation & Validation des Objectifs (Notation non démarrée)
+                </span>
+              </div>
+            ) : hasNotes ? (
               <>
                 {/* Jauge Taux d'atteinte dynamique */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 145 }}>
@@ -981,7 +1002,7 @@ export function FicheEvaluationModal({
                   </span>
                 </div>
               </>
-            )}
+            ) : null}
 
             <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", borderLeft: hasNotes ? "1px solid #CBD5E1" : "none", paddingLeft: hasNotes ? 12 : 0 }}>
               Rôle : <strong style={{ color: "#0F172A" }}>{effectiveRole}</strong>
@@ -991,7 +1012,44 @@ export function FicheEvaluationModal({
 
         {/* ── BODY SCROLLABLE ── */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20, background: "#F7F8FA" }}>
-          
+          {isLoadingFiche ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Stepper Skeleton */}
+              <div className="animate-pulse" style={{ height: 44, background: "#E2E8F0", width: "100%" }} />
+
+              {/* Collaborateur Hero Skeleton */}
+              <div className="animate-pulse" style={{ background: "#FFFFFF", padding: 20, border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ width: 44, height: 44, background: "#CBD5E1" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                    <div style={{ height: 16, width: "35%", background: "#CBD5E1" }} />
+                    <div style={{ height: 12, width: "22%", background: "#E2E8F0" }} />
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, background: "#F8FAFC", padding: 12, border: "1px solid #E2E8F0" }}>
+                  <div style={{ height: 24, background: "#E2E8F0" }} />
+                  <div style={{ height: 24, background: "#E2E8F0" }} />
+                </div>
+              </div>
+
+              {/* Objectives Skeletons */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse" style={{ background: "#FFFFFF", padding: 20, border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ height: 16, width: "50%", background: "#CBD5E1" }} />
+                    <div style={{ height: 14, width: "12%", background: "#E2E8F0" }} />
+                  </div>
+                  <div style={{ height: 12, width: "80%", background: "#F1F5F9" }} />
+                  <div style={{ height: 60, background: "#F8FAFC", border: "1px dashed #CBD5E1" }} />
+                </div>
+              ))}
+
+              <div style={{ textAlign: "center", padding: "16px", color: "#0284C7", fontSize: 13, fontWeight: 700 }}>
+                ⏳ Chargement de la fiche d&apos;évaluation en cours...
+              </div>
+            </div>
+          ) : (
+            <>
           <WorkflowStepper currentStep={dynamicStep} isCompleted={isFicheCloturee} />
 
           {/* BANNIÈRE OFFICIELLE CLÔTURÉE */}
@@ -1850,6 +1908,9 @@ export function FicheEvaluationModal({
             </div>
           )}
 
+            </>
+          )}
+
         </div>
 
         {/* ── FOOTER ACTIONS MODAL (Barre d'action institutionnelle unique) ── */}
@@ -1964,6 +2025,86 @@ export function FicheEvaluationModal({
                       >
                         {isSaving ? "Clôture en cours..." : "✓ Confirmer mon accord & Clôturer"}
                       </button>
+                    </div>
+                  ) : currentStatut === "VALIDATION_OBJECTIFS_RH" ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleValidateRhObjectifs("REJETE")}
+                        disabled={isSaving}
+                        style={{
+                          padding: "8px 14px",
+                          background: "#FFFFFF",
+                          border: "1px solid #FDA4AF",
+                          color: "#BE123C",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ↩ Demander révision au N+1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleValidateRhObjectifs("APPROUVE")}
+                        disabled={isSaving}
+                        style={{
+                          padding: "8px 18px",
+                          background: "#0284C7",
+                          color: "#FFFFFF",
+                          border: "none",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isSaving ? "Validation..." : "✓ Valider les Objectifs (RH)"}
+                      </button>
+                    </div>
+                  ) : currentStatut === "VALIDATION_OBJECTIFS_N2" && canEditN2 ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveN2("REJETE")}
+                        disabled={isSaving}
+                        style={{
+                          padding: "8px 14px",
+                          background: "#FFFFFF",
+                          border: "1px solid #FDA4AF",
+                          color: "#BE123C",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ↩ Demander révision
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveN2("APPROUVE")}
+                        disabled={isSaving}
+                        style={{
+                          padding: "8px 18px",
+                          background: "#7C3AED",
+                          color: "#FFFFFF",
+                          border: "none",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isSaving ? "Validation..." : "✓ Valider les Objectifs (N+2)"}
+                      </button>
+                    </div>
+                  ) : isPhaseObjectifs ? (
+                    <div style={{ padding: "8px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1D4ED8", fontWeight: 700, fontSize: 12 }}>
+                      {currentStatut === "VALIDATION_OBJECTIFS_RH"
+                        ? "En attente de validation RH"
+                        : currentStatut === "VALIDATION_OBJECTIFS_N2"
+                        ? "En attente de validation Direction N+2"
+                        : currentStatut === "VALIDATION_OBJECTIFS_SALARIE"
+                        ? "En attente d'accord du salarié"
+                        : "Phase 1 : Fixation des objectifs"}
                     </div>
                   ) : (
                     <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
