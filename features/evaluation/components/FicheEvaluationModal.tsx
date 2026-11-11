@@ -123,7 +123,18 @@ export function FicheEvaluationModal({
         evaluationsApi.getById(resolvedFicheId).then((data) => {
           if (data) {
             setFetchedEval(data);
-            if (data.observation) {
+            if (data.historique && Array.isArray(data.historique)) {
+              const n1Hist = data.historique.find((h: any) => h.action === "EVALUATION_N1_SOUMISE");
+              const n2Hist = data.historique.find((h: any) => h.action === "VALIDATION_NOTES_N2_APPROUVE" || h.action === "VALIDATION_NOTES_N2_REJETE");
+              if (n1Hist?.commentaire) {
+                setObservationN1(n1Hist.commentaire);
+              } else if (data.observation && !data.observation.toLowerCase().startsWith("valide")) {
+                setObservationN1(data.observation);
+              }
+              if (n2Hist?.commentaire) {
+                setObservationN2(n2Hist.commentaire);
+              }
+            } else if (data.observation) {
               setObservationN1(data.observation);
             }
             if (data.formations && Array.isArray(data.formations)) {
@@ -392,13 +403,14 @@ export function FicheEvaluationModal({
   // Calculs pondérés des moyennes
   const totalPond = objectifs.reduce((acc, o) => acc + (Number(o.ponderation) || 0), 0);
 
-  const noteGlobaleN1 = totalPond > 0
-    ? objectifs.reduce((acc, obj) => acc + (Number(obj.noteObtenue || 0) * (Number(obj.ponderation || 0) / 100)), 0)
+  const rawNoteN1 = totalPond > 0
+    ? objectifs.reduce((acc, obj) => acc + (Number(obj.noteObtenue || 0) * Number(obj.ponderation || 0)), 0) / totalPond
     : (objectifs.length > 0 ? objectifs.reduce((acc, obj) => acc + Number(obj.noteObtenue || 0), 0) / objectifs.length : 0);
+  const noteGlobaleN1 = Math.min(20, Math.max(0, rawNoteN1));
 
   // La note officielle unique est celle attribuée par le Manager N+1
   const noteAffichee = noteGlobaleN1;
-  const tauxGlobal = ((noteAffichee / 20) * 100).toFixed(1);
+  const tauxGlobal = Math.min(100, ((noteAffichee / 20) * 100)).toFixed(1);
   const numTaux = parseFloat(tauxGlobal) || 0;
 
   // Configuration jauge dynamique & politique de bonus selon le taux d'atteinte :
@@ -1892,9 +1904,72 @@ export function FicheEvaluationModal({
                 </button>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                    {isFicheCloturee ? "Dossier clôturé" : "Évaluation N+1 transmise"}
-                  </div>
+                  {currentStatut === "ACCORD_SALARIE" && (isCollabHimself || effectiveRole === "SALARIE") ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const motif = window.prompt("Veuillez préciser le motif de votre contestation pour la Direction des Ressources Humaines :");
+                          if (!motif || !motif.trim()) return;
+                          try {
+                            setIsSaving(true);
+                            await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: false, observation: motif.trim() });
+                            alert("Votre demande d'arbitrage a été transmise à la Direction RH.");
+                            if (onSaved) onSaved();
+                            onClose();
+                          } catch (err: any) {
+                            alert("Erreur : " + (err.message || "Erreur serveur"));
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }}
+                        disabled={isSaving}
+                        style={{
+                          padding: "8px 14px",
+                          background: "#FFFFFF",
+                          border: "1px solid #FDA4AF",
+                          color: "#BE123C",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ⚖ Contester la note & Demander Arbitrage
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setIsSaving(true);
+                            await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: true, observation: "Visa et accord accordés sans réserve par le salarié." });
+                            alert("✓ Votre accord a été validé ! L'évaluation est officiellement clôturée.");
+                            if (onSaved) onSaved();
+                            onClose();
+                          } catch (err: any) {
+                            alert("Erreur : " + (err.message || "Erreur serveur"));
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }}
+                        disabled={isSaving}
+                        style={{
+                          padding: "8px 18px",
+                          background: "#059669",
+                          color: "#FFFFFF",
+                          border: "none",
+                          fontWeight: 800,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isSaving ? "Clôture en cours..." : "✓ Confirmer mon accord & Clôturer"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
+                      {isFicheCloturee ? "Dossier clôturé" : "Évaluation N+1 transmise"}
+                    </div>
+                  )}
                   {canEditN2 && !isFicheCloturee && (
                     <button
                       type="button"

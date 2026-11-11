@@ -116,8 +116,9 @@ export function DashboardSalarie() {
   // ── Résolution des champs affichés depuis les données API ──
   const statut = (evaluation?.statut ?? "EN_ATTENTE_N1") as StatutEvaluation;
   const cycleLibelle = evaluation?.cycle?.libelle ?? "Cycle d'Évaluation Annuelle 2026";
-  const noteAffichee = evaluation?.noteGlobale ? Number(evaluation.noteGlobale) : null;
-  const tauxAtteinte = noteAffichee !== null ? Math.round((noteAffichee / 20) * 100) : null;
+  const rawNote = evaluation?.noteGlobale ? Number(evaluation.noteGlobale) : null;
+  const noteAffichee = rawNote !== null ? Math.min(20, Math.max(0, rawNote)) : null;
+  const tauxAtteinte = noteAffichee !== null ? Math.min(100, Math.round((noteAffichee / 20) * 100)) : null;
   // Stabilise la référence du tableau — évite la boucle infinie dans FicheEvaluationModal
   const objectifs = useMemo(() => evaluation?.objectifs ?? [], [evaluation?.objectifs]);
   const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : { prenom: "Ange-Dieudonne", nom: "TIANGBO" };
