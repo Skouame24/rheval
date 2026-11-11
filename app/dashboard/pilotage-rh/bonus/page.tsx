@@ -157,8 +157,8 @@ export default function BonusRhPage() {
               ⚠️ {error}
             </div>
           ) : bonusList.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "48px 20px" }}>
-              <CheckCircleIcon size={36} color="#94A3B8" />
+            <div style={{ textAlign: "center", padding: "48px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <CheckCircleIcon size={36} color="#94A3B8" className="mx-auto" />
               <h4 style={{ fontSize: 15, fontWeight: 800, color: "#1E293B", margin: "12px 0 4px 0" }}>
                 Aucune note finale validée pour l'instant
               </h4>

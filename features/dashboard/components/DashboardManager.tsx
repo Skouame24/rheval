@@ -71,9 +71,12 @@ export function DashboardManager() {
   } | null>(null);
   const [selectedFicheModal, setSelectedFicheModal] = useState<EvaluationCycle | null>(null);
 
-  const loadData = useCallback(async (isSilent = false) => {
+  const loadData = useCallback(async (isSilent = false, bypassCache = false) => {
     if (!isSilent) setIsLoading(true);
     try {
+      if (bypassCache) {
+        client.clearCache();
+      }
       const [fichesData, teamData, cycleData] = await Promise.all([
         (isPdg ? evaluationsApi.getN2TeamEvaluations() : evaluationsApi.getN1TeamEvaluations()).catch(() => []),
         employeesApi.getMyTeam().catch(() => []),
@@ -325,7 +328,10 @@ export function DashboardManager() {
           evaluationId={selectedFicheModal.id}
           onClose={() => {
             setSelectedFicheModal(null);
-            loadData();
+            loadData(true, true);
+          }}
+          onSaved={() => {
+            loadData(true, true);
           }}
           dossier={{
             id: selectedFicheModal.id,

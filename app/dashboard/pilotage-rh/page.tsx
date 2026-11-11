@@ -430,8 +430,8 @@ export default function RhDashboardPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-slate-800/40 border border-slate-800 p-5 text-center my-6">
-                    <CheckCircleIcon size={32} color="#10B981" />
+                  <div className="bg-slate-800/40 border border-slate-800 p-5 text-center my-6 flex flex-col items-center justify-center">
+                    <CheckCircleIcon size={32} color="#10B981" className="mx-auto" />
                     <p className="text-xs text-slate-300 font-bold mt-2 mb-0">Aucun litige ou désaccord en attente.</p>
                     <p className="text-[11px] text-slate-500 mt-1 mb-0">Tous les dossiers sont alignés.</p>
                   </div>
@@ -537,8 +537,8 @@ export default function RhDashboardPage() {
               ))}
             </div>
           ) : filteredDossiers.length === 0 ? (
-            <div className="bg-white border border-slate-200 p-12 text-center">
-              <CheckCircleIcon size={40} color="#94A3B8" />
+            <div className="bg-white border border-slate-200 p-12 text-center flex flex-col items-center justify-center">
+              <CheckCircleIcon size={40} color="#94A3B8" className="mx-auto" />
               <h4 className="text-base font-black text-slate-900 mt-4 mb-1">
                 Aucun dossier d'évaluation
               </h4>

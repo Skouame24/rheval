@@ -277,8 +277,8 @@ export default function UtilisateursAdminPage() {
 
         {/* Liste Vide */}
         {!isLoading && !error && filteredUsers.length === 0 && (
-          <div className="bg-white border border-slate-200 p-12 text-center">
-            <UsersIcon size={40} color="#94A3B8" />
+          <div className="bg-white border border-slate-200 p-12 text-center flex flex-col items-center justify-center">
+            <UsersIcon size={40} color="#94A3B8" className="mx-auto" />
             <h4 className="text-base font-extrabold text-slate-800 mt-3 mb-1">Aucun utilisateur trouvé</h4>
             <p className="text-xs text-slate-500 font-semibold m-0">
               {searchQuery ? "Aucun utilisateur ne correspond à votre filtre de recherche." : "Aucun utilisateur dans la base de données."}

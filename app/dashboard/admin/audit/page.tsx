@@ -72,8 +72,8 @@ export default function AuditAdminPage() {
             ⚠️ {error}
           </div>
         ) : logs.length === 0 ? (
-          <div className="bg-white border border-slate-200 p-12 text-center">
-            <CheckCircleIcon size={36} color="#94A3B8" />
+          <div className="bg-white border border-slate-200 p-12 text-center flex flex-col items-center justify-center">
+            <CheckCircleIcon size={36} color="#94A3B8" className="mx-auto" />
             <h4 className="text-base font-extrabold text-slate-800 mt-3 mb-1">Aucun événement d'audit</h4>
             <p className="text-xs text-slate-500 font-semibold m-0">
               Les actions effectuées sur les fiches d'évaluation et les comptes utilisateurs seront consignées ici.
