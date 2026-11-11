@@ -347,15 +347,22 @@ export function FicheEvaluationModal({
   // Détection dynamique du statut et de l'étape du workflow officiel AGILLY
   const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
   const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE" || currentStatut === "CLOTUREE";
+  const isPhaseObjectifs = [
+    "FIXATION_OBJECTIFS",
+    "VALIDATION_OBJECTIFS_RH",
+    "VALIDATION_OBJECTIFS_N2",
+    "VALIDATION_OBJECTIFS_SALARIE",
+    "CREE",
+    "BROUILLON",
+    "EN_ATTENTE_OBJECTIFS",
+  ].includes(currentStatut);
 
   // Droits de modification selon l'étape du cycle
-  // 1. N+1 (Responsable) : évalue directement dès que les objectifs sont définis
-  const isN1EvalOpen = !isFicheCloturee && (
+  // 1. N+1 (Responsable) : évalue directement dès que les objectifs sont validés et que l'évaluation est ouverte
+  const isN1EvalOpen = !isFicheCloturee && !isPhaseObjectifs && (
     currentStatut === "EVALUATION_N1" ||
     currentStatut === "EN_ATTENTE_N1" ||
-    currentStatut === "AUTO_EVALUATION" ||
-    currentStatut === "VALIDATION_OBJECTIFS_SALARIE" ||
-    currentStatut === "FIXATION_OBJECTIFS"
+    currentStatut === "AUTO_EVALUATION"
   );
   const canEditN1 = !readOnly && !isFicheCloturee && activeTab === "N1" && isN1EvalOpen && !isCollabHimself;
 
@@ -694,7 +701,7 @@ export function FicheEvaluationModal({
       setFetchedEval((prev: any) => prev ? { ...prev, statut: nextSt } : { statut: nextSt });
       setSaveSuccessMsg(
         decision === "APPROUVE"
-          ? "✓ Les objectifs ont été validés par les RH et transmis à la Direction N+2 !"
+          ? "✓ Les objectifs ont été validés par les RH et transmis au N+2 !"
           : "✓ Une révision des objectifs a été demandée au responsable N+1."
       );
       if (onSaved) onSaved();
@@ -1040,7 +1047,7 @@ export function FicheEvaluationModal({
                   VALIDATION RH REQUISE · ÉTAPE 2/8
                 </span>
                 <p style={{ margin: "6px 0 0 0", fontSize: 13, fontWeight: 700, color: "#0369A1" }}>
-                  Le Manager N+1 a fixé les objectifs de performance. Votre validation RH est requise pour transmission à la Direction N+2.
+                  Le Manager N+1 a fixé les objectifs de performance. Votre validation RH est requise pour transmission au N+2.
                 </p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1074,7 +1081,7 @@ export function FicheEvaluationModal({
                     cursor: "pointer",
                   }}
                 >
-                  {isSaving ? "Validation en cours..." : "✓ Valider les Objectifs (RH ➔ N+2)"}
+                  {isSaving ? "Validation en cours..." : "✓ Valider les Objectifs"}
                 </button>
               </div>
             </div>
@@ -1117,16 +1124,20 @@ export function FicheEvaluationModal({
             {/* Comparatif synthétique des notes */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, background: "#F8FAFC", padding: 12, border: "1px solid #E2E8F0" }}>
               <div style={{ textAlign: "center", borderRight: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block" }}>Note globale</span>
-                <span style={{ fontSize: 15, fontWeight: 900, color: "#F0822A" }}>
-                  {noteGlobaleN1.toFixed(2)} / 20
+                <span style={{ fontSize: 10, fontWeight: 800, color: isPhaseObjectifs ? "#64748B" : "#EA580C", textTransform: "uppercase", display: "block" }}>
+                  {isPhaseObjectifs ? "Statut Notation" : "Note globale"}
+                </span>
+                <span style={{ fontSize: isPhaseObjectifs ? 13 : 15, fontWeight: 900, color: isPhaseObjectifs ? "#0284C7" : "#F0822A" }}>
+                  {isPhaseObjectifs ? "⏳ Fixation des objectifs" : `${noteGlobaleN1.toFixed(2)} / 20`}
                 </span>
               </div>
               <div style={{ textAlign: "center" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: isPhaseObjectifs ? "#64748B" : "#059669", textTransform: "uppercase", display: "block" }}>
                   Formations à Prévoir
                 </span>
-                <span style={{ fontSize: 15, fontWeight: 900, color: "#059669" }}>{formations.length} module(s)</span>
+                <span style={{ fontSize: isPhaseObjectifs ? 13 : 15, fontWeight: 900, color: isPhaseObjectifs ? "#64748B" : "#059669" }}>
+                  {isPhaseObjectifs ? "⏳ Phase 2 (Évaluation)" : `${formations.length} module(s)`}
+                </span>
               </div>
             </div>
           </div>
@@ -1139,7 +1150,9 @@ export function FicheEvaluationModal({
                   2. Grille des Objectifs & Barème de Notation — Vue {activeTab}
                 </h3>
                 <p style={{ fontSize: 11, color: "#64748B", margin: "2px 0 0 0" }}>
-                  {activeTab === "N1"
+                  {isPhaseObjectifs
+                    ? "Consultation des objectifs fixés et de leurs critères d'évaluation. La notation sera ouverte lors de la Phase 2."
+                    : activeTab === "N1"
                     ? "Attribuez les notes de performance par tranche ou valeur directe"
                     : activeTab === "N2"
                     ? "Examinez les notes attribuées par le manager et formulez votre avis N+2"
@@ -1175,19 +1188,19 @@ export function FicheEvaluationModal({
 
                     <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
                       <div style={{
-                        background: "#FFF7ED",
+                        background: isPhaseObjectifs ? "#F1F5F9" : "#FFF7ED",
                         padding: "6px 10px",
-                        border: "1px solid #FFEDD5",
+                        border: isPhaseObjectifs ? "1px solid #CBD5E1" : "1px solid #FFEDD5",
                         textAlign: "right",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "flex-end",
                         justifyContent: "center"
                       }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", display: "block", marginBottom: 2 }}>
-                          Note
+                        <span style={{ fontSize: 9, fontWeight: 800, color: isPhaseObjectifs ? "#64748B" : "#EA580C", textTransform: "uppercase", display: "block", marginBottom: 2 }}>
+                          {isPhaseObjectifs ? "Évaluation" : "Note"}
                         </span>
-                        {canEditN1 ? (
+                        {canEditN1 && !isPhaseObjectifs ? (
                           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                             <input
                               type="number"
@@ -1210,6 +1223,10 @@ export function FicheEvaluationModal({
                             />
                             <span style={{ fontSize: 12, fontWeight: 800, color: "#EA580C" }}>/ 20</span>
                           </div>
+                        ) : isPhaseObjectifs ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B", background: "#E2E8F0", padding: "2px 6px" }}>
+                            Phase 2
+                          </span>
                         ) : (
                           <span style={{ fontSize: 13, fontWeight: 900, color: "#F0822A" }}>
                             {obj.noteObtenue} / 20
@@ -1219,22 +1236,30 @@ export function FicheEvaluationModal({
                     </div>
                   </div>
 
-                  {/* Tranches d'atteinte cliquables */}
+                  {/* Tranches d'atteinte cliquables ou indicatives */}
+                  {isPhaseObjectifs && (
+                    <div style={{ marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>
+                        Barème indicatif :
+                      </span>
+                    </div>
+                  )}
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {obj.criteres.map((c, i) => {
-                      const isSelected = currentNote >= c.min && currentNote <= c.max && currentNote > 0;
+                      const isSelected = !isPhaseObjectifs && currentNote >= c.min && currentNote <= c.max && currentNote > 0;
                       return (
                         <div
                           key={i}
-                          onClick={() => handleSelectTranche(obj.id, c)}
+                          onClick={() => !isPhaseObjectifs && canEditN1 && handleSelectTranche(obj.id, c)}
                           style={{
                             padding: "8px 12px",
                             border: isSelected ? `2px solid ${c.color}` : "1px solid #E2E8F0",
-                            background: isSelected ? c.bg : "#FFFFFF",
+                            background: isSelected ? c.bg : isPhaseObjectifs ? "#FAFAFA" : "#FFFFFF",
                             display: "flex",
                             alignItems: "center",
                             gap: 12,
-                            cursor: canEditN1 ? "pointer" : "default",
+                            cursor: canEditN1 && !isPhaseObjectifs ? "pointer" : "default",
+                            opacity: isPhaseObjectifs ? 0.9 : 1,
                           }}
                         >
                           <span style={{
@@ -1270,36 +1295,65 @@ export function FicheEvaluationModal({
                     Bilan global sur la période : atteinte des objectifs, investissement, points forts et axes d'amélioration.
                   </p>
                 </div>
-                {canEditN1 && (
+                {canEditN1 && !isPhaseObjectifs && (
                   <span style={{ fontSize: 10, fontWeight: 800, color: "#F0822A", background: "#FFF7ED", padding: "2px 8px", border: "1px solid #FFEDD5" }}>
                     SYNTHÈSE FINALE
                   </span>
                 )}
               </div>
 
-              <textarea
-                rows={4}
-                disabled={!canEditN1}
-                value={observationN1}
-                onChange={(e) => setObservationN1(e.target.value)}
-                placeholder={
-                  canEditN1
-                    ? "Saisissez votre commentaire général d'évaluation (forces, compétences démontrées, axes de progrès...)..."
-                    : "Aucun commentaire général renseigné par le manager."
-                }
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  fontSize: 12,
-                  border: "1px solid #CBD5E1",
-                  background: canEditN1 ? "#FFFFFF" : "#F8FAFC",
-                  color: "#0F172A",
-                  fontFamily: "inherit",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                  outline: "none",
-                }}
-              />
+              {isPhaseObjectifs && !observationN1 ? (
+                <div style={{
+                  padding: "16px 20px",
+                  background: "#F8FAFC",
+                  border: "1px dashed #CBD5E1",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 900, color: "#0284C7", background: "#E0F2FE", padding: "3px 8px", border: "1px solid #BAE6FD", letterSpacing: "0.025em" }}>
+                      PHASE 1 : FIXATION DES OBJECTIFS
+                    </span>
+                    <span style={{ fontSize: 11, color: "#64748B", fontWeight: 600 }}>
+                      Section réservée à la phase d&apos;évaluation annuelle
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12, color: "#475569", margin: 0, lineHeight: 1.5 }}>
+                    Le commentaire général et l&apos;appréciation globale seront rédigés par le manager N+1 lors de l&apos;entretien annuel d&apos;évaluation (Phase 2).
+                  </p>
+                  {/* Squelette visuel indicatif */}
+                  <div className="animate-pulse" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4, opacity: 0.5 }}>
+                    <div style={{ height: 10, background: "#CBD5E1", width: "85%" }} />
+                    <div style={{ height: 10, background: "#E2E8F0", width: "65%" }} />
+                    <div style={{ height: 10, background: "#F1F5F9", width: "40%" }} />
+                  </div>
+                </div>
+              ) : (
+                <textarea
+                  rows={4}
+                  disabled={!canEditN1 || isPhaseObjectifs}
+                  value={observationN1}
+                  onChange={(e) => setObservationN1(e.target.value)}
+                  placeholder={
+                    canEditN1 && !isPhaseObjectifs
+                      ? "Saisissez votre commentaire général d'évaluation (forces, compétences démontrées, axes de progrès...)..."
+                      : "Aucun commentaire général renseigné par le manager."
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    fontSize: 12,
+                    border: "1px solid #CBD5E1",
+                    background: canEditN1 && !isPhaseObjectifs ? "#FFFFFF" : "#F8FAFC",
+                    color: "#0F172A",
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                    outline: "none",
+                  }}
+                />
+              )}
             </div>
           </div>
 
@@ -1315,7 +1369,7 @@ export function FicheEvaluationModal({
                 </p>
               </div>
 
-              {(canEditN1 || (isCollabManager && canEditN2)) && !showAddFormationForm && (
+              {(canEditN1 || (isCollabManager && canEditN2)) && !isPhaseObjectifs && !showAddFormationForm && (
                 <button
                   type="button"
                   onClick={() => setShowAddFormationForm(true)}
@@ -1445,10 +1499,36 @@ export function FicheEvaluationModal({
                   </tbody>
                 </table>
               </div>
+            ) : isPhaseObjectifs && formations.length === 0 ? (
+              <div style={{
+                padding: "16px 20px",
+                background: "#F8FAFC",
+                border: "1px dashed #CBD5E1",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 900, color: "#0284C7", background: "#E0F2FE", padding: "3px 8px", border: "1px solid #BAE6FD", letterSpacing: "0.025em" }}>
+                    PHASE 1 : FIXATION DES OBJECTIFS
+                  </span>
+                  <span style={{ fontSize: 11, color: "#64748B", fontWeight: 600 }}>
+                    Plan de formation réservé à la Phase 2
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: "#475569", margin: 0, lineHeight: 1.5 }}>
+                  Les besoins en compétences et les formations à envisager seront discutés et planifiés lors de l&apos;entretien annuel d&apos;évaluation.
+                </p>
+                {/* Squelette visuel indicatif */}
+                <div className="animate-pulse" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4, opacity: 0.5 }}>
+                  <div style={{ height: 10, background: "#CBD5E1", width: "80%" }} />
+                  <div style={{ height: 10, background: "#E2E8F0", width: "55%" }} />
+                </div>
+              </div>
             ) : (
               <div style={{ padding: "16px", background: "#F8FAFC", border: "1px dashed #CBD5E1", textAlign: "center" }}>
                 <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>
-                  Aucune formation n'a encore été ajoutée par le manager pour ce collaborateur.
+                  Aucune formation n&apos;a encore été ajoutée par le manager pour ce collaborateur.
                 </p>
               </div>
             )}
@@ -1783,53 +1863,55 @@ export function FicheEvaluationModal({
               )
             ) : null}
 
-            {/* EXPORT EXCEL OFFICIEL */}
-            <button
-              onClick={() => {
-                import("@/lib/utils/exportExcelEvaluation").then(({ exportEvaluationToExcel }) => {
-                  exportEvaluationToExcel({
-                    salarie: {
-                      nom: effectiveDossier?.nom || auth.user?.nom || "KOUAME",
-                      prenom: effectiveDossier?.prenom || auth.user?.prenom || "Ebenezer Samuel",
-                      poste: effectiveDossier?.poste || auth.user?.poste || "Collaborateur",
-                      direction: effectiveDossier?.direction || auth.user?.departement || "Direction",
-                      site: "Abidjan - AGILLY 1",
-                    },
-                    n1: {
-                      nom: auth.user?.n1?.nom || (effectiveDossier as any)?.n1 || "Manager N+1",
-                      poste: auth.user?.n1?.poste || "Responsable",
-                    },
-                    objectifs: objectifs.map((o) => ({
-                      intitule: o.intitule,
-                      ponderation: o.ponderation,
-                      noteSalarie: o.noteSalarie,
-                      noteN1: o.noteObtenue,
-                      noteN2: o.noteObtenue,
-                    })),
-                    formations: formations.map((f) => ({
-                      formation: f.intitule,
-                      delai: f.delai,
-                    })),
-                    observationN1: noteGlobaleN1 > 0 ? `Note N+1 : ${noteGlobaleN1.toFixed(2)}/20` : "",
+            {/* EXPORT EXCEL OFFICIEL (VISIBLE UNIQUEMENT LORSQUE LE DOSSIER EST CLÔTURÉ) */}
+            {isFicheCloturee && (
+              <button
+                onClick={() => {
+                  import("@/lib/utils/exportExcelEvaluation").then(({ exportEvaluationToExcel }) => {
+                    exportEvaluationToExcel({
+                      salarie: {
+                        nom: effectiveDossier?.nom || auth.user?.nom || "KOUAME",
+                        prenom: effectiveDossier?.prenom || auth.user?.prenom || "Ebenezer Samuel",
+                        poste: effectiveDossier?.poste || auth.user?.poste || "Collaborateur",
+                        direction: effectiveDossier?.direction || auth.user?.departement || "Direction",
+                        site: "Abidjan - AGILLY 1",
+                      },
+                      n1: {
+                        nom: auth.user?.n1?.nom || (effectiveDossier as any)?.n1 || "Manager N+1",
+                        poste: auth.user?.n1?.poste || "Responsable",
+                      },
+                      objectifs: objectifs.map((o) => ({
+                        intitule: o.intitule,
+                        ponderation: o.ponderation,
+                        noteSalarie: o.noteSalarie,
+                        noteN1: o.noteObtenue,
+                        noteN2: o.noteObtenue,
+                      })),
+                      formations: formations.map((f) => ({
+                        formation: f.intitule,
+                        delai: f.delai,
+                      })),
+                      observationN1: noteGlobaleN1 > 0 ? `Note N+1 : ${noteGlobaleN1.toFixed(2)}/20` : "",
+                    });
                   });
-                });
-              }}
-              style={{
-                padding: "8px 14px",
-                border: "1px solid #CBD5E1",
-                background: "#FFFFFF",
-                color: "#0F172A",
-                fontWeight: 700,
-                fontSize: 12,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <FileSpreadsheetIcon size={14} color="#059669" />
-              <span>Export Excel (.xlsx)</span>
-            </button>
+                }}
+                style={{
+                  padding: "8px 14px",
+                  border: "1px solid #CBD5E1",
+                  background: "#FFFFFF",
+                  color: "#0F172A",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <FileSpreadsheetIcon size={14} color="#059669" />
+                <span>Export Excel (.xlsx)</span>
+              </button>
+            )}
           </div>
         </div>
 

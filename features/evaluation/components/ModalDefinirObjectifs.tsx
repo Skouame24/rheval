@@ -790,12 +790,12 @@ export function ModalDefinirObjectifs({
                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-sm disabled:opacity-50"
                   >
                     <CheckCircleIcon size={14} />
-                    <span>Valider les Objectifs (N+2)</span>
+                    <span>Valider les Objectifs</span>
                   </button>
                 </div>
               ) : (
                 <span className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-2">
-                  <span>⏳ En attente de validation Direction N+2</span>
+                  <span>⏳ En attente de validation N+2</span>
                 </span>
               )
             )}
