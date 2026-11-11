@@ -202,20 +202,20 @@ export function FicheEvaluationModal({
   } : null);
 
   // On n'est restreint en collaborateur "soi-même" (lecture seule) QUE si on est explicitement
-  // en auto-évaluation (isAutoEvaluationMode) ou en propRole SALARIE sans rôle hiérarchique actif
+  // en auto-évaluation (isAutoEvaluationMode) ou si l'utilisateur connecté est le salarié de la fiche
   const isCollabHimself = Boolean(
     isAutoEvaluationMode ||
-    (propRole === "SALARIE" && (
-      (auth.user?.id && (
-        effectiveDossier?.id === auth.user.id ||
-        (effectiveDossier as any)?.salarieId === auth.user.id ||
-        fetchedEval?.salarieId === auth.user.id ||
-        fetchedEval?.salarie?.id === auth.user.id
-      )) ||
-      (auth.user?.email && (
-        (effectiveDossier as any)?.email === auth.user.email ||
-        fetchedEval?.salarie?.email === auth.user.email
-      ))
+    propRole === "SALARIE" ||
+    (auth.role === "SALARIE" && !propRole) ||
+    (auth.user?.id && (
+      effectiveDossier?.id === auth.user.id ||
+      (effectiveDossier as any)?.salarieId === auth.user.id ||
+      fetchedEval?.salarieId === auth.user.id ||
+      fetchedEval?.salarie?.id === auth.user.id
+    )) ||
+    (auth.user?.email && (
+      (effectiveDossier as any)?.email === auth.user.email ||
+      fetchedEval?.salarie?.email === auth.user.email
     ))
   );
 
@@ -887,23 +887,23 @@ export function FicheEvaluationModal({
             </button>
           )}
 
-          <button
-            onClick={() => setActiveTab("N2")}
-            style={{
-              padding: "6px 14px",
-              fontSize: 12,
-              fontWeight: 700,
-              border: activeTab === "N2" ? "2px solid #9333EA" : "1px solid #CBD5E1",
-              background: activeTab === "N2" ? "#FAF5FF" : "#FFFFFF",
-              color: activeTab === "N2" ? "#9333EA" : "#475569",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6
-            }}
-          >
-            {isArbitrageStatut ? "Traitement du Litige (N+2)" : "Avis Direction (N+2)"}
-          </button>
+            <button
+              onClick={() => setActiveTab("N2")}
+              style={{
+                padding: "6px 14px",
+                fontSize: 12,
+                fontWeight: 700,
+                border: activeTab === "N2" ? "2px solid #9333EA" : "1px solid #CBD5E1",
+                background: activeTab === "N2" ? "#FAF5FF" : "#FFFFFF",
+                color: activeTab === "N2" ? "#9333EA" : "#475569",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              Avis Direction (N+2)
+            </button>
 
             <button
               onClick={() => setActiveTab("RH")}
@@ -920,7 +920,7 @@ export function FicheEvaluationModal({
                 gap: 6
               }}
             >
-              Décision Finale DRH
+              {isArbitrageStatut ? "Arbitrage RH (Litige)" : "Décision Finale DRH"}
             </button>
           </div>
 
@@ -1660,34 +1660,35 @@ export function FicheEvaluationModal({
             )}
           </div>
 
-          {/* SECTION 4 : AVIS DIRECTION / ARBITRAGE N+2 */}
+          {/* SECTION 4 : AVIS & VALIDATION DIRECTION (N+2) */}
           {activeTab === "N2" && (
             <div style={{
-              background: isArbitrageStatut ? "#FAF5FF" : "#F8FAFC",
+              background: "#FAF5FF",
               padding: 20,
-              border: `1px solid ${isArbitrageStatut ? "#E9D5FF" : "#E2E8F0"}`
+              border: "1px solid #E9D5FF"
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 800, color: isArbitrageStatut ? "#581C87" : "#0F172A", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
-                  {isArbitrageStatut ? "Décision N+2 — Traitement du Litige & Arbitrage" : "Revue & Visa de la Direction (N+2)"}
+                <h3 style={{ fontSize: 13, fontWeight: 800, color: "#581C87", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                  {isPhaseObjectifs
+                    ? "Validation des Objectifs — Direction (N+2)"
+                    : "Revue & Visa de la Notation — Direction (N+2)"}
                 </h3>
                 <span style={{ fontSize: 11, fontWeight: 800, color: "#7E22CE", background: "#F3E8FF", padding: "3px 8px", border: "1px solid #E9D5FF" }}>
                   Instance Hiérarchique N+2
                 </span>
               </div>
 
-              <p style={{ fontSize: 12, color: isArbitrageStatut ? "#6B21A8" : "#64748B", margin: "0 0 12px 0" }}>
-                {isArbitrageStatut
-                  ? "En tant que N+2 (Direction / Supérieur Hiérarchique), vous intervenez pour arbitrer et trancher en cas de litige ou désaccord sur l'évaluation entre le manager et le collaborateur."
-                  : "En tant que Direction N+2, vous supervisez la cohérence globale de l'évaluation et formulez vos appréciations hiérarchiques."}
+              <p style={{ fontSize: 12, color: "#6B21A8", margin: "0 0 12px 0" }}>
+                {isPhaseObjectifs
+                  ? "En tant que Direction N+2, vous supervisez et validez les objectifs fixés par le manager N+1 pour ce collaborateur."
+                  : "En tant que Direction N+2, vous examinez les notes et appréciations attribuées par le manager N+1. Vous pouvez approuver la notation ou demander une révision au manager."}
               </p>
 
-              {isArbitrageStatut ? (
+              {canEditN2 && (
                 <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
                   <button
                     type="button"
-                    onClick={() => canEditN2 && setDecisionN2("APPROUVE")}
-                    disabled={!canEditN2}
+                    onClick={() => setDecisionN2("APPROUVE")}
                     style={{
                       flex: 1,
                       padding: "9px 12px",
@@ -1696,46 +1697,10 @@ export function FicheEvaluationModal({
                       color: decisionN2 === "APPROUVE" ? "#065F46" : "#475569",
                       fontSize: 12,
                       fontWeight: 700,
-                      cursor: canEditN2 ? "pointer" : "default",
-                    }}
-                  >
-                    ✓ Confirmer la notation & Clore le litige
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => canEditN2 && setDecisionN2("REJETE")}
-                    disabled={!canEditN2}
-                    style={{
-                      flex: 1,
-                      padding: "9px 12px",
-                      border: decisionN2 === "REJETE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
-                      background: decisionN2 === "REJETE" ? "#FEF2F2" : "#FFFFFF",
-                      color: decisionN2 === "REJETE" ? "#991B1B" : "#475569",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: canEditN2 ? "pointer" : "default",
-                    }}
-                  >
-                    ✕ Renvoyer au Manager pour révision
-                  </button>
-                </div>
-              ) : canEditN2 && (
-                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                  <button
-                    type="button"
-                    onClick={() => setDecisionN2("APPROUVE")}
-                    style={{
-                      flex: 1,
-                      padding: "9px 12px",
-                      border: decisionN2 === "APPROUVE" ? "2px solid #7C3AED" : "1px solid #CBD5E1",
-                      background: decisionN2 === "APPROUVE" ? "#F5F3FF" : "#FFFFFF",
-                      color: decisionN2 === "APPROUVE" ? "#6D28D9" : "#475569",
-                      fontSize: 12,
-                      fontWeight: 700,
                       cursor: "pointer",
                     }}
                   >
-                    ✓ Approuver la notation du Manager
+                    {isPhaseObjectifs ? "✓ Valider les Objectifs" : "✓ Approuver la notation du Manager"}
                   </button>
                   <button
                     type="button"
@@ -1751,7 +1716,7 @@ export function FicheEvaluationModal({
                       cursor: "pointer",
                     }}
                   >
-                    ↩ Demander révision au Manager N+1
+                    {isPhaseObjectifs ? "↩ Demander révision des objectifs au N+1" : "↩ Demander révision au Manager N+1"}
                   </button>
                 </div>
               )}
@@ -1760,17 +1725,115 @@ export function FicheEvaluationModal({
                 value={observationN2}
                 onChange={(e) => setObservationN2(e.target.value)}
                 disabled={!canEditN2}
-                placeholder={isArbitrageStatut ? "Motif de l'arbitrage, synthèse de la conciliation et décision finale du N+2..." : "Observations hiérarchiques et visa de la Direction N+2..."}
+                placeholder={
+                  decisionN2 === "REJETE"
+                    ? "Précisez obligatoirement le motif de la révision demandée au Manager N+1..."
+                    : "Observations hiérarchiques et visa de la Direction N+2 (optionnel)..."
+                }
                 style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: canEditN2 ? "#FFFFFF" : "#F8FAFC", marginBottom: 8 }}
               />
 
               {!canEditN2 && (
                 <p style={{ fontSize: 11, color: "#7E22CE", fontStyle: "italic", margin: "4px 0 0" }}>
-                  {isPhaseObjectifs
-                    ? "Phase 1 : Fixation des objectifs. Les appréciations de notation N+2 seront saisies lors de la Phase 2."
+                  {isPhaseObjectifs && currentStatut !== "VALIDATION_OBJECTIFS_N2"
+                    ? "Phase 1 : En attente de validation préalable avant l'étape Direction N+2."
+                    : currentStatut === "VALIDATION_NOTES_N2"
+                    ? "La fiche est en attente d'examen par la Direction N+2."
                     : "L'avis de la Direction N+2 est enregistré. Les champs sont en consultation seule."}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* SECTION VISA & ACCORD DU SALARIÉ (ÉTAPE 7) */}
+          {(currentStatut === "ACCORD_SALARIE" || currentStatut === "VISA_SALARIE") && (
+            <div style={{
+              background: "#F0FDF4",
+              border: "1.5px solid #10B981",
+              padding: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 18, color: "#059669", fontWeight: 900 }}>✍</span>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: "#065F46" }}>
+                    Étape 7/8 · Visa & Accord du Collaborateur
+                  </h4>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#065F46", background: "#D1FAE5", padding: "3px 8px" }}>
+                  Action Requise : Salarié
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: "#065F46", margin: 0, lineHeight: 1.5 }}>
+                Votre manager N+1 a finalisé votre évaluation et la Direction N+2 a validé la notation. Veuillez examiner attentivement les notes, commentaires et propositions de formation, puis confirmer votre accord pour clôturer définitivement le dossier ou demander un arbitrage DRH en cas de désaccord.
+              </p>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setIsSaving(true);
+                      await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: true, observation: "Accord validé et signé sans réserve par le collaborateur." });
+                      setFetchedEval((prev: any) => prev ? { ...prev, statut: "CLOTUREE" } : { statut: "CLOTUREE" });
+                      setSaveSuccessMsg("✓ Votre accord a été validé ! Votre dossier d'évaluation 2026 est officiellement clôturé.");
+                      if (onSaved) onSaved();
+                      setTimeout(() => onClose(), 1500);
+                    } catch (err: any) {
+                      alert("Erreur validation : " + (err.message || "Erreur serveur"));
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#059669",
+                    color: "#FFFFFF",
+                    border: "none",
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  {isSaving ? "Clôture en cours..." : "✓ Confirmer mon accord & Clôturer l'évaluation"}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const motif = window.prompt("Veuillez préciser le motif de votre contestation pour la Direction des Ressources Humaines (arbitrage) :");
+                    if (!motif || !motif.trim()) return;
+                    try {
+                      setIsSaving(true);
+                      await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: false, observation: motif.trim() });
+                      setFetchedEval((prev: any) => prev ? { ...prev, statut: "ARBITRAGE_RH" } : { statut: "ARBITRAGE_RH" });
+                      setSaveSuccessMsg("⚖ Votre demande d'arbitrage a été transmise à la Direction RH.");
+                      if (onSaved) onSaved();
+                      setTimeout(() => onClose(), 1500);
+                    } catch (err: any) {
+                      alert("Erreur contestation : " + (err.message || "Erreur serveur"));
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving}
+                  style={{
+                    padding: "10px 18px",
+                    background: "#FFFFFF",
+                    border: "1.5px solid #FDA4AF",
+                    color: "#BE123C",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  ⚖ Contester la note & Demander l'Arbitrage DRH
+                </button>
+              </div>
             </div>
           )}
 
@@ -1941,10 +2004,74 @@ export function FicheEvaluationModal({
               Fermer
             </button>
 
-            {/* ACTION UNIQUE SELON LE RÔLE ET L'ÉTAPE DU CYCLE */}
+            {/* ACTION SELON LE RÔLE ET L'ÉTAPE DU CYCLE */}
             {isFicheCloturee ? (
               <div style={{ padding: "8px 16px", background: "#ECFDF5", border: "1.5px solid #10B981", color: "#065F46", fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 900 }}>✓</span> Dossier Clôturé & Archivé (Lecture seule)
+              </div>
+            ) : (currentStatut === "ACCORD_SALARIE" || currentStatut === "VISA_SALARIE") && (isCollabHimself || effectiveRole === "SALARIE") ? (
+              /* ÉTAPE 7 : LE SALARIÉ DONNE SON ACCORD OU DEMANDE ARBITRAGE */
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const motif = window.prompt("Veuillez préciser le motif de votre contestation pour la Direction RH (arbitrage) :");
+                    if (!motif || !motif.trim()) return;
+                    try {
+                      setIsSaving(true);
+                      await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: false, observation: motif.trim() });
+                      setFetchedEval((prev: any) => prev ? { ...prev, statut: "ARBITRAGE_RH" } : { statut: "ARBITRAGE_RH" });
+                      setSaveSuccessMsg("⚖ Votre contestation a été transmise à la Direction RH pour arbitrage.");
+                      if (onSaved) onSaved();
+                      setTimeout(() => onClose(), 1500);
+                    } catch (err: any) {
+                      alert("Erreur : " + (err.message || "Erreur serveur"));
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving}
+                  style={{
+                    padding: "8px 14px",
+                    background: "#FFFFFF",
+                    border: "1px solid #FDA4AF",
+                    color: "#BE123C",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  ⚖ Contester la note & Demander Arbitrage
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setIsSaving(true);
+                      await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: true, observation: "Accord validé et signé sans réserve par le salarié." });
+                      setFetchedEval((prev: any) => prev ? { ...prev, statut: "CLOTUREE" } : { statut: "CLOTUREE" });
+                      setSaveSuccessMsg("✓ Votre accord a été validé ! L'évaluation est officiellement clôturée.");
+                      if (onSaved) onSaved();
+                      setTimeout(() => onClose(), 1500);
+                    } catch (err: any) {
+                      alert("Erreur : " + (err.message || "Erreur serveur"));
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving}
+                  style={{
+                    padding: "8px 18px",
+                    background: "#059669",
+                    color: "#FFFFFF",
+                    border: "none",
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  {isSaving ? "Clôture en cours..." : "✓ Confirmer mon accord & Clôturer"}
+                </button>
               </div>
             ) : activeTab === "N1" ? (
               canEditN1 ? (
@@ -1965,68 +2092,7 @@ export function FicheEvaluationModal({
                 </button>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {currentStatut === "ACCORD_SALARIE" && (isCollabHimself || effectiveRole === "SALARIE") ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const motif = window.prompt("Veuillez préciser le motif de votre contestation pour la Direction des Ressources Humaines :");
-                          if (!motif || !motif.trim()) return;
-                          try {
-                            setIsSaving(true);
-                            await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: false, observation: motif.trim() });
-                            alert("Votre demande d'arbitrage a été transmise à la Direction RH.");
-                            if (onSaved) onSaved();
-                            onClose();
-                          } catch (err: any) {
-                            alert("Erreur : " + (err.message || "Erreur serveur"));
-                          } finally {
-                            setIsSaving(false);
-                          }
-                        }}
-                        disabled={isSaving}
-                        style={{
-                          padding: "8px 14px",
-                          background: "#FFFFFF",
-                          border: "1px solid #FDA4AF",
-                          color: "#BE123C",
-                          fontWeight: 700,
-                          fontSize: 12,
-                          cursor: "pointer",
-                        }}
-                      >
-                        ⚖ Contester la note & Demander Arbitrage
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            setIsSaving(true);
-                            await evaluationsApi.submitVisaSalarie(resolvedFicheId, { accord: true, observation: "Visa et accord accordés sans réserve par le salarié." });
-                            alert("✓ Votre accord a été validé ! L'évaluation est officiellement clôturée.");
-                            if (onSaved) onSaved();
-                            onClose();
-                          } catch (err: any) {
-                            alert("Erreur : " + (err.message || "Erreur serveur"));
-                          } finally {
-                            setIsSaving(false);
-                          }
-                        }}
-                        disabled={isSaving}
-                        style={{
-                          padding: "8px 18px",
-                          background: "#059669",
-                          color: "#FFFFFF",
-                          border: "none",
-                          fontWeight: 800,
-                          fontSize: 12,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {isSaving ? "Clôture en cours..." : "✓ Confirmer mon accord & Clôturer"}
-                      </button>
-                    </div>
-                  ) : currentStatut === "VALIDATION_OBJECTIFS_RH" ? (
+                  {currentStatut === "VALIDATION_OBJECTIFS_RH" ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <button
                         type="button"
@@ -2147,13 +2213,11 @@ export function FicheEvaluationModal({
                 >
                   {isSaving
                     ? "Enregistrement..."
+                    : decisionN2 === "REJETE"
+                    ? "↩ Renvoyer au Manager pour révision"
                     : currentStatut === "VALIDATION_OBJECTIFS_N2"
-                    ? (decisionN2 === "REJETE" ? "Rejeter les objectifs" : "Valider les Objectifs")
-                    : currentStatut === "VALIDATION_NOTES_N2"
-                    ? (decisionN2 === "REJETE" ? "Demander révision" : "Valider la Note Hiérarchique")
-                    : isArbitrageStatut
-                    ? (decisionN2 === "REJETE" ? "Renvoyer au Manager pour révision" : "Trancher & Valider l'Arbitrage (N+2)")
-                    : "Enregistrer l'Avis N+2"}
+                    ? "✓ Valider les Objectifs (N+2)"
+                    : "✓ Valider & Transmettre au Collaborateur"}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
@@ -2161,7 +2225,7 @@ export function FicheEvaluationModal({
                     ? "Phase 1 : Fixation des objectifs"
                     : isFicheCloturee
                     ? "Dossier clôturé"
-                    : "Avis N+2 enregistré"}
+                    : "Avis Direction N+2 enregistré"}
                 </div>
               )
             ) : activeTab === "RH" ? (
