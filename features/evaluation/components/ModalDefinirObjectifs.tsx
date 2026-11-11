@@ -772,7 +772,7 @@ export function ModalDefinirObjectifs({
                 <span className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-2">
                   <span>⏳ Objectifs transmis — En attente de validation Direction (N+2)</span>
                 </span>
-              ) : (role === "N2" || role === "DRH") ? (
+              ) : (role === "N2" || role === "DRH" || role === "ADMIN" || user?.role === "N2" || user?.role === "DRH" || user?.role === "ADMIN") ? (
                 /* Le Directeur N+2 valide ou demande révision */
                 <div className="flex items-center gap-2">
                   <button

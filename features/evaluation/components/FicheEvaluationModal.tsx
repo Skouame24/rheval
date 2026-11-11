@@ -211,9 +211,24 @@ export function FicheEvaluationModal({
     isCollabHimself ? "SALARIE" : (propRole || auth.role || "SALARIE")
   ).toUpperCase();
 
+  // Détection dynamique du statut et de l'étape du workflow officiel AGILLY
+  const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
+  const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE" || currentStatut === "CLOTUREE";
+  const isPhaseObjectifs = [
+    "FIXATION_OBJECTIFS",
+    "VALIDATION_OBJECTIFS_RH",
+    "VALIDATION_OBJECTIFS_N2",
+    "VALIDATION_OBJECTIFS_SALARIE",
+    "CREE",
+    "BROUILLON",
+    "EN_ATTENTE_OBJECTIFS",
+  ].includes(currentStatut);
+
   // Initialisation de l'onglet actif selon le statut de la fiche et le profil connecté
   useEffect(() => {
-    if (propRole === "N2" || effectiveRole === "N2") {
+    if (isPhaseObjectifs) {
+      setActiveTab("N1");
+    } else if (propRole === "N2" || effectiveRole === "N2") {
       setActiveTab("N2");
     } else if (propRole === "RH" || effectiveRole === "RH" || effectiveRole === "DRH") {
       if (fetchedEval?.statut === "VALIDATION_DRH" || fetchedEval?.statut === "ARBITRAGE") {
@@ -234,7 +249,7 @@ export function FicheEvaluationModal({
     } else {
       setActiveTab("N1");
     }
-  }, [effectiveRole, isOpen, isCollabHimself, propRole, isCollabManager, fetchedEval?.statut]);
+  }, [effectiveRole, isOpen, isCollabHimself, propRole, isCollabManager, fetchedEval?.statut, isPhaseObjectifs]);
 
   // Initialisation des objectifs avec pondération et notes
   const apiObjectifsKey = effectiveObjectifs?.map((o: any) => o.id).join(",") ?? "";
@@ -344,19 +359,6 @@ export function FicheEvaluationModal({
 
   if (!isOpen) return null;
 
-  // Détection dynamique du statut et de l'étape du workflow officiel AGILLY
-  const currentStatut = fetchedEval?.statut || (dossier as any)?.statut || "";
-  const isFicheCloturee = currentStatut === "VALIDE" || currentStatut === "CLOTURE" || currentStatut === "CLOTUREE";
-  const isPhaseObjectifs = [
-    "FIXATION_OBJECTIFS",
-    "VALIDATION_OBJECTIFS_RH",
-    "VALIDATION_OBJECTIFS_N2",
-    "VALIDATION_OBJECTIFS_SALARIE",
-    "CREE",
-    "BROUILLON",
-    "EN_ATTENTE_OBJECTIFS",
-  ].includes(currentStatut);
-
   // Droits de modification selon l'étape du cycle
   // 1. N+1 (Responsable) : évalue directement dès que les objectifs sont validés et que l'évaluation est ouverte
   const isN1EvalOpen = !isFicheCloturee && !isPhaseObjectifs && (
@@ -366,18 +368,15 @@ export function FicheEvaluationModal({
   );
   const canEditN1 = !readOnly && !isFicheCloturee && activeTab === "N1" && isN1EvalOpen && !isCollabHimself;
 
-  // 2. N+2 : peut valider et évaluer dès lors que la fiche n'est pas clôturée
+  // 2. N+2 : peut valider et évaluer dès lors que la fiche est à son étape
+  const isArbitrageStatut = currentStatut === "ARBITRAGE" || currentStatut === "ARBITRAGE_RH" || currentStatut === "LITIGE";
   const isN2EvalOpen = !isFicheCloturee && (
     currentStatut === "VALIDATION_OBJECTIFS_N2" ||
     currentStatut === "VALIDATION_NOTES_N2" ||
     currentStatut === "EVALUATION_N2" ||
     currentStatut === "VALIDATION_N2" ||
     currentStatut === "EN_ATTENTE_N2" ||
-    currentStatut === "EVALUATION_N1" ||
-    currentStatut === "AUTO_EVALUATION_SOUMISE" ||
-    currentStatut === "EN_ATTENTE_N1" ||
-    currentStatut === "FIXATION_OBJECTIFS" ||
-    isCollabManager
+    isArbitrageStatut
   );
   const canEditN2 = !readOnly && !isFicheCloturee && isN2EvalOpen && !isCollabHimself && (
     effectiveRole === "N2" ||
@@ -883,7 +882,7 @@ export function FicheEvaluationModal({
               gap: 6
             }}
           >
-            Traitement du Litige (N+2)
+            {isArbitrageStatut ? "Traitement du Litige (N+2)" : "Avis Direction (N+2)"}
           </button>
 
             <button
@@ -1074,6 +1073,63 @@ export function FicheEvaluationModal({
                   style={{
                     padding: "8px 18px",
                     background: "#0284C7",
+                    color: "#FFFFFF",
+                    border: "none",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  {isSaving ? "Validation en cours..." : "✓ Valider les Objectifs"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* BANNIÈRE VALIDATION OBJECTIFS DIRECTION N+2 */}
+          {currentStatut === "VALIDATION_OBJECTIFS_N2" && (
+            <div style={{
+              background: "#F5F3FF",
+              border: "1.5px solid #7C3AED",
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 16,
+            }}>
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.05em", background: "#7C3AED", color: "#FFFFFF", padding: "2px 8px" }}>
+                  VALIDATION DIRECTION N+2 · ÉTAPE 3/8
+                </span>
+                <p style={{ margin: "6px 0 0 0", fontSize: 13, fontWeight: 700, color: "#5B21B6" }}>
+                  Les objectifs ont été validés par les RH. Votre validation de Direction N+2 est requise pour transmission au collaborateur.
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => handleSaveN2("REJETE")}
+                  disabled={isSaving}
+                  style={{
+                    padding: "8px 14px",
+                    background: "#FFFFFF",
+                    border: "1px solid #FDA4AF",
+                    color: "#BE123C",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  ↩ Demander révision
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveN2("APPROUVE")}
+                  disabled={isSaving}
+                  style={{
+                    padding: "8px 18px",
+                    background: "#7C3AED",
                     color: "#FFFFFF",
                     border: "none",
                     fontWeight: 700,
@@ -1534,70 +1590,115 @@ export function FicheEvaluationModal({
             )}
           </div>
 
-          {/* SECTION 4 : TRAITEMENT DU LITIGE & ARBITRAGE N+2 */}
+          {/* SECTION 4 : AVIS DIRECTION / ARBITRAGE N+2 */}
           {activeTab === "N2" && (
-            <div style={{ background: "#FAF5FF", padding: 20, border: "1px solid #E9D5FF" }}>
+            <div style={{
+              background: isArbitrageStatut ? "#FAF5FF" : "#F8FAFC",
+              padding: 20,
+              border: `1px solid ${isArbitrageStatut ? "#E9D5FF" : "#E2E8F0"}`
+            }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 800, color: "#581C87", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
-                  Décision N+2 — Traitement du Litige & Arbitrage
+                <h3 style={{ fontSize: 13, fontWeight: 800, color: isArbitrageStatut ? "#581C87" : "#0F172A", margin: 0, textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                  {isArbitrageStatut ? "Décision N+2 — Traitement du Litige & Arbitrage" : "Revue & Visa de la Direction (N+2)"}
                 </h3>
                 <span style={{ fontSize: 11, fontWeight: 800, color: "#7E22CE", background: "#F3E8FF", padding: "3px 8px", border: "1px solid #E9D5FF" }}>
                   Instance Hiérarchique N+2
                 </span>
               </div>
 
-              <p style={{ fontSize: 12, color: "#6B21A8", margin: "0 0 12px 0" }}>
-                En tant que N+2 (Direction / Supérieur Hiérarchique), vous intervenez pour arbitrer et trancher en cas de litige ou désaccord sur l&apos;évaluation entre le manager et le collaborateur.
+              <p style={{ fontSize: 12, color: isArbitrageStatut ? "#6B21A8" : "#64748B", margin: "0 0 12px 0" }}>
+                {isArbitrageStatut
+                  ? "En tant que N+2 (Direction / Supérieur Hiérarchique), vous intervenez pour arbitrer et trancher en cas de litige ou désaccord sur l'évaluation entre le manager et le collaborateur."
+                  : "En tant que Direction N+2, vous supervisez la cohérence globale de l'évaluation et formulez vos appréciations hiérarchiques."}
               </p>
 
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                <button
-                  type="button"
-                  onClick={() => canEditN2 && setDecisionN2("APPROUVE")}
-                  disabled={!canEditN2}
-                  style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    border: decisionN2 === "APPROUVE" ? "2px solid #059669" : "1px solid #CBD5E1",
-                    background: decisionN2 === "APPROUVE" ? "#ECFDF5" : "#FFFFFF",
-                    color: decisionN2 === "APPROUVE" ? "#065F46" : "#475569",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: canEditN2 ? "pointer" : "default",
-                  }}
-                >
-                  ✓ Confirmer la notation & Clore le litige
-                </button>
-                <button
-                  type="button"
-                  onClick={() => canEditN2 && setDecisionN2("REJETE")}
-                  disabled={!canEditN2}
-                  style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    border: decisionN2 === "REJETE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
-                    background: decisionN2 === "REJETE" ? "#FEF2F2" : "#FFFFFF",
-                    color: decisionN2 === "REJETE" ? "#991B1B" : "#475569",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: canEditN2 ? "pointer" : "default",
-                  }}
-                >
-                  ✕ Renvoyer au Manager pour révision
-                </button>
-              </div>
+              {isArbitrageStatut ? (
+                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => canEditN2 && setDecisionN2("APPROUVE")}
+                    disabled={!canEditN2}
+                    style={{
+                      flex: 1,
+                      padding: "9px 12px",
+                      border: decisionN2 === "APPROUVE" ? "2px solid #059669" : "1px solid #CBD5E1",
+                      background: decisionN2 === "APPROUVE" ? "#ECFDF5" : "#FFFFFF",
+                      color: decisionN2 === "APPROUVE" ? "#065F46" : "#475569",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: canEditN2 ? "pointer" : "default",
+                    }}
+                  >
+                    ✓ Confirmer la notation & Clore le litige
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => canEditN2 && setDecisionN2("REJETE")}
+                    disabled={!canEditN2}
+                    style={{
+                      flex: 1,
+                      padding: "9px 12px",
+                      border: decisionN2 === "REJETE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
+                      background: decisionN2 === "REJETE" ? "#FEF2F2" : "#FFFFFF",
+                      color: decisionN2 === "REJETE" ? "#991B1B" : "#475569",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: canEditN2 ? "pointer" : "default",
+                    }}
+                  >
+                    ✕ Renvoyer au Manager pour révision
+                  </button>
+                </div>
+              ) : canEditN2 && (
+                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setDecisionN2("APPROUVE")}
+                    style={{
+                      flex: 1,
+                      padding: "9px 12px",
+                      border: decisionN2 === "APPROUVE" ? "2px solid #7C3AED" : "1px solid #CBD5E1",
+                      background: decisionN2 === "APPROUVE" ? "#F5F3FF" : "#FFFFFF",
+                      color: decisionN2 === "APPROUVE" ? "#6D28D9" : "#475569",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ✓ Approuver la notation du Manager
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDecisionN2("REJETE")}
+                    style={{
+                      flex: 1,
+                      padding: "9px 12px",
+                      border: decisionN2 === "REJETE" ? "2px solid #DC2626" : "1px solid #CBD5E1",
+                      background: decisionN2 === "REJETE" ? "#FEF2F2" : "#FFFFFF",
+                      color: decisionN2 === "REJETE" ? "#991B1B" : "#475569",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ↩ Demander révision au Manager N+1
+                  </button>
+                </div>
+              )}
 
               <textarea
                 value={observationN2}
                 onChange={(e) => setObservationN2(e.target.value)}
                 disabled={!canEditN2}
-                placeholder="Motif de l'arbitrage, synthèse de la conciliation et décision finale du N+2..."
+                placeholder={isArbitrageStatut ? "Motif de l'arbitrage, synthèse de la conciliation et décision finale du N+2..." : "Observations hiérarchiques et visa de la Direction N+2..."}
                 style={{ width: "100%", height: 64, padding: "8px 10px", fontSize: 12, border: "1px solid #CBD5E1", background: canEditN2 ? "#FFFFFF" : "#F8FAFC", marginBottom: 8 }}
               />
 
               {!canEditN2 && (
                 <p style={{ fontSize: 11, color: "#7E22CE", fontStyle: "italic", margin: "4px 0 0" }}>
-                  L&apos;arbitrage du N+2 est enregistré. Les champs sont en consultation seule.
+                  {isPhaseObjectifs
+                    ? "Phase 1 : Fixation des objectifs. Les appréciations de notation N+2 seront saisies lors de la Phase 2."
+                    : "L'avis de la Direction N+2 est enregistré. Les champs sont en consultation seule."}
                 </p>
               )}
             </div>
@@ -1831,12 +1932,20 @@ export function FicheEvaluationModal({
                   {isSaving
                     ? "Enregistrement..."
                     : currentStatut === "VALIDATION_OBJECTIFS_N2"
-                    ? (decisionN2 === "REJETE" ? "Rejeter les objectifs" : "Approuver les objectifs")
-                    : (decisionN2 === "REJETE" ? "Renvoyer au Manager pour révision" : "Trancher & Valider l'Arbitrage (N+2)")}
+                    ? (decisionN2 === "REJETE" ? "Rejeter les objectifs" : "Valider les Objectifs")
+                    : currentStatut === "VALIDATION_NOTES_N2"
+                    ? (decisionN2 === "REJETE" ? "Demander révision" : "Valider la Note Hiérarchique")
+                    : isArbitrageStatut
+                    ? (decisionN2 === "REJETE" ? "Renvoyer au Manager pour révision" : "Trancher & Valider l'Arbitrage (N+2)")
+                    : "Enregistrer l'Avis N+2"}
                 </button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                  Arbitrage N+2 enregistré
+                  {isPhaseObjectifs
+                    ? "Phase 1 : Fixation des objectifs"
+                    : isFicheCloturee
+                    ? "Dossier clôturé"
+                    : "Avis N+2 enregistré"}
                 </div>
               )
             ) : activeTab === "RH" ? (

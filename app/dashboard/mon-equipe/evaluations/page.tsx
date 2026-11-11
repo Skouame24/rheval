@@ -546,7 +546,13 @@ export default function EvaluationsEquipePage() {
                               variant="secondary"
                               size="sm"
                               leftIcon={<EyeIcon size={14} />}
-                              onClick={() => setSelectedFicheId(item.id)}
+                              onClick={() => {
+                                if (phaseTab === "OBJECTIFS") {
+                                  setSelectedFicheForObjectifs(item);
+                                } else {
+                                  setSelectedFicheId(item.id);
+                                }
+                              }}
                             >
                               Consulter
                             </Button>
@@ -560,7 +566,7 @@ export default function EvaluationsEquipePage() {
                                   Note Globale
                                 </span>
                                 <span className="text-base font-black text-slate-900">
-                                  {noteVal}
+                                  {Math.min(20, Math.max(0, noteVal)).toFixed(2)}
                                   <span className="text-xs text-slate-400 font-normal">/20</span>
                                 </span>
                               </div>
