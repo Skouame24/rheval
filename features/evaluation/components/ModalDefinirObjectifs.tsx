@@ -224,6 +224,17 @@ export function ModalDefinirObjectifs({
       return;
     }
 
+    // Validation stricte du total des pondérations (doit être exactement 100%)
+    if (totalPonderation > 100) {
+      setErrorMessage(`Action bloquée : Le total des pondérations dépasse 100% (actuellement ${totalPonderation}%). Vous devez réajuster ou cliquer sur "Équilibrer (100%)".`);
+      return;
+    }
+
+    if (totalPonderation < 100) {
+      setErrorMessage(`Action bloquée : Le total des pondérations doit atteindre exactement 100% (actuellement ${totalPonderation}%, il reste ${100 - totalPonderation}% à attribuer).`);
+      return;
+    }
+
     // Validation des intitulés
     const invalidObj = objectifsState.find((o) => !o.intitule || o.intitule.trim() === "");
     if (invalidObj) {
@@ -806,9 +817,17 @@ export function ModalDefinirObjectifs({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={isSaving || activeCycle === null}
-                title={activeCycle === null ? "Action suspendue : aucune campagne active n'est ouverte par les RH" : undefined}
-                className="px-6 py-2.5 bg-[#F0822A] hover:bg-[#d97220] text-white font-black text-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+                disabled={isSaving || activeCycle === null || totalPonderation !== 100}
+                title={
+                  activeCycle === null
+                    ? "Action suspendue : aucune campagne active n'est ouverte par les RH"
+                    : totalPonderation > 100
+                    ? `Dépassement de pondération (${totalPonderation}% > 100%). Réajustez avant de transmettre.`
+                    : totalPonderation < 100
+                    ? `Pondération incomplète (${totalPonderation}% < 100%). Atteignez 100% avant de transmettre.`
+                    : "Transmettre les objectifs pour validation RH"
+                }
+                className="px-6 py-2.5 bg-[#F0822A] hover:bg-[#d97220] text-white font-black text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
               >
                 {isSaving ? (
                   <>
