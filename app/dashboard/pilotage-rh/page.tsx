@@ -141,6 +141,7 @@ export default function RhDashboardPage() {
       } catch (err: any) {
         console.error("[RhDashboardPage] Erreur arbitrage:", err);
         alert(err?.message || "Erreur lors de l'enregistrement de l'arbitrage");
+        throw err;
       }
     }
     setArbitrageModalItem(null);
@@ -204,12 +205,15 @@ export default function RhDashboardPage() {
           onSaved={loadData}
         />
 
-        <ModalArbitrageRH
-          isOpen={arbitrageModalItem !== null}
-          onClose={() => setArbitrageModalItem(null)}
-          dossier={arbitrageModalItem}
-          onSuccess={handleArbitrageSuccess}
-        />
+        {arbitrageModalItem && (
+          <ModalArbitrageRH
+            key={arbitrageModalItem.id}
+            isOpen={true}
+            onClose={() => setArbitrageModalItem(null)}
+            dossier={arbitrageModalItem}
+            onSuccess={handleArbitrageSuccess}
+          />
+        )}
 
         {/* Modal d'examen et validation des objectifs par la RH */}
         <ModalDefinirObjectifs

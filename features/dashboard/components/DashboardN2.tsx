@@ -55,7 +55,9 @@ export function DashboardN2() {
     ["VALIDATION_OBJECTIFS_N2", "EN_ATTENTE_N2", "VALIDATION_N2", "VISA_SALARIE"].includes(f.statut)
   );
 
-  const arbitrages = fichesDirection.filter((f) => f.statut === "ARBITRAGE");
+  const arbitrages = fichesDirection.filter((f) =>
+    ["ARBITRAGE", "ARBITRAGE_RH"].includes(f.statut)
+  );
   const evaluationsCloturees = fichesDirection.filter((f) => ["VALIDE", "CLOTURE"].includes(f.statut));
 
   // Extraction consolidée de tous les besoins en formation de l'équipe
@@ -114,6 +116,7 @@ export function DashboardN2() {
             loadData();
           }}
           evaluationId={selectedFicheModal.id}
+          readOnly={["ARBITRAGE", "ARBITRAGE_RH"].includes(selectedFicheModal.statut)}
           dossier={{
             id: selectedFicheModal.id,
             salarieId: selectedFicheModal.salarie?.id,
@@ -124,7 +127,6 @@ export function DashboardN2() {
           }}
           objectifs={selectedFicheModal.objectifs}
           role="N2"
-          readOnly={false}
           onSaved={() => {
             setSelectedFicheModal(null);
             loadData();
@@ -482,10 +484,10 @@ export function DashboardN2() {
         <Card padding="none" className="overflow-hidden border border-slate-200 shadow-xs">
           <div className="p-4 border-b border-slate-200 bg-white">
             <h2 className="text-sm font-bold text-slate-900 m-0">
-              Arbitrages et contestations nécessitant décision de la Direction / RH
+              Contestations en attente d'arbitrage RH
             </h2>
             <p className="text-xs text-slate-500 m-0 mt-0.5">
-              Dossiers avec réserves du salarié ou divergence d'appréciation
+              Les dossiers seront examinés en réunion; la RH confirmera ou modifiera la note finale.
             </p>
           </div>
 
@@ -509,7 +511,7 @@ export function DashboardN2() {
                       className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <EyeIcon size={13} />
-                      Examiner le litige
+                      Consulter le dossier
                     </button>
                   </div>
                 );
@@ -527,4 +529,3 @@ export function DashboardN2() {
     </div>
   );
 }
-

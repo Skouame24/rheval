@@ -13,21 +13,35 @@ import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEval
 import { ModalArbitrageRH } from "@/features/evaluation/components/ModalArbitrageRH";
 import { ScaleIcon, CheckCircleIcon } from "@/components/ui/Icons";
 import { useArbitrages } from "@/lib/hooks/useRhDashboard";
+import { rhApi } from "@/lib/api/rh.api";
 import type { EvaluationCycle } from "@/types";
 
 export default function RhArbitragesPage() {
   const [selectedFicheModal, setSelectedFicheModal] = useState<string | null>(null);
   const [arbitrageModalItem, setArbitrageModalItem] = useState<EvaluationCycle | null>(null);
-  const { arbitrages, isLoading, error } = useArbitrages();
+  const { arbitrages, isLoading, error, refetch } = useArbitrages();
+
+  const handleArbitrageSuccess = async (id: string, noteFinale: number, decision: string) => {
+    try {
+      await rhApi.resolveArbitrage(id, { noteFinale, decision });
+      await refetch();
+      setArbitrageModalItem(null);
+    } catch (err) {
+      console.error("[RhArbitragesPage] Erreur enregistrement arbitrage:", err);
+      throw err;
+    }
+  };
 
   return (
     <AppShell role="RH" userName="Pôle Ressources Humaines" userEmail="drh@agilly.com" notifCount={5}>
       <div style={{ display: "flex", flexDirection: "column", gap: 28, paddingBottom: 40 }}>
         <FicheEvaluationModal isOpen={selectedFicheModal !== null} onClose={() => setSelectedFicheModal(null)} />
-        <ModalArbitrageRH
-          isOpen={arbitrageModalItem !== null}
+        {arbitrageModalItem && (
+          <ModalArbitrageRH
+          key={arbitrageModalItem.id}
+          isOpen={true}
           onClose={() => setArbitrageModalItem(null)}
-          dossier={arbitrageModalItem ? {
+          dossier={{
             id: arbitrageModalItem.id,
             nom: arbitrageModalItem.salarie.nom,
             prenom: arbitrageModalItem.salarie.prenom,
@@ -38,9 +52,10 @@ export default function RhArbitragesPage() {
               : "Manager N+1",
             noteN1: (arbitrageModalItem as any).evaluationN1?.moyenneNotes ?? 0,
             noteN2: (arbitrageModalItem as any).evaluationN2?.moyenneNotes ?? 0,
-          } : null}
-          onSuccess={() => setArbitrageModalItem(null)}
-        />
+          }}
+          onSuccess={handleArbitrageSuccess}
+          />
+        )}
 
         <PageHeader
           title="Arbitrages Ressources Humaines"
