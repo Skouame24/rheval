@@ -2173,9 +2173,11 @@ export function FicheEvaluationModal({
                         : "Phase 1 : Fixation des objectifs"}
                     </div>
                   ) : (
-                    <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
-                      {isFicheCloturee ? "Dossier clôturé" : "Évaluation N+1 transmise"}
-                    </div>
+                    !isCollabHimself && (
+                      <div style={{ padding: "8px 14px", background: "#F1F5F9", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 700, fontSize: 12 }}>
+                        {isFicheCloturee ? "Dossier clôturé" : "Évaluation N+1 transmise"}
+                      </div>
+                    )
                   )}
                   {canEditN2 && !isFicheCloturee && (
                     <button

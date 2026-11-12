@@ -92,6 +92,8 @@ export interface EvaluationCycle {
   salarie: UserSummary;
   statut: StatutEvaluation;
   noteGlobale?: number;
+  evaluationN1?: { moyenneNotes: number };
+  evaluationN2?: { moyenneNotes: number };
   noteAutoEvaluation?: number;
   hasAutoEvaluation?: boolean;
   observation?: string;
@@ -149,4 +151,3 @@ export interface EnregistrerDecisionDto {
   decision: string;
   noteDecidee: number;
 }
-
