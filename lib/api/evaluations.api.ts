@@ -228,9 +228,14 @@ export const evaluationsApi = {
    * GET /api/rh/evaluations (toutes les fiches pour la RH)
    * US-10 — DashboardRH tableau récapitulatif
    */
-  getAllForRh: async (): Promise<EvaluationCycle[]> => {
+  getAllForRh: async (options?: { refresh?: boolean }): Promise<EvaluationCycle[]> => {
     try {
-      const res = await client.get<EvaluationCycle[]>("/rh/evaluations");
+      const res = await client.get<EvaluationCycle[]>("/rh/evaluations", {
+        bypassCache: options?.refresh,
+        ttl: Number.POSITIVE_INFINITY,
+        revalidate: false,
+        retainOnMutation: true,
+      });
       if (res && res.length > 0) return res;
       return [];
     } catch (err) {

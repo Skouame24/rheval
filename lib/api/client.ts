@@ -115,6 +115,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
+  retainOnMutation?: boolean;
 }
 
 const apiCache = new Map<string, CacheEntry<unknown>>();
@@ -135,14 +136,35 @@ function getCacheKey(endpoint: string): string {
 }
 
 /** Lecture synchrone immédiate du cache (0ms) pour affichage instantané sans spinner */
-export function peekApiCache<T>(endpoint: string): T | undefined {
+export function peekApiCache<T>(
+  endpoint: string,
+  ttl = DEFAULT_CACHE_TTL
+): T | undefined {
   if (typeof window === "undefined") return undefined;
   const key = getCacheKey(endpoint);
   const entry = apiCache.get(key);
-  if (entry && Date.now() - entry.timestamp < DEFAULT_CACHE_TTL) {
+  if (entry && Date.now() - entry.timestamp < ttl) {
     return entry.data as T;
   }
   return undefined;
+}
+
+function clearCacheAfterMutation(endpoint: string) {
+  const isEvaluationMutation = /\/evaluations(?:\/|$)/.test(endpoint);
+
+  for (const [key, entry] of apiCache) {
+    const isRhEvaluationsCache = key.includes(":/rh/evaluations");
+    if (
+      !entry.retainOnMutation ||
+      (isEvaluationMutation && isRhEvaluationsCache)
+    ) {
+      apiCache.delete(key);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("agilly:data_changed"));
+  }
 }
 
 /** Invalidation et notification automatique de toute l'application */
@@ -185,7 +207,12 @@ export const client = {
 
   get: async <T>(
     endpoint: string,
-    options?: { bypassCache?: boolean; ttl?: number }
+    options?: {
+      bypassCache?: boolean;
+      ttl?: number;
+      revalidate?: boolean;
+      retainOnMutation?: boolean;
+    }
   ): Promise<T> => {
     // Si exécuté côté serveur (SSR), pas de cache en mémoire
     if (typeof window === "undefined") {
@@ -203,8 +230,11 @@ export const client = {
     if (!options?.bypassCache) {
       const cached = apiCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < maxTtl) {
+        if (options?.retainOnMutation) {
+          cached.retainOnMutation = true;
+        }
         const isStale = Date.now() - cached.timestamp > STALE_REVALIDATE_TTL;
-        if (isStale && !pendingRequests.has(cacheKey)) {
+        if (options?.revalidate !== false && isStale && !pendingRequests.has(cacheKey)) {
           // Revalidation silencieuse en arrière-plan sans bloquer l'interface
           (async () => {
             try {
@@ -216,7 +246,11 @@ export const client = {
               const oldStr = JSON.stringify(cached.data);
               const newStr = JSON.stringify(freshData);
               if (oldStr !== newStr) {
-                apiCache.set(cacheKey, { data: freshData, timestamp: Date.now() });
+                apiCache.set(cacheKey, {
+                  data: freshData,
+                  timestamp: Date.now(),
+                  retainOnMutation: cached.retainOnMutation,
+                });
                 window.dispatchEvent(new CustomEvent("agilly:data_changed", { detail: { prefix: endpoint } }));
               } else {
                 cached.timestamp = Date.now();
@@ -241,7 +275,11 @@ export const client = {
           headers: getHeaders(),
         });
         const data = await handleResponse<T>(response);
-        apiCache.set(cacheKey, { data, timestamp: Date.now() });
+        apiCache.set(cacheKey, {
+          data,
+          timestamp: Date.now(),
+          retainOnMutation: options?.retainOnMutation,
+        });
         return data;
       } finally {
         pendingRequests.delete(cacheKey);
@@ -260,7 +298,7 @@ export const client = {
     });
     const result = await handleResponse<T>(response);
     // Invalidation automatique du cache après mutation et notification globale
-    clearApiCache();
+    clearCacheAfterMutation(endpoint);
     return result;
   },
 
@@ -271,7 +309,7 @@ export const client = {
       body: body ? JSON.stringify(body) : undefined,
     });
     const result = await handleResponse<T>(response);
-    clearApiCache();
+    clearCacheAfterMutation(endpoint);
     return result;
   },
 
@@ -282,7 +320,7 @@ export const client = {
       body: JSON.stringify(body),
     });
     const result = await handleResponse<T>(response);
-    clearApiCache();
+    clearCacheAfterMutation(endpoint);
     return result;
   },
 
@@ -292,7 +330,7 @@ export const client = {
       headers: getHeaders(),
     });
     const result = await handleResponse<T>(response);
-    clearApiCache();
+    clearCacheAfterMutation(endpoint);
     return result;
   },
 

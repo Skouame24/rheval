@@ -11,23 +11,30 @@ import { Card, Skeleton } from "@/components/ui";
 import { FicheEvaluationModal } from "@/features/evaluation/components/FicheEvaluationModal";
 import { ScaleIcon, CheckCircleIcon, EyeIcon, FileSpreadsheetIcon, ArrowPathIcon } from "@/components/ui/Icons";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
+import { client } from "@/lib/api/client";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
 import type { EvaluationCycle } from "@/types";
 
 export default function RhEvaluationsPage() {
   const [filter, setFilter] = useState<string>("TOUT");
   const [selectedModal, setSelectedModal] = useState<EvaluationCycle | null>(null);
-  const [evaluations, setEvaluations] = useState<EvaluationCycle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [evaluations, setEvaluations] = useState<EvaluationCycle[]>(
+    () => client.peekCache<EvaluationCycle[]>("/rh/evaluations", Number.POSITIVE_INFINITY) || []
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => client.peekCache<EvaluationCycle[]>("/rh/evaluations", Number.POSITIVE_INFINITY) === undefined
+  );
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEvaluations = async () => {
-    setIsLoading(true);
+  const fetchEvaluations = async (refresh = false) => {
+    if (refresh || client.peekCache("/rh/evaluations", Number.POSITIVE_INFINITY) === undefined) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
-      const data = await evaluationsApi.getAllForRh();
+      const data = await evaluationsApi.getAllForRh({ refresh });
       setEvaluations(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[RhEvaluationsPage] Error loading evaluations:", err);
       setError("Erreur lors de la récupération des évaluations.");
     } finally {
@@ -36,7 +43,27 @@ export default function RhEvaluationsPage() {
   };
 
   useEffect(() => {
-    fetchEvaluations();
+    let isMounted = true;
+    if (client.peekCache("/rh/evaluations", Number.POSITIVE_INFINITY) !== undefined) {
+      return;
+    }
+
+    evaluationsApi.getAllForRh()
+      .then((data) => {
+        if (isMounted) setEvaluations(data || []);
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return;
+        console.error("[RhEvaluationsPage] Error loading evaluations:", err);
+        setError("Erreur lors de la récupération des évaluations.");
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredItems = evaluations.filter((item) => {
@@ -70,10 +97,10 @@ export default function RhEvaluationsPage() {
         
         <FicheEvaluationModal 
           isOpen={selectedModal !== null} 
-          onClose={() => {
-            setSelectedModal(null);
-            fetchEvaluations();
-          }} 
+          onClose={() => setSelectedModal(null)}
+          onSaved={() => {
+            void fetchEvaluations(true);
+          }}
           dossier={selectedModal ? {
             nom: selectedModal.salarie?.nom || "",
             prenom: selectedModal.salarie?.prenom || "",
@@ -95,7 +122,7 @@ export default function RhEvaluationsPage() {
           />
 
           <button
-            onClick={fetchEvaluations}
+            onClick={() => fetchEvaluations(true)}
             title="Rafraîchir"
             style={{
               display: "flex",
