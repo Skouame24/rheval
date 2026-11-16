@@ -18,6 +18,7 @@ import {
   StatutDemandeRH,
   PersonaUser,
 } from "@/types/absences.types";
+import type { User } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { demandesApi, mapFrontendTypeToBackend, onDataChanged } from "@/lib/api";
 
@@ -160,63 +161,55 @@ export const DIRECTION_PERSONAS: PersonaUser[] = [
   },
 ];
 
+function getPersonaForUser(user: User | null): PersonaUser {
+  if (!user) return DIRECTION_PERSONAS[0];
+
+  const foundInDirection = DIRECTION_PERSONAS.find(
+    (persona) =>
+      persona.email.toLowerCase() === (user.email || "").toLowerCase() ||
+      persona.id === user.id,
+  );
+  if (foundInDirection) return foundInDirection;
+
+  const role = mapUserRoleToActeurRH(user.role);
+  return {
+    id: user.id,
+    matricule: user.id ? `EMP-${user.id.substring(0, 6).toUpperCase()}` : "EMP-AGY",
+    nom: user.nom || "Utilisateur",
+    prenom: user.prenom || "Connecté",
+    email: user.email || "",
+    poste: user.poste || "Collaborateur",
+    departement: user.departement || "Direction",
+    service: user.departement || "Direction",
+    role,
+    labelRole:
+      role === "SUPERIEUR_N1"
+        ? "Manager N+1"
+        : role === "DRH"
+          ? "DRH"
+          : role === "DIRECTION_DG"
+            ? "Direction Générale"
+            : role === "ADMIN"
+              ? "Administrateur"
+              : "Salarié",
+    numeroCnss: "",
+    avatarBg: "bg-[#D96F1D]",
+  };
+}
+
 const AbsencesContext = createContext<AbsencesContextType | undefined>(undefined);
 
 export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
-  // Persona actif basé sur le mode test ou l'utilisateur connecté
-  const [currentPersona, setCurrentPersonaState] = useState<PersonaUser>(() => {
-    if (typeof window !== "undefined") {
-      const savedTestPersonaId = localStorage.getItem("agilly_test_persona_id");
-      if (savedTestPersonaId) {
-        const found = DIRECTION_PERSONAS.find((p) => p.id === savedTestPersonaId);
-        if (found) return found;
-      }
-    }
-
-    if (user) {
-      const foundInDirection = DIRECTION_PERSONAS.find(
-        (p) => p.email.toLowerCase() === (user.email || "").toLowerCase() || p.id === user.id
-      );
-      if (foundInDirection) return foundInDirection;
-
-      const r = mapUserRoleToActeurRH(user.role);
-      return {
-        id: user.id,
-        matricule: user.id ? `EMP-${user.id.substring(0, 6).toUpperCase()}` : "EMP-AGY",
-        nom: user.nom || "Utilisateur",
-        prenom: user.prenom || "Connecté",
-        email: user.email || "",
-        poste: user.poste || "Collaborateur",
-        departement: user.departement || "Direction",
-        service: user.departement || "Direction",
-        role: r,
-        labelRole:
-          r === "SUPERIEUR_N1"
-            ? "Manager N+1"
-            : r === "DRH"
-            ? "DRH"
-            : r === "DIRECTION_DG"
-            ? "Direction Générale"
-            : r === "ADMIN"
-            ? "Administrateur"
-            : "Salarié",
-        numeroCnss: "",
-        avatarBg: "bg-[#D96F1D]",
-      };
-    }
-    return DIRECTION_PERSONAS[0];
-  });
+  // Keep the first render identical on the server and in the browser.
+  const [currentPersona, setCurrentPersonaState] = useState<PersonaUser>(() =>
+    getPersonaForUser(user),
+  );
 
   const [isDemoDrawerOpen, setIsDemoDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !localStorage.getItem("agilly_cached_demandes");
-    }
-    return true;
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Switcher de persona actif pour tests hiérarchiques Draw.io
   const setCurrentPersona = useCallback((p: PersonaUser) => {
@@ -269,16 +262,45 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Données réactives — VRAIES données de la base dédiée PostgreSQL
-  const [demandes, setDemandes] = useState<DemandeRHItem[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("agilly_cached_demandes");
-        if (cached) return JSON.parse(cached);
-      } catch {}
-    }
-    return [];
-  });
+  const [demandes, setDemandes] = useState<DemandeRHItem[]>([]);
   const [soldeConges, setSoldeConges] = useState<SoldeCongesInfo>(DEFAULT_SOLDE_CONGES);
+
+  useEffect(() => {
+    let savedPersona: PersonaUser | undefined;
+    try {
+      const savedPersonaId = localStorage.getItem("agilly_test_persona_id");
+      savedPersona = DIRECTION_PERSONAS.find((persona) => persona.id === savedPersonaId);
+      if (savedPersonaId && !savedPersona) {
+        localStorage.removeItem("agilly_test_persona_id");
+      }
+    } catch (error) {
+      console.warn("[AbsencesContext] Impossible de restaurer le profil actif:", error);
+    }
+
+    setCurrentPersonaState(savedPersona || getPersonaForUser(user));
+  }, [user]);
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("agilly_cached_demandes");
+      if (!cached) return;
+
+      const cachedDemandes = JSON.parse(cached) as DemandeRHItem[];
+      if (!Array.isArray(cachedDemandes)) {
+        throw new Error("Le cache des demandes n'est pas une liste.");
+      }
+
+      setDemandes(cachedDemandes);
+      setIsLoading(false);
+    } catch (error) {
+      console.warn("[AbsencesContext] Cache des demandes invalide:", error);
+      try {
+        localStorage.removeItem("agilly_cached_demandes");
+      } catch (cleanupError) {
+        console.warn("[AbsencesContext] Impossible de supprimer le cache invalide:", cleanupError);
+      }
+    }
+  }, []);
 
   // ── Calcul dynamique des statistiques de service ──
   const statsServices = useMemo<StatistiqueServiceAbsence[]>(() => {
@@ -491,6 +513,11 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // 1. Tenter l'appel API direct avec un timeout court (3s)
+      const timeoutMs =
+        payload.typeDemande === "MISSION_DEPLACEMENT" ||
+        payload.typeDemande === "INTERVENTION_TERRAIN"
+          ? 15000
+          : 3000;
       const realCreated = await Promise.race([
         demandesApi.creerDemande({
           typeCode: backendTypeCode,
@@ -502,9 +529,13 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
           destination: payload.destination,
           moyenTransport: payload.moyenTransport,
           fraisEstimes: payload.fraisPrevisionnels,
+          ordreDonneAId: payload.ordreDonneAId,
+          clientProjet: payload.clientProjet,
+          tarifInterventionJour: payload.tarifInterventionJour,
+          equipeInterventionIds: payload.equipeIntervention?.map((member) => member.id),
         }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Délai d'attente serveur dépassé")), 3000)
+          setTimeout(() => reject(new Error("Délai d'attente serveur dépassé")), timeoutMs)
         ),
       ]);
 
@@ -517,6 +548,14 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
 
       return realCreated;
     } catch (err) {
+      if (
+        payload.typeDemande === "MISSION_DEPLACEMENT" ||
+        payload.typeDemande === "INTERVENTION_TERRAIN"
+      ) {
+        console.error("[AbsencesContext] Échec de l'enregistrement de l'ordre de mission:", err);
+        throw err;
+      }
+
       console.warn("[AbsencesContext] Enregistrement en mode résilient immédiat:", err);
 
       // Mode immédiat garanti : crée la demande en mémoire et met à jour l'interface
@@ -537,6 +576,10 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         destination: payload.destination,
         moyenTransport: payload.moyenTransport,
         fraisPrevisionnels: payload.fraisPrevisionnels,
+        ordreDonneAId: payload.ordreDonneAId,
+        clientProjet: payload.clientProjet,
+        tarifInterventionJour: payload.tarifInterventionJour,
+        equipeIntervention: payload.equipeIntervention,
         statut: "EN_VALIDATION_N1",
         etapeCourante: "SUPERIEUR_N1",
         cycleRetoursCount: 0,

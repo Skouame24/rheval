@@ -7,10 +7,15 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
 const TITLES: [string, string][] = [
+  ["/absences/missions/planning", "Agenda des missions"],
+  ["/absences/missions/nouvelle", "Nouvel ordre de mission"],
+  ["/absences/missions/demandes", "Mes missions"],
+  ["/absences/missions/registre", "Registre des missions"],
+  ["/absences/missions", "Missions & Interventions"],
   ["/absences/demandes", "Mes demandes"],
   ["/absences/nouvelle", "Nouvelle demande"],
   ["/absences/validations", "À valider"],
@@ -23,11 +28,15 @@ const TITLES: [string, string][] = [
 
 export function AbsencesTopBar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { currentPersona, setCurrentPersona, allPersonas, pendingValidationsCount, isLoading, refreshDemandes } = useAbsences();
   const [isSwitcherOpen, setIsSwitcherOpen] = React.useState(false);
   const switcherRef = React.useRef<HTMLDivElement>(null);
 
-  const title = TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Accueil";
+  const title =
+    pathname === "/absences/missions/nouvelle" && searchParams.get("type") === "INTERVENTION_TERRAIN"
+      ? "Nouvelle fiche d'intervention"
+      : TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Accueil";
 
   // Fermeture du dropdown au clic en dehors
   React.useEffect(() => {

@@ -9,7 +9,7 @@ import type { Role, User } from "@/types";
 
 export interface LoginDto {
   email: string;
-  password?: string;
+  password: string;
 }
 
 export interface AuthResponse {

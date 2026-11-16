@@ -105,7 +105,7 @@ export default function PortailPage() {
         </div>
 
         {/* ─── Applications Grid (Charte Bords Carrés rounded-none) ─── */}
-        <div className="w-full max-w-[1000px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="w-full max-w-[1200px] grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           
           {/* RHEVAL - APPLICATION DISPONIBLE */}
           <button 
@@ -121,7 +121,7 @@ export default function PortailPage() {
                 </svg>
               </div>
              
-              <h3 className="text-xl font-extrabold text-slate-900 mb-2 group-hover:text-[#F0822A] transition-colors">AGILLY RHEVAL</h3>
+              <h3 className="text-xl font-extrabold text-slate-900 mb-2 group-hover:text-[#F0822A] transition-colors">Performances</h3>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
                 Plateforme officielle de gestion des évaluations annuelles de performance et suivi des objectifs.
               </p>
@@ -135,7 +135,7 @@ export default function PortailPage() {
             </div>
           </button>
 
-          {/* ABSENCES & CONGÉS - APPLICATION DISPONIBLE */}
+          {/* CONGÉS & PERMISSIONS - APPLICATION DISPONIBLE */}
           <button 
             onClick={() => router.push("/absences")}
             className="group relative flex flex-col bg-white border border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-blue-600"
@@ -152,20 +152,48 @@ export default function PortailPage() {
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
-                  Absences & Congés
+                  Congés &amp; Permissions
                 </h3>
                 <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5">
                   NOUVEAU
                 </span>
               </div>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Workflow des congés, permissions, missions, interventions, contrôle solde et archivage GED.
+                Demandes de congés payés, permissions exceptionnelles, suivi des soldes et validation hiérarchique.
               </p>
             </div>
             
             <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-blue-50/50 transition-colors">
-              <span className="text-xs font-extrabold text-blue-600">Ouvrir l'application →</span>
+              <span className="text-xs font-extrabold text-blue-600">Gérer mes congés →</span>
               <svg className="text-blue-600 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </div>
+          </button>
+
+          {/* MISSIONS & INTERVENTIONS - APPLICATION DISPONIBLE */}
+          <button
+            onClick={() => router.push("/absences/missions")}
+            className="group relative flex flex-col bg-white border border-slate-200 hover:border-purple-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-purple-600"
+          >
+            <div className="p-6 pb-4">
+              <div className="w-12 h-12 bg-purple-50 text-purple-600 flex items-center justify-center rounded-none mb-4 border border-purple-100 group-hover:scale-105 transition-transform">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="0" ry="0"/>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Missions &amp; Interventions
+              </h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Création d&apos;ordres de mission, suivi des déplacements professionnels, interventions techniques et frais associés.
+              </p>
+            </div>
+
+            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-purple-50/50 transition-colors">
+              <span className="text-xs font-extrabold text-purple-600">Accéder aux missions →</span>
+              <svg className="text-purple-600 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
               </svg>
             </div>

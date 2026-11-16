@@ -10,8 +10,8 @@ import { AbsencesSidebar } from "@/features/absences/components/AbsencesSidebar"
 import { AbsencesTopBar } from "@/features/absences/components/AbsencesTopBar";
 
 export const metadata = {
-  title: "Absences & Congés | Agilly Portails",
-  description: "Plateforme officielle de dématérialisation et validation des absences Agilly",
+  title: "Congés, permissions & missions | Agilly Portails",
+  description: "Espaces distincts de gestion des congés, permissions et missions professionnelles Agilly",
 };
 
 export default function AbsencesLayout({

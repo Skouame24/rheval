@@ -47,7 +47,9 @@ export function DemandesListTable({
 
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchRef = d.codeReference.toLowerCase().includes(query);
+        const matchRef =
+          d.codeReference.toLowerCase().includes(query) ||
+          Boolean(d.numeroOrdreMission?.toLowerCase().includes(query));
         const matchNom = `${d.demandeur.prenom} ${d.demandeur.nom}`.toLowerCase().includes(query);
         const matchDept = d.demandeur.departement.toLowerCase().includes(query);
         const matchMotif = d.motif.toLowerCase().includes(query);
@@ -250,7 +252,7 @@ export function DemandesListTable({
                     <td className="py-4 px-5 font-semibold text-slate-900">
                       <div className="flex items-center gap-2">
                         {canAct && <span className="w-1.5 h-1.5 rounded-full bg-[#F0822A]" />}
-                        <span>{demande.codeReference}</span>
+                        <span>{demande.numeroOrdreMission || demande.codeReference}</span>
                       </div>
                     </td>
 

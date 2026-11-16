@@ -132,6 +132,10 @@ export interface DocumentPermissionPDF {
 export interface DemandeRHItem {
   id: string;
   codeReference: string; // DEM-2026-XXXX
+  numeroOrdreMission?: string;
+  ordreDonneAId?: string;
+  ordreDonneANom?: string;
+  ordreDonneAEmail?: string;
   typeDemande: TypeDemandeRH;
   libelleType: string;
   statut: StatutDemandeRH;
@@ -160,6 +164,9 @@ export interface DemandeRHItem {
   destination?: string; // pour mission/déplacement
   moyenTransport?: string;
   fraisPrevisionnels?: number;
+  clientProjet?: string;
+  tarifInterventionJour?: number;
+  equipeIntervention?: InterventionTeamMember[];
 
   // Compteurs & Règles de gestion
   cycleRetoursCount: number; // Max 2 avant refus définitif
@@ -177,6 +184,13 @@ export interface DemandeRHItem {
 
   dateCreation: string;
   dateDerniereAction: string;
+}
+
+export interface InterventionTeamMember {
+  id: string;
+  nom: string;
+  email: string;
+  poste?: string;
 }
 
 export interface SoldeCongesInfo {

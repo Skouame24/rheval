@@ -24,6 +24,10 @@ export interface CreateDemandeInput {
   destination?: string;
   moyenTransport?: string;
   fraisEstimes?: number;
+  ordreDonneAId?: string;
+  clientProjet?: string;
+  tarifInterventionJour?: number;
+  equipeInterventionIds?: string[];
 }
 
 export interface DecisionValidationInput {
@@ -58,8 +62,9 @@ export function mapFrontendTypeToBackend(frontendType: string): string {
     case "CONGES_MALADIE":
       return "REPOS_MALADIE";
     case "MISSION_DEPLACEMENT":
-    case "INTERVENTION_TERRAIN":
       return "ORDRE_MISSION";
+    case "INTERVENTION_TERRAIN":
+      return "INTERVENTION_TERRAIN";
     case "PERMISSION_MARIAGE":
     case "PERMISSION_NAISSANCE":
     case "PERMISSION_DECES":
@@ -174,6 +179,10 @@ export function transformBackendDemande(b: any): DemandeRHItem {
   return {
     id: b.id,
     codeReference: b.numeroDemande || `DEM-${b.id.substring(0, 8)}`,
+    numeroOrdreMission: b.numeroOrdreMission || undefined,
+    ordreDonneAId: b.ordreDonneAId || undefined,
+    ordreDonneANom: b.ordreDonneANom || undefined,
+    ordreDonneAEmail: b.ordreDonneAEmail || undefined,
     typeDemande: mapBackendTypeToFrontend(typeCode),
     libelleType: libelleType,
     statut: mapBackendStatutToFrontend(b.statut),
@@ -200,6 +209,13 @@ export function transformBackendDemande(b: any): DemandeRHItem {
     destination: b.destination || undefined,
     moyenTransport: b.moyenTransport || undefined,
     fraisPrevisionnels: b.fraisEstimes ? Number(b.fraisEstimes) : undefined,
+    clientProjet: b.clientProjet || undefined,
+    tarifInterventionJour: b.tarifInterventionJour
+      ? Number(b.tarifInterventionJour)
+      : undefined,
+    equipeIntervention: b.equipeIntervention
+      ? (JSON.parse(b.equipeIntervention) as DemandeRHItem["equipeIntervention"])
+      : [],
     cycleRetoursCount: b.cycleRejetCount || 0,
     piecesJointes: (b.piecesJointes || []).map((pj: any) => ({
       id: pj.id,
