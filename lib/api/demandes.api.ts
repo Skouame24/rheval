@@ -13,6 +13,7 @@ import {
   EtapeValidationRH,
   TypeDemandeConfig,
 } from "@/types/absences.types";
+import type { MissionFeeCategory } from "@/types/absences.types";
 
 export interface CreateDemandeInput {
   typeCode: string;
@@ -26,8 +27,15 @@ export interface CreateDemandeInput {
   fraisEstimes?: number;
   ordreDonneAId?: string;
   clientProjet?: string;
+  intituleIntervention?: string;
   tarifInterventionJour?: number;
   equipeInterventionIds?: string[];
+  equipeInterventionCategories?: Record<string, MissionFeeCategory>;
+  categorieFrais?: MissionFeeCategory;
+  fraisHebergement?: number;
+  fraisRestauration?: number;
+  fraisDeplacement?: number;
+  forfaitIntervention?: number;
 }
 
 export interface DecisionValidationInput {
@@ -208,8 +216,14 @@ export function transformBackendDemande(b: any): DemandeRHItem {
     adresseContactPendantAbsence: b.adresseContact || "Abidjan, Côte d'Ivoire",
     destination: b.destination || undefined,
     moyenTransport: b.moyenTransport || undefined,
-    fraisPrevisionnels: b.fraisEstimes ? Number(b.fraisEstimes) : undefined,
+    fraisPrevisionnels: b.fraisEstimes != null ? Number(b.fraisEstimes) : undefined,
+    categorieFrais: b.categorieFrais || undefined,
+    fraisHebergement: b.fraisHebergement != null ? Number(b.fraisHebergement) : undefined,
+    fraisRestauration: b.fraisRestauration != null ? Number(b.fraisRestauration) : undefined,
+    fraisDeplacement: b.fraisDeplacement != null ? Number(b.fraisDeplacement) : undefined,
+    forfaitIntervention: b.forfaitIntervention != null ? Number(b.forfaitIntervention) : undefined,
     clientProjet: b.clientProjet || undefined,
+    intituleIntervention: b.intituleIntervention || undefined,
     tarifInterventionJour: b.tarifInterventionJour
       ? Number(b.tarifInterventionJour)
       : undefined,

@@ -14,15 +14,15 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { TypeDemandeRH, FamilleDemandeRH } from "@/types/absences.types";
-import type { InterventionTeamMember } from "@/types/absences.types";
+import type { InterventionTeamMember, MissionFeeCategory } from "@/types/absences.types";
 import {
   VILLES_CI_CATALOGUE,
   MOYENS_TRANSPORT_CATALOGUE,
-  BAREMES_ZONE_CATALOGUE,
+  BAREME_FRAIS_INTERVENTION_LOCALE,
+  BAREME_FRAIS_MISSION,
+  MISSION_FEE_CATEGORY_LABELS,
   calculerFraisMissionClient,
-  VilleMissionItem,
-  MoyenTransportItem,
-  CalculFraisMissionResult,
+  inferMissionFeeCategory,
 } from "@/lib/api/missions.api";
 import { employeesApi } from "@/lib/api";
 import type { User } from "@/types";
@@ -306,6 +306,10 @@ export function NouvelleDemandeForm() {
   const [collaborateurSelectionId, setCollaborateurSelectionId] = useState("");
   const [intervenantSelectionId, setIntervenantSelectionId] = useState("");
   const [equipeInterventionIds, setEquipeInterventionIds] = useState<string[]>([]);
+  const [equipeInterventionCategories, setEquipeInterventionCategories] = useState<
+    Record<string, MissionFeeCategory>
+  >({});
+  const [categorieFraisManuelle, setCategorieFraisManuelle] = useState<MissionFeeCategory | "">("");
 
   const collaborateurConnecteDansAnnuaire = collaborateurs.find(
     (collaborateur) =>
@@ -313,6 +317,9 @@ export function NouvelleDemandeForm() {
       collaborateur.email.toLowerCase() === currentPersona.email.toLowerCase(),
   );
   const collaborateurMissionId = collaborateurSelectionId || collaborateurConnecteDansAnnuaire?.id || "";
+  const collaborateurMission = collaborateurs.find((item) => item.id === collaborateurMissionId);
+  const categorieFraisDetectee = inferMissionFeeCategory(collaborateurMission?.poste);
+  const categorieFraisMission = categorieFraisDetectee || categorieFraisManuelle || undefined;
   const equipeIntervention = useMemo<InterventionTeamMember[]>(
     () =>
       equipeInterventionIds.flatMap((id) => {
@@ -323,10 +330,12 @@ export function NouvelleDemandeForm() {
               nom: `${collaborateur.prenom} ${collaborateur.nom}`.trim(),
               email: collaborateur.email,
               poste: collaborateur.poste,
+              categorieFrais:
+                inferMissionFeeCategory(collaborateur.poste) ?? equipeInterventionCategories[id],
             }]
           : [];
       }),
-    [collaborateurs, equipeInterventionIds],
+    [collaborateurs, equipeInterventionCategories, equipeInterventionIds],
   );
 
   useEffect(() => {
@@ -351,43 +360,10 @@ export function NouvelleDemandeForm() {
     };
   }, [univers]);
 
-  // Synchronisation avec query param optionnel
-  useEffect(() => {
-    const typeParam = searchParams.get("type");
-    const universParam = univers;
-    if (typeParam) {
-      const found = MOTIFS_CATALOGUE.find((m) => m.id === typeParam);
-      const isAllowed =
-        found &&
-        (universParam !== "CONGES" || found.famille !== "MISSIONS") &&
-        (universParam !== "MISSIONS" || found.famille === "MISSIONS");
-      if (found && isAllowed) {
-        setFamilleActive(found.famille);
-        setTypeDemande(found.id);
-      }
-    }
-    if (universParam === "CONGES" && (!typeParam || !MOTIFS_CATALOGUE.some((m) => m.id === typeParam && m.famille !== "MISSIONS"))) {
-      setFamilleActive("CONGES");
-      setTypeDemande("CONGES_ANNUELS");
-    } else if (universParam === "MISSIONS" && (!typeParam || !MOTIFS_CATALOGUE.some((m) => m.id === typeParam && m.famille === "MISSIONS"))) {
-      setFamilleActive("MISSIONS");
-      setTypeDemande("MISSION_DEPLACEMENT");
-    }
-  }, [searchParams, univers]);
-
   // Motifs filtrés selon la famille
   const motifsFamille = useMemo(() => {
     return MOTIFS_CATALOGUE.filter((m) => m.famille === familleActive);
   }, [familleActive]);
-
-  // Assurer que le motif correspond à la famille active
-  useEffect(() => {
-    if (!motifsFamille.some((m) => m.id === typeDemande)) {
-      if (motifsFamille[0]) {
-        setTypeDemande(motifsFamille[0].id);
-      }
-    }
-  }, [familleActive, motifsFamille, typeDemande]);
 
   const motifActif = useMemo(() => {
     return MOTIFS_CATALOGUE.find((m) => m.id === typeDemande) || MOTIFS_CATALOGUE[0];
@@ -422,7 +398,11 @@ export function NouvelleDemandeForm() {
   const [ajustementManuelFrais, setAjustementManuelFrais] = useState(false);
   const [fraisPrevisionnelsManuels, setFraisPrevisionnelsManuels] = useState("");
   const [clientProjet, setClientProjet] = useState("");
+  const [intituleIntervention, setIntituleIntervention] = useState("");
   const [tarifInterventionJour, setTarifInterventionJour] = useState("75000");
+  const [fraisDeplacementIntervention, setFraisDeplacementIntervention] = useState("0");
+  const [forfaitSpecialInterventionActif, setForfaitSpecialInterventionActif] = useState(false);
+  const [forfaitSpecialIntervention, setForfaitSpecialIntervention] = useState("10000");
   const [avanceDemandee, setAvanceDemandee] = useState(false);
   const [montantAvance, setMontantAvance] = useState("");
 
@@ -430,7 +410,6 @@ export function NouvelleDemandeForm() {
   const [motif, setMotif] = useState("");
   const [adresseContact, setAdresseContact] = useState("");
   const [engagementHonneur, setEngagementHonneur] = useState(false);
-  const [fichiers, setFichiers] = useState<string[]>([]);
   const [fichiersList, setFichiersList] = useState<Array<{ nom: string; taille: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -442,13 +421,11 @@ export function NouvelleDemandeForm() {
         taille: `${Math.round(f.size / 1024)} Ko`,
       }));
       setFichiersList((prev) => [...prev, ...newFiles]);
-      setFichiers((prev) => [...prev, ...newFiles.map((f) => f.nom)]);
     }
   };
 
   const removeFile = (idx: number) => {
     setFichiersList((prev) => prev.filter((_, i) => i !== idx));
-    setFichiers((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Calcul dynamique durée en heures (pour permission de sortie)
@@ -514,26 +491,89 @@ export function NouvelleDemandeForm() {
     return calculerFraisMissionClient(villeId, transportCode, joursOuvres);
   }, [villeId, transportCode, joursOuvres]);
 
+  const missionFrais = useMemo(() => {
+    const bareme = categorieFraisMission ? BAREME_FRAIS_MISSION[categorieFraisMission] : null;
+    const hebergement = bareme ? bareme.hebergement * joursOuvres : 0;
+    const restauration = bareme ? bareme.restauration * joursOuvres : 0;
+    const deplacement = calculMission.fraisTransportEstimes;
+    return {
+      hebergement,
+      restauration,
+      deplacement,
+      total: hebergement + restauration + deplacement,
+    };
+  }, [calculMission.fraisTransportEstimes, categorieFraisMission, joursOuvres]);
+
   // Montant effectif des frais prévisionnels (automatique ou ajusté par dérogation)
   const fraisPrevisionnelsEffectifs = useMemo(() => {
     if (ajustementManuelFrais && fraisPrevisionnelsManuels !== "") {
       return Math.max(0, Number(fraisPrevisionnelsManuels) || 0);
     }
-    return calculMission.totalFraisPrevisionnels;
-  }, [ajustementManuelFrais, fraisPrevisionnelsManuels, calculMission.totalFraisPrevisionnels]);
+    return missionFrais.total;
+  }, [ajustementManuelFrais, fraisPrevisionnelsManuels, missionFrais.total]);
+  const avanceSuggeree80 = Math.round((missionFrais.total * 0.8) / 1000) * 1000;
   const fraisInterventionTotal = useMemo(() => {
     const tarif = Number(tarifInterventionJour);
     return Number.isFinite(tarif) && tarif > 0
       ? Math.round(tarif * joursOuvres)
       : 0;
   }, [joursOuvres, tarifInterventionJour]);
-
-  // Synchronisation suggestion d'avance de caisse
-  useEffect(() => {
-    if (avanceDemandee && !montantAvance) {
-      setMontantAvance(String(calculMission.avanceSuggeree80));
-    }
-  }, [avanceDemandee, calculMission.avanceSuggeree80, montantAvance]);
+  const interventionLocale = calculMission.ville.zone === "GRAND_ABIDJAN";
+  const hasAgentMaitrise = equipeIntervention.some(
+    (member) => member.categorieFrais === "AGENT_MAITRISE",
+  );
+  const hasTransportReelIntervention = equipeIntervention.some(
+    (member) =>
+      member.categorieFrais &&
+      BAREME_FRAIS_INTERVENTION_LOCALE[member.categorieFrais].deplacementReel,
+  );
+  const equipeInterventionCategoriesCompletes =
+    equipeIntervention.length > 0 && equipeIntervention.every((member) => member.categorieFrais);
+  const fraisIntervention = useMemo(() => {
+    const hebergement = interventionLocale
+      ? 0
+      : equipeIntervention.reduce(
+          (total, member) =>
+            total +
+            (member.categorieFrais
+              ? BAREME_FRAIS_MISSION[member.categorieFrais].hebergement * joursOuvres
+              : 0),
+          0,
+        );
+    const restauration = equipeIntervention.reduce((total, member) => {
+      if (!member.categorieFrais) return total;
+      const tarifJour = interventionLocale
+        ? BAREME_FRAIS_INTERVENTION_LOCALE[member.categorieFrais].restauration
+        : BAREME_FRAIS_MISSION[member.categorieFrais].restauration;
+      return total + tarifJour * joursOuvres;
+    }, 0);
+    const deplacement = interventionLocale
+      ? hasTransportReelIntervention
+        ? Math.max(0, Number(fraisDeplacementIntervention) || 0)
+        : 0
+      : calculMission.fraisTransportEstimes;
+    const forfait = forfaitSpecialInterventionActif && hasAgentMaitrise
+      ? Math.max(0, Number(forfaitSpecialIntervention) || 0)
+      : 0;
+    return {
+      hebergement,
+      restauration,
+      deplacement,
+      forfait,
+      total: hebergement + restauration + deplacement + forfait,
+    };
+  }, [
+    calculMission.fraisTransportEstimes,
+    equipeIntervention,
+    fraisDeplacementIntervention,
+    forfaitSpecialIntervention,
+    forfaitSpecialInterventionActif,
+    hasAgentMaitrise,
+    hasTransportReelIntervention,
+    interventionLocale,
+    joursOuvres,
+  ]);
+  const fraisInterventionTotalGlobal = fraisInterventionTotal + fraisIntervention.total;
 
   // Soumission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -546,6 +586,16 @@ export function NouvelleDemandeForm() {
 
     if (isIntervention && equipeIntervention.length === 0) {
       alert("Veuillez ajouter au moins un intervenant à l'équipe.");
+      return;
+    }
+
+    if (isIntervention && !intituleIntervention.trim()) {
+      alert("Veuillez renseigner l'intitulé général de l'intervention.");
+      return;
+    }
+
+    if (isIntervention && !equipeInterventionCategoriesCompletes) {
+      alert("Veuillez indiquer la catégorie de frais de chaque intervenant dont le poste n'est pas reconnu.");
       return;
     }
 
@@ -569,6 +619,32 @@ export function NouvelleDemandeForm() {
       return;
     }
 
+    if (motifActif.famille === "MISSIONS" && !isIntervention && !categorieFraisMission) {
+      alert("Veuillez sélectionner la catégorie de frais du destinataire.");
+      return;
+    }
+
+    if (
+      isIntervention &&
+      interventionLocale &&
+      hasTransportReelIntervention &&
+      (!Number.isFinite(Number(fraisDeplacementIntervention)) || Number(fraisDeplacementIntervention) < 0)
+    ) {
+      alert("Veuillez saisir un montant valide pour les frais réels de déplacement.");
+      return;
+    }
+
+    if (
+      isIntervention &&
+      forfaitSpecialInterventionActif &&
+      hasAgentMaitrise &&
+      (Number(forfaitSpecialIntervention) < 10000 ||
+        Number(forfaitSpecialIntervention) > 15000)
+    ) {
+      alert("Le forfait spécial est réservé aux Agents de maîtrise et doit être compris entre 10 000 et 15 000 FCFA.");
+      return;
+    }
+
     if (motifActif.impactSolde && !soldeSuffisant) {
       alert("Votre solde de congés payés acquis est insuffisant pour couvrir cette durée.");
       return;
@@ -588,7 +664,7 @@ export function NouvelleDemandeForm() {
         const clientPart = clientProjet ? ` [Client: ${clientProjet}]` : "";
         const villePart = ` [Lieu: ${calculMission.ville.nom} (${calculMission.ville.districtOuRegion}, ${calculMission.distanceKmAR} km A/R)]`;
         const transportPart = ` [Transport: ${calculMission.transport.libelle}]`;
-        const fraisPart = ` [Budget prévisionnel: ${fraisPrevisionnelsEffectifs.toLocaleString("fr-FR")} FCFA (Per diem: ${calculMission.nombreJours}j × ${calculMission.perDiemJournalier.toLocaleString("fr-FR")} FCFA/j + Transport: ${calculMission.fraisTransportEstimes.toLocaleString("fr-FR")} FCFA)]`;
+        const fraisPart = ` [Frais ${MISSION_FEE_CATEGORY_LABELS[categorieFraisMission!]}: hébergement ${missionFrais.hebergement.toLocaleString("fr-FR")} FCFA, repas ${missionFrais.restauration.toLocaleString("fr-FR")} FCFA, transport employeur ${missionFrais.deplacement.toLocaleString("fr-FR")} FCFA; total ${fraisPrevisionnelsEffectifs.toLocaleString("fr-FR")} FCFA]`;
         const avancePart = avanceDemandee && montantAvance ? ` [Avance caisse: ${Number(montantAvance).toLocaleString("fr-FR")} FCFA]` : "";
         motifFinal = `${motif.trim()} [ORDRE DE MISSION / INTERVENTION à ${calculMission.ville.nom}${clientPart}${transportPart}${villePart}${fraisPart}${avancePart}]`;
       }
@@ -605,9 +681,15 @@ export function NouvelleDemandeForm() {
         destination: calculMission.ville.nom,
         moyenTransport: isIntervention ? undefined : calculMission.transport.libelle,
         clientProjet: isIntervention ? clientProjet.trim() : undefined,
+        intituleIntervention: isIntervention ? intituleIntervention.trim() : undefined,
         tarifInterventionJour: isIntervention ? Number(tarifInterventionJour) : undefined,
         equipeIntervention: isIntervention ? equipeIntervention : undefined,
-        fraisPrevisionnels: isIntervention ? fraisInterventionTotal : fraisPrevisionnelsEffectifs,
+        fraisPrevisionnels: isIntervention ? fraisInterventionTotalGlobal : fraisPrevisionnelsEffectifs,
+        categorieFrais: isIntervention ? undefined : categorieFraisMission,
+        fraisHebergement: isIntervention ? fraisIntervention.hebergement : missionFrais.hebergement,
+        fraisRestauration: isIntervention ? fraisIntervention.restauration : missionFrais.restauration,
+        fraisDeplacement: isIntervention ? fraisIntervention.deplacement : missionFrais.deplacement,
+        forfaitIntervention: isIntervention ? fraisIntervention.forfait || undefined : undefined,
         ordreDonneAId: motifActif.famille === "MISSIONS" && !isIntervention ? collaborateurMissionId : undefined,
       });
 
@@ -618,9 +700,9 @@ export function NouvelleDemandeForm() {
             ? "/absences/demandes?univers=CONGES"
             : "/absences/demandes",
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[NouvelleDemandePage] Erreur:", err);
-      alert(err?.message || "Erreur lors de la transmission de la demande.");
+      alert(err instanceof Error ? err.message : "Erreur lors de la transmission de la demande.");
     } finally {
       setIsSubmitting(false);
     }
@@ -639,7 +721,7 @@ export function NouvelleDemandeForm() {
                 : univers === "MISSIONS"
                 ? "Nouvel Ordre de Mission"
                 : univers === "CONGES"
-                  ? "Nouvelle demande de congé ou permission"
+                  ? `Nouvelle demande de ${familleActive === "PERMISSIONS" ? "permission" : "congé"}`
                   : "Nouvelle demande d'absence ou mission"}
             </h1>
           </div>
@@ -666,55 +748,39 @@ export function NouvelleDemandeForm() {
         </Link>
       </div>
 
-      {/* ── ÉTAPE 1 : SÉLECTEUR DE GRANDE FAMILLE (3 ONGLETS AVEC IDENTITÉ AGILLY ORANGE) ── */}
+      {/* ── ÉTAPE 1 : FAMILLE ACTIVE ── */}
       {univers !== "MISSIONS" ? (
       <div className="bg-white border border-slate-200 p-5 flex flex-col gap-3 shadow-2xs">
         <span className="text-[10px] font-black uppercase tracking-wider text-[#C25E00] block">
-          Étape 1 : Choisissez la nature de votre demande
+          Famille de demande sélectionnée
         </span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setFamilleActive("CONGES")}
-            className={`p-4 text-left cursor-pointer transition-all border ${
-              familleActive === "CONGES"
-                ? "bg-gradient-to-b from-[#FFF7ED] to-white border-2 border-[#F0822A] shadow-sm"
-                : "bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/20"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className={`text-xs font-black uppercase tracking-wide ${familleActive === "CONGES" ? "text-[#C25E00]" : "text-slate-800"}`}>
-                1. Congés
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-orange-200 bg-orange-50/40">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-black uppercase tracking-wide text-[#C25E00]">
+                {familleActive === "PERMISSIONS" ? "Permissions" : "Congés"}
               </span>
-              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${familleActive === "CONGES" ? "bg-[#F0822A] text-white shadow-2xs" : "bg-slate-100 text-slate-600"}`}>
-                6 motifs {familleActive === "CONGES" && "✓"}
+              <span className="text-[10px] font-mono px-2 py-0.5 font-bold bg-[#F0822A] text-white">
+                {motifsFamille.length} motifs
               </span>
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-500">
-              Congé annuel payé, maladie, maternité, paternité, sans solde, formation.
+            <p className="text-[11px] leading-relaxed text-slate-600">
+              {familleActive === "PERMISSIONS"
+                ? "Mariage, décès, naissance, rendez-vous et sorties autorisées."
+                : "Congé annuel, arrêt maladie, maternité, paternité, sans solde ou formation."}
             </p>
-          </button>
-
+          </div>
           <button
             type="button"
-            onClick={() => setFamilleActive("PERMISSIONS")}
-            className={`p-4 text-left cursor-pointer transition-all border ${
-              familleActive === "PERMISSIONS"
-                ? "bg-gradient-to-b from-[#FFF7ED] to-white border-2 border-[#F0822A] shadow-sm"
-                : "bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/20"
-            }`}
+            onClick={() => {
+              const nouvelleFamille = familleActive === "PERMISSIONS" ? "CONGES" : "PERMISSIONS";
+              const premierMotif = MOTIFS_CATALOGUE.find((motif) => motif.famille === nouvelleFamille);
+              setFamilleActive(nouvelleFamille);
+              if (premierMotif) setTypeDemande(premierMotif.id);
+            }}
+            className="shrink-0 border border-slate-300 bg-white px-3 py-2 text-[11px] font-bold text-slate-700 hover:border-[#F0822A] hover:text-[#C25E00]"
           >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className={`text-xs font-black uppercase tracking-wide ${familleActive === "PERMISSIONS" ? "text-[#C25E00]" : "text-slate-800"}`}>
-                2. Permissions
-              </span>
-              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${familleActive === "PERMISSIONS" ? "bg-[#F0822A] text-white shadow-2xs" : "bg-slate-100 text-slate-600"}`}>
-                9 motifs {familleActive === "PERMISSIONS" && "✓"}
-              </span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-slate-500">
-              Mariage, décès, naissance, médical, démarches, urgence, sortie en heures.
-            </p>
+            Passer aux {familleActive === "PERMISSIONS" ? "congés" : "permissions"} →
           </button>
         </div>
       </div>
@@ -859,9 +925,26 @@ export function NouvelleDemandeForm() {
           {isIntervention && (
             <div className="p-4 bg-white border border-slate-200 flex flex-col gap-5">
               <section className="flex flex-col gap-3">
-                <h2 className="text-[11px] font-black uppercase tracking-wide text-slate-800 border-b border-slate-200 pb-2">
-                  1. Équipe intervention / intervenants
-                </h2>
+                <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2">
+                  <h2 className="text-[11px] font-black uppercase tracking-wide text-slate-800">
+                    1. Équipe d&apos;intervention / employés
+                  </h2>
+                  <span className="shrink-0 px-2 py-1 border border-orange-200 bg-orange-50 text-[10px] font-bold text-[#C25E00]">
+                    {equipeIntervention.length} intervenant(s)
+                  </span>
+                </div>
+                <div>
+                  <label htmlFor="intervention-demandeur" className="block text-slate-700 font-semibold mb-1">
+                    Collaborateur demandeur (connecté) *
+                  </label>
+                  <input
+                    id="intervention-demandeur"
+                    type="text"
+                    value={`${currentPersona.prenom} ${currentPersona.nom}${currentPersona.poste ? ` (${currentPersona.poste})` : ""}`.trim()}
+                    readOnly
+                    className="w-full bg-slate-50 border border-slate-300 p-2 text-slate-700 text-xs"
+                  />
+                </div>
                 <div>
                   <label htmlFor="intervenant-a-ajouter" className="block text-slate-700 font-semibold mb-1">
                     Ajouter des collaborateurs à l&apos;équipe d&apos;intervention *
@@ -916,11 +999,44 @@ export function NouvelleDemandeForm() {
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-bold text-slate-800">{intervenant.nom}</span>
                           <span className="block truncate text-[10px] text-slate-500">{intervenant.poste || intervenant.email}</span>
+                          {intervenant.categorieFrais ? (
+                            <span className="block text-[10px] font-semibold text-purple-800">
+                              Catégorie de frais : {MISSION_FEE_CATEGORY_LABELS[intervenant.categorieFrais]}
+                            </span>
+                          ) : (
+                            <select
+                              aria-label={`Catégorie de frais pour ${intervenant.nom}`}
+                              value={equipeInterventionCategories[intervenant.id] || ""}
+                              onChange={(event) =>
+                                setEquipeInterventionCategories((current) => ({
+                                  ...current,
+                                  [intervenant.id]: event.target.value as MissionFeeCategory,
+                                }))
+                              }
+                              className="mt-1 h-8 max-w-full border border-orange-300 bg-white px-2 text-[10px] text-slate-900"
+                            >
+                              <option value="">Choisir la catégorie de frais *</option>
+                              {Object.entries(MISSION_FEE_CATEGORY_LABELS).map(([category, label]) => (
+                                <option key={category} value={category}>{label}</option>
+                              ))}
+                            </select>
+                          )}
                         </span>
                         <button
                           type="button"
                           aria-label={`Retirer ${intervenant.nom}`}
-                          onClick={() => setEquipeInterventionIds((current) => current.filter((id) => id !== intervenant.id))}
+                          onClick={() => {
+                            setEquipeInterventionIds((current) => current.filter((id) => id !== intervenant.id));
+                            if (
+                              !equipeIntervention.some(
+                                (member) =>
+                                  member.id !== intervenant.id &&
+                                  member.categorieFrais === "AGENT_MAITRISE",
+                              )
+                            ) {
+                              setForfaitSpecialInterventionActif(false);
+                            }
+                          }}
                           className="shrink-0 px-2 text-red-600 font-bold"
                         >
                           ×
@@ -935,7 +1051,27 @@ export function NouvelleDemandeForm() {
 
               <section className="flex flex-col gap-3">
                 <h2 className="text-[11px] font-black uppercase tracking-wide text-slate-800 border-b border-slate-200 pb-2">
-                  2. Client, site &amp; période d&apos;intervention
+                  2. Intitulé général de l&apos;intervention
+                </h2>
+                <div>
+                  <label htmlFor="intervention-intitule" className="block text-slate-700 font-semibold mb-1">
+                    Intitulé général de l&apos;intervention *
+                  </label>
+                  <input
+                    id="intervention-intitule"
+                    type="text"
+                    value={intituleIntervention}
+                    onChange={(event) => setIntituleIntervention(event.target.value)}
+                    required
+                    placeholder="Ex. Migration de serveurs et sécurisation du pare-feu"
+                    className="w-full bg-white border border-slate-300 p-2 text-slate-900 text-xs"
+                  />
+                </div>
+              </section>
+
+              <section className="flex flex-col gap-3">
+                <h2 className="text-[11px] font-black uppercase tracking-wide text-slate-800 border-b border-slate-200 pb-2">
+                  3. Client, site &amp; période d&apos;intervention
                 </h2>
                 <div>
                   <label htmlFor="intervention-client" className="block text-slate-700 font-semibold mb-1">
@@ -1002,7 +1138,7 @@ export function NouvelleDemandeForm() {
 
               <section className="flex flex-col gap-3">
                 <h2 className="text-[11px] font-black uppercase tracking-wide text-slate-800 border-b border-slate-200 pb-2">
-                  3. Description de l&apos;intervention
+                  4. Description de l&apos;intervention
                 </h2>
                 <label htmlFor="intervention-description" className="block text-slate-700 font-semibold">
                   Description détaillée *
@@ -1020,7 +1156,7 @@ export function NouvelleDemandeForm() {
 
               <section className="flex flex-col gap-3">
                 <h2 className="text-[11px] font-black uppercase tracking-wide text-slate-800 border-b border-slate-200 pb-2">
-                  4. Conditions financières
+                  5. Conditions financières
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                   <div>
@@ -1039,11 +1175,93 @@ export function NouvelleDemandeForm() {
                     />
                   </div>
                   <div className="p-2 bg-orange-50 border border-orange-200">
-                    <span className="block text-[10px] font-bold text-slate-600">Montant estimé</span>
+                    <span className="block text-[10px] font-bold text-slate-600">Tarif intervention estimé</span>
                     <span className="block text-sm font-black text-[#C25E00]">
                       {fraisInterventionTotal.toLocaleString("fr-FR")} FCFA
                     </span>
                   </div>
+                </div>
+              </section>
+
+              <section className="flex flex-col gap-3">
+                <h2 className="text-[11px] font-black uppercase tracking-wide text-slate-800 border-b border-slate-200 pb-2">
+                  6. Notes de frais
+                </h2>
+                <p className="text-[11px] text-slate-600">
+                  {interventionLocale
+                    ? "Barème des interventions dans le Grand Abidjan et les villes environnantes."
+                    : "Hors Grand Abidjan, le barème mission (hébergement et repas) s'applique; le transport est pris en charge par l'employeur."}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {!interventionLocale && (
+                    <div className="p-2 bg-slate-50 border border-slate-200">
+                      <span className="block text-[10px] font-bold text-slate-600">Hébergement</span>
+                      <span className="font-mono font-bold">{fraisIntervention.hebergement.toLocaleString("fr-FR")} FCFA</span>
+                    </div>
+                  )}
+                  <div className="p-2 bg-slate-50 border border-slate-200">
+                    <span className="block text-[10px] font-bold text-slate-600">Restauration</span>
+                    <span className="font-mono font-bold">{fraisIntervention.restauration.toLocaleString("fr-FR")} FCFA</span>
+                  </div>
+                  <div className="p-2 bg-slate-50 border border-slate-200">
+                    <span className="block text-[10px] font-bold text-slate-600">
+                      {interventionLocale ? "Déplacement (frais réels)" : "Transport pris en charge"}
+                    </span>
+                    {interventionLocale && hasTransportReelIntervention ? (
+                      <input
+                        aria-label="Frais réels de déplacement"
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={fraisDeplacementIntervention}
+                        onChange={(event) => setFraisDeplacementIntervention(event.target.value)}
+                        className="mt-1 w-full border border-slate-300 bg-white p-2 font-mono text-xs text-slate-900"
+                      />
+                    ) : (
+                      <span className="font-mono font-bold">{fraisIntervention.deplacement.toLocaleString("fr-FR")} FCFA</span>
+                    )}
+                    {interventionLocale && !hasTransportReelIntervention && (
+                      <span className="block text-[10px] text-slate-500">Non indiqué au barème pour cette équipe.</span>
+                    )}
+                  </div>
+                </div>
+                {hasAgentMaitrise && (
+                  <div className="p-2 bg-amber-50 border border-amber-200">
+                    <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-800">
+                      <input
+                        type="checkbox"
+                        checked={forfaitSpecialInterventionActif}
+                        onChange={(event) => setForfaitSpecialInterventionActif(event.target.checked)}
+                        className="accent-[#F0822A]"
+                      />
+                      Forfait Agent de maîtrise (intervention de nuit, week-end ou jour férié)
+                    </label>
+                    {forfaitSpecialInterventionActif && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <label htmlFor="forfait-special-intervention" className="text-[10px] text-slate-600">
+                          Montant manuel (10 000 à 15 000 FCFA)
+                        </label>
+                        <input
+                          id="forfait-special-intervention"
+                          type="number"
+                          min="10000"
+                          max="15000"
+                          step="1000"
+                          value={forfaitSpecialIntervention}
+                          onChange={(event) => setForfaitSpecialIntervention(event.target.value)}
+                          className="w-32 border border-amber-300 bg-white p-1.5 font-mono text-xs text-slate-900"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-xs">
+                  <span className="font-bold text-slate-700">Total notes de frais</span>
+                  <span className="font-mono font-black text-slate-900">{fraisIntervention.total.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+                <div className="flex items-center justify-between bg-orange-50 border border-orange-200 p-2 text-xs">
+                  <span className="font-black text-slate-800">Total estimé (tarif + notes de frais)</span>
+                  <span className="font-mono font-black text-[#C25E00]">{fraisInterventionTotalGlobal.toLocaleString("fr-FR")} FCFA</span>
                 </div>
               </section>
             </div>
@@ -1080,7 +1298,10 @@ export function NouvelleDemandeForm() {
                   <select
                     id="mission-collaborateur"
                     value={collaborateurMissionId}
-                    onChange={(event) => setCollaborateurSelectionId(event.target.value)}
+                    onChange={(event) => {
+                      setCollaborateurSelectionId(event.target.value);
+                      setCategorieFraisManuelle("");
+                    }}
                     disabled={isLoadingCollaborateurs || Boolean(collaborateursError) || collaborateurs.length === 0}
                     required
                     className="w-full h-10 px-3 text-xs font-semibold text-slate-900 bg-white border border-slate-300 focus:border-purple-600 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
@@ -1104,6 +1325,32 @@ export function NouvelleDemandeForm() {
                     <p role="alert" className="mt-1 text-[11px] text-red-700">
                       Aucun collaborateur disponible dans l&apos;annuaire.
                     </p>
+                  )}
+                </div>
+                <div className="rounded border border-purple-200 bg-white p-2.5">
+                  {categorieFraisDetectee ? (
+                    <p className="text-[11px] text-slate-700">
+                      Catégorie déduite du poste <strong>{collaborateurMission?.poste || "—"}</strong> :{" "}
+                      <strong>{MISSION_FEE_CATEGORY_LABELS[categorieFraisDetectee]}</strong>
+                    </p>
+                  ) : (
+                    <>
+                      <label htmlFor="mission-categorie-frais" className="block text-slate-700 font-semibold mb-1">
+                        Catégorie de frais (poste non reconnu) *
+                      </label>
+                      <select
+                        id="mission-categorie-frais"
+                        value={categorieFraisManuelle}
+                        onChange={(event) => setCategorieFraisManuelle(event.target.value as MissionFeeCategory | "")}
+                        required
+                        className="w-full h-9 px-2 text-xs text-slate-900 bg-white border border-slate-300"
+                      >
+                        <option value="">Sélectionner une catégorie</option>
+                        {Object.entries(MISSION_FEE_CATEGORY_LABELS).map(([category, label]) => (
+                          <option key={category} value={category}>{label}</option>
+                        ))}
+                      </select>
+                    </>
                   )}
                 </div>
                 <div>
@@ -1216,7 +1463,9 @@ export function NouvelleDemandeForm() {
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-900 px-2 py-0.5 border border-purple-200">
-                      Barème : {calculMission.perDiemJournalier.toLocaleString("fr-FR")} FCFA / j
+                      {categorieFraisMission
+                        ? `Barème : ${MISSION_FEE_CATEGORY_LABELS[categorieFraisMission]}`
+                        : "Catégorie de frais à sélectionner"}
                     </span>
                     {calculMission.ville.desserteAerienne && (
                       <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 border border-blue-200">
@@ -1259,143 +1508,6 @@ export function NouvelleDemandeForm() {
                 </p>
               </div>
 
-              {/* Ligne 4 : CALCULATEUR DYNAMIQUE EN TEMPS RÉEL DU COÛT DE LA MISSION */}
-              <div className="bg-white border-2 border-purple-200 p-3.5 flex flex-col gap-3">
-                <div className="flex items-center justify-between border-b border-purple-100 pb-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-950 flex items-center gap-1.5">
-                    <span>⚡</span> Calcul automatique des frais prévisionnels
-                  </span>
-                  <span className="text-[11px] font-mono text-purple-700 font-bold">
-                    {joursOuvres} jour(s) de mission
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                  {/* Carte 1 : Per Diem */}
-                  <div className="p-2.5 bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
-                      1. Per Diem (Hôtel + Repas)
-                    </span>
-                    <span className="font-mono text-sm font-black text-slate-900">
-                      {calculMission.totalPerDiem.toLocaleString("fr-FR")} FCFA
-                    </span>
-                    <span className="text-[10px] text-slate-500 mt-1">
-                      {joursOuvres} j × {calculMission.perDiemJournalier.toLocaleString("fr-FR")} FCFA/j
-                    </span>
-                  </div>
-
-                  {/* Carte 2 : Transport */}
-                  <div className="p-2.5 bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
-                      2. Transport prévisionnel
-                    </span>
-                    <span className="font-mono text-sm font-black text-slate-900">
-                      {calculMission.fraisTransportEstimes.toLocaleString("fr-FR")} FCFA
-                    </span>
-                    <span className="text-[10px] text-slate-500 mt-1 truncate" title={calculMission.transport.libelle}>
-                      {calculMission.transport.libelle.split("(")[0]} ({calculMission.distanceKmAR} km A/R)
-                    </span>
-                  </div>
-
-                  {/* Carte 3 : Total Prévisionnel */}
-                  <div className="p-2.5 bg-gradient-to-br from-purple-100/70 to-orange-50 border-2 border-[#F0822A] flex flex-col justify-between">
-                    <span className="text-[10px] font-black text-[#C25E00] uppercase block mb-1">
-                      3. Budget Total Garanti
-                    </span>
-                    <span className="font-mono text-base font-black text-slate-900">
-                      {fraisPrevisionnelsEffectifs.toLocaleString("fr-FR")} FCFA
-                    </span>
-                    <span className="text-[10px] font-bold text-purple-800 mt-1">
-                      Prise en charge intégrale Agilly
-                    </span>
-                  </div>
-                </div>
-
-                {/* Option d'ajustement exceptionnel / manuel si dérogation */}
-                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 text-[11px]">
-                    <input
-                      type="checkbox"
-                      checked={ajustementManuelFrais}
-                      onChange={(e) => {
-                        setAjustementManuelFrais(e.target.checked);
-                        if (e.target.checked && !fraisPrevisionnelsManuels) {
-                          setFraisPrevisionnelsManuels(String(calculMission.totalFraisPrevisionnels));
-                        }
-                      }}
-                      className="accent-[#F0822A] rounded-none cursor-pointer"
-                    />
-                    <span>Ajustement exceptionnel du montant (sur accord préalable du responsable)</span>
-                  </label>
-
-                  {ajustementManuelFrais && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-slate-700">Montant dérogatoire :</span>
-                      <input
-                        type="number"
-                        value={fraisPrevisionnelsManuels}
-                        onChange={(e) => setFraisPrevisionnelsManuels(e.target.value)}
-                        placeholder="Montant FCFA"
-                        className="w-32 bg-white border border-[#F0822A] p-1.5 text-xs font-mono font-bold text-slate-900 outline-none rounded-none text-right"
-                      />
-                      <span className="text-xs font-mono font-bold text-slate-600">FCFA</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Ligne 5 : Demande d'avance de caisse / trésorerie */}
-              <div className="pt-2 border-t border-purple-200">
-                <label className="flex items-center gap-2 cursor-pointer mb-2">
-                  <input
-                    type="checkbox"
-                    checked={avanceDemandee}
-                    onChange={(e) => setAvanceDemandee(e.target.checked)}
-                    className="accent-purple-600 w-4 h-4 cursor-pointer rounded-none"
-                  />
-                  <span className="text-xs font-bold text-slate-800">
-                    Solliciter une avance de trésorerie / décharge de caisse avant le départ
-                  </span>
-                </label>
-
-                {avanceDemandee && (
-                  <div className="pl-6 pt-2 bg-white p-3 border border-purple-200 flex flex-col gap-2 max-w-md">
-                    <span className="text-[11px] text-slate-600 font-semibold block">
-                      Montant de l&apos;avance demandée (FCFA) <span className="text-red-500">*</span>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={montantAvance}
-                        onChange={(e) => setMontantAvance(e.target.value)}
-                        placeholder="Ex: 75000"
-                        className="w-full bg-white border border-purple-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
-                      />
-                      <span className="text-xs font-mono font-bold text-slate-600">FCFA</span>
-                    </div>
-
-                    {/* Raccourcis de suggestion 80% et 100% */}
-                    <div className="flex items-center gap-2 pt-1 text-[10px]">
-                      <span className="text-slate-400 font-medium">Suggestions :</span>
-                      <button
-                        type="button"
-                        onClick={() => setMontantAvance(String(calculMission.avanceSuggeree80))}
-                        className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-800 font-mono font-bold border border-purple-200 transition-colors cursor-pointer"
-                      >
-                        80% ({calculMission.avanceSuggeree80.toLocaleString("fr-FR")} FCFA)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMontantAvance(String(calculMission.avanceSuggeree100))}
-                        className="px-2 py-0.5 bg-orange-50 hover:bg-orange-100 text-[#C25E00] font-mono font-bold border border-orange-200 transition-colors cursor-pointer"
-                      >
-                        100% ({calculMission.avanceSuggeree100.toLocaleString("fr-FR")} FCFA)
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               <div className="p-3 bg-white border border-purple-200 flex flex-col gap-3">
                 <span className="font-bold text-slate-900 text-xs pb-1 border-b border-slate-200">
                   Période de la mission
@@ -1435,6 +1547,163 @@ export function NouvelleDemandeForm() {
                   </span>
                 </div>
               </div>
+
+              {/* Ligne 4 : CALCULATEUR DYNAMIQUE EN TEMPS RÉEL DU COÛT DE LA MISSION */}
+              <div className="bg-white border-2 border-purple-200 p-3.5 flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-purple-100 pb-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-950 flex items-center gap-1.5">
+                    <span>⚡</span> Calcul automatique des frais prévisionnels
+                  </span>
+                  <span className="text-[11px] font-mono text-purple-700 font-bold">
+                    {joursOuvres} jour(s) de mission
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+                  {/* Barème hébergement */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                      1. Hébergement
+                    </span>
+                    <span className="font-mono text-sm font-black text-slate-900">
+                      {missionFrais.hebergement.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[10px] text-slate-500 mt-1">
+                      {categorieFraisMission ? `${joursOuvres} j × ${BAREME_FRAIS_MISSION[categorieFraisMission].hebergement.toLocaleString("fr-FR")} FCFA/j` : "Catégorie requise"}
+                    </span>
+                  </div>
+
+                  {/* Barème restauration */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                      2. Repas
+                    </span>
+                    <span className="font-mono text-sm font-black text-slate-900">
+                      {missionFrais.restauration.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[10px] text-slate-500 mt-1">
+                      {categorieFraisMission ? `${joursOuvres} j × ${BAREME_FRAIS_MISSION[categorieFraisMission].restauration.toLocaleString("fr-FR")} FCFA/j` : "Catégorie requise"}
+                    </span>
+                  </div>
+
+                  {/* Carte transport */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                      3. Transport employeur
+                    </span>
+                    <span className="font-mono text-sm font-black text-slate-900">
+                      {missionFrais.deplacement.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[10px] text-slate-500 mt-1 truncate" title={calculMission.transport.libelle}>
+                      {calculMission.transport.libelle.split("(")[0]} ({calculMission.distanceKmAR} km A/R)
+                    </span>
+                  </div>
+
+                  {/* Total prévisionnel */}
+                  <div className="p-2.5 bg-gradient-to-br from-purple-100/70 to-orange-50 border-2 border-[#F0822A] flex flex-col justify-between">
+                    <span className="text-[10px] font-black text-[#C25E00] uppercase block mb-1">
+                      4. Total prévisionnel
+                    </span>
+                    <span className="font-mono text-base font-black text-slate-900">
+                      {fraisPrevisionnelsEffectifs.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <span className="text-[10px] font-bold text-purple-800 mt-1">
+                      Transport à la charge de l&apos;employeur
+                    </span>
+                  </div>
+                </div>
+
+                {/* Option d'ajustement exceptionnel / manuel si dérogation */}
+                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 text-[11px]">
+                    <input
+                      type="checkbox"
+                      checked={ajustementManuelFrais}
+                      onChange={(e) => {
+                        setAjustementManuelFrais(e.target.checked);
+                        if (e.target.checked && !fraisPrevisionnelsManuels) {
+                          setFraisPrevisionnelsManuels(String(missionFrais.total));
+                        }
+                      }}
+                      className="accent-[#F0822A] rounded-none cursor-pointer"
+                    />
+                    <span>Ajustement exceptionnel du montant (sur accord préalable du responsable)</span>
+                  </label>
+
+                  {ajustementManuelFrais && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-700">Montant dérogatoire :</span>
+                      <input
+                        type="number"
+                        value={fraisPrevisionnelsManuels}
+                        onChange={(e) => setFraisPrevisionnelsManuels(e.target.value)}
+                        placeholder="Montant FCFA"
+                        className="w-32 bg-white border border-[#F0822A] p-1.5 text-xs font-mono font-bold text-slate-900 outline-none rounded-none text-right"
+                      />
+                      <span className="text-xs font-mono font-bold text-slate-600">FCFA</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ligne 5 : Demande d'avance de caisse / trésorerie */}
+              <div className="pt-2 border-t border-purple-200">
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <input
+                    type="checkbox"
+                    checked={avanceDemandee}
+                    onChange={(e) => {
+                      const demanded = e.target.checked;
+                      setAvanceDemandee(demanded);
+                      if (demanded && !montantAvance) {
+                        setMontantAvance(String(avanceSuggeree80));
+                      }
+                    }}
+                    className="accent-purple-600 w-4 h-4 cursor-pointer rounded-none"
+                  />
+                  <span className="text-xs font-bold text-slate-800">
+                    Solliciter une avance de trésorerie / décharge de caisse avant le départ
+                  </span>
+                </label>
+
+                {avanceDemandee && (
+                  <div className="pl-6 pt-2 bg-white p-3 border border-purple-200 flex flex-col gap-2 max-w-md">
+                    <span className="text-[11px] text-slate-600 font-semibold block">
+                      Montant de l&apos;avance demandée (FCFA) <span className="text-red-500">*</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={montantAvance}
+                        onChange={(e) => setMontantAvance(e.target.value)}
+                        placeholder="Ex: 75000"
+                        className="w-full bg-white border border-purple-300 p-2 text-slate-900 font-mono text-xs focus:outline-none rounded-none"
+                      />
+                      <span className="text-xs font-mono font-bold text-slate-600">FCFA</span>
+                    </div>
+
+                    {/* Raccourcis de suggestion 80% et 100% */}
+                    <div className="flex items-center gap-2 pt-1 text-[10px]">
+                      <span className="text-slate-400 font-medium">Suggestions :</span>
+                      <button
+                        type="button"
+                        onClick={() => setMontantAvance(String(avanceSuggeree80))}
+                        className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-800 font-mono font-bold border border-purple-200 transition-colors cursor-pointer"
+                      >
+                        80% ({avanceSuggeree80.toLocaleString("fr-FR")} FCFA)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMontantAvance(String(missionFrais.total))}
+                        className="px-2 py-0.5 bg-orange-50 hover:bg-orange-100 text-[#C25E00] font-mono font-bold border border-orange-200 transition-colors cursor-pointer"
+                      >
+                        100% ({missionFrais.total.toLocaleString("fr-FR")} FCFA)
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 
@@ -1568,7 +1837,8 @@ export function NouvelleDemandeForm() {
                 isSubmitting ||
                 !engagementHonneur ||
                 (motifActif.famille === "MISSIONS" &&
-                  (isLoadingCollaborateurs || (!isIntervention && !collaborateurMissionId)))
+                  (isLoadingCollaborateurs ||
+                    (!isIntervention && (!collaborateurMissionId || !categorieFraisMission))))
               }
               onClick={handleSubmit}
               className={`inline-flex items-center justify-center gap-2 px-8 py-3 text-xs font-black text-white shadow-md cursor-pointer transition-all ${
@@ -1616,7 +1886,6 @@ export function NouvelleDemandeForm() {
                 {motifActif.isSortieHeures ? dureeHeuresMinutes?.text : `${joursOuvres} jour(s) ouvré(s)`}
               </span>
             </div>
-            )}
             <div className="flex items-center justify-between text-[11px] pt-2 border-t border-orange-200/60">
               <span className="text-slate-500 font-medium">Dates :</span>
               <span className="font-mono font-bold text-slate-800">
@@ -1624,6 +1893,7 @@ export function NouvelleDemandeForm() {
               </span>
             </div>
           </div>
+          )}
 
           {/* 1. Solde Congés (Uniquement si congé déductible du solde) */}
           {motifActif.impactSolde && (
@@ -1691,6 +1961,10 @@ export function NouvelleDemandeForm() {
                   <span className="font-semibold text-slate-900">{clientProjet || "À renseigner"}</span>
                 </div>
                 <div>
+                  <span className="block text-slate-500">Intitulé général</span>
+                  <span className="font-semibold text-slate-900">{intituleIntervention || "À renseigner"}</span>
+                </div>
+                <div>
                   <span className="block text-slate-500">Site</span>
                   <span className="font-semibold text-slate-900">{calculMission.ville.nom}</span>
                 </div>
@@ -1712,7 +1986,7 @@ export function NouvelleDemandeForm() {
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-700">Total estimé</span>
                   <span className="font-mono font-black text-[#C25E00]">
-                    {fraisInterventionTotal.toLocaleString("fr-FR")} FCFA
+                    {fraisInterventionTotalGlobal.toLocaleString("fr-FR")} FCFA
                   </span>
                 </div>
               </div>
@@ -1723,6 +1997,8 @@ export function NouvelleDemandeForm() {
                   !engagementHonneur ||
                   isLoadingCollaborateurs ||
                   equipeIntervention.length === 0 ||
+                  !equipeInterventionCategoriesCompletes ||
+                  !intituleIntervention.trim() ||
                   !clientProjet.trim() ||
                   !motif.trim() ||
                   !dateDebut ||
@@ -1770,12 +2046,22 @@ export function NouvelleDemandeForm() {
               </div>
               <div className="text-[10px] text-purple-900 bg-white p-2 border border-purple-200 leading-tight flex flex-col gap-1">
                 <div className="flex justify-between">
-                  <span>• Per diem ({calculMission.nombreJours}j) :</span>
-                  <span className="font-mono font-bold">{calculMission.totalPerDiem.toLocaleString("fr-FR")} FCFA</span>
+                  <span>• Catégorie :</span>
+                  <span className="font-bold">
+                    {categorieFraisMission ? MISSION_FEE_CATEGORY_LABELS[categorieFraisMission] : "À sélectionner"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>• Transport ({calculMission.distanceKmAR} km A/R) :</span>
-                  <span className="font-mono font-bold">{calculMission.fraisTransportEstimes.toLocaleString("fr-FR")} FCFA</span>
+                  <span>• Hébergement :</span>
+                  <span className="font-mono font-bold">{missionFrais.hebergement.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>• Repas :</span>
+                  <span className="font-mono font-bold">{missionFrais.restauration.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>• Transport employeur ({calculMission.distanceKmAR} km A/R) :</span>
+                  <span className="font-mono font-bold">{missionFrais.deplacement.toLocaleString("fr-FR")} FCFA</span>
                 </div>
               </div>
               {avanceDemandee && montantAvance && (
@@ -1805,7 +2091,6 @@ export function NouvelleDemandeForm() {
                 <span className="w-5 h-5 rounded-full bg-[#F0822A] text-white font-black flex items-center justify-center text-[10px] shadow-xs">1</span>
                 <span className="font-bold text-slate-900">Avis Responsable N+1</span>
               </div>
-              )}
               <div className="ml-2.5 h-2.5 border-l-2 border-orange-300" />
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]">2</span>
@@ -1826,6 +2111,7 @@ export function NouvelleDemandeForm() {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

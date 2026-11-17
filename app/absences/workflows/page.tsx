@@ -6,7 +6,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { TypeDemandeConfig } from "@/types/absences.types";
@@ -56,8 +56,13 @@ export default function WorkflowsConfigPage() {
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("TOUS");
 
+  const showToast = useCallback((text: string, type: "success" | "error" = "success") => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  }, []);
+
   // Charger les types depuis le backend
-  const loadTypes = async () => {
+  const loadTypes = useCallback(async () => {
     try {
       setLoading(true);
       const data = await demandesApi.getTypesDemande();
@@ -68,16 +73,11 @@ export default function WorkflowsConfigPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     loadTypes();
-  }, []);
-
-  const showToast = (text: string, type: "success" | "error" = "success") => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 4000);
-  };
+  }, [loadTypes]);
 
   // Mise à jour locale d'un champ
   const handleFieldChange = (id: string, field: keyof TypeDemandeConfig, value: any) => {
@@ -117,12 +117,11 @@ export default function WorkflowsConfigPage() {
     try {
       setLoading(true);
       for (const t of types) {
-        const isMissionOrConge = t.code === "CONGE_ANNUEL" || t.code === "ORDRE_MISSION";
         await demandesApi.updateTypeWorkflow(t.id, {
           workflowN1: true,
           workflowDrh: true,
-          workflowDg: isMissionOrConge || t.code === "PERMISSION_ABSENCE",
-          seuilDgJours: t.code === "PERMISSION_ABSENCE" ? 2 : 0,
+          workflowDg: true,
+          seuilDgJours: 0,
           pieceRequise: t.code === "REPOS_MALADIE" || t.code === "CONGE_EXCEPTIONNEL",
         });
       }

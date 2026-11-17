@@ -531,8 +531,21 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
           fraisEstimes: payload.fraisPrevisionnels,
           ordreDonneAId: payload.ordreDonneAId,
           clientProjet: payload.clientProjet,
+          intituleIntervention: payload.intituleIntervention,
           tarifInterventionJour: payload.tarifInterventionJour,
           equipeInterventionIds: payload.equipeIntervention?.map((member) => member.id),
+          equipeInterventionCategories: payload.equipeIntervention?.reduce(
+            (categories, member) => {
+              if (member.categorieFrais) categories[member.id] = member.categorieFrais;
+              return categories;
+            },
+            {} as Record<string, NonNullable<DemandeRHItem["categorieFrais"]>>,
+          ),
+          categorieFrais: payload.categorieFrais,
+          fraisHebergement: payload.fraisHebergement,
+          fraisRestauration: payload.fraisRestauration,
+          fraisDeplacement: payload.fraisDeplacement,
+          forfaitIntervention: payload.forfaitIntervention,
         }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Délai d'attente serveur dépassé")), timeoutMs)
@@ -578,8 +591,14 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
         fraisPrevisionnels: payload.fraisPrevisionnels,
         ordreDonneAId: payload.ordreDonneAId,
         clientProjet: payload.clientProjet,
+        intituleIntervention: payload.intituleIntervention,
         tarifInterventionJour: payload.tarifInterventionJour,
         equipeIntervention: payload.equipeIntervention,
+        categorieFrais: payload.categorieFrais,
+        fraisHebergement: payload.fraisHebergement,
+        fraisRestauration: payload.fraisRestauration,
+        fraisDeplacement: payload.fraisDeplacement,
+        forfaitIntervention: payload.forfaitIntervention,
         statut: "EN_VALIDATION_N1",
         etapeCourante: "SUPERIEUR_N1",
         cycleRetoursCount: 0,

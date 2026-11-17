@@ -13,10 +13,10 @@ import { useAbsences } from "@/features/absences/context/AbsencesContext";
 const TITLES: [string, string][] = [
   ["/absences/missions/planning", "Agenda des missions"],
   ["/absences/missions/nouvelle", "Nouvel ordre de mission"],
-  ["/absences/missions/demandes", "Mes missions"],
+  ["/absences/missions/demandes", "Missions du département"],
   ["/absences/missions/registre", "Registre des missions"],
   ["/absences/missions", "Missions & Interventions"],
-  ["/absences/demandes", "Mes demandes"],
+  ["/absences/demandes", "Demandes du département"],
   ["/absences/nouvelle", "Nouvelle demande"],
   ["/absences/validations", "À valider"],
   ["/absences/planning", "Agenda"],

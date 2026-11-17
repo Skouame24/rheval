@@ -20,29 +20,45 @@ import { DemandeRHItem, StatutDemandeRH } from "@/types/absences.types";
 import { DemandeWorkflowStepper } from "@/features/absences/components/DemandeWorkflowStepper";
 import { isMissionDemande } from "@/features/absences/utils/demandes";
 
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .trim();
+}
+
 export function MesDemandesContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { myDemandes, annulerDemande, isLoading } = useAbsences();
+  const { currentPersona, demandes, annulerDemande, isLoading } = useAbsences();
   const univers =
     pathname.startsWith("/absences/missions") || searchParams.get("univers") === "MISSIONS"
       ? "MISSIONS"
       : "CONGES";
+  const department = currentPersona.departement?.trim() || "";
+  const normalizedDepartment = normalizeSearch(department);
   const scopedDemandes = useMemo(
     () =>
-      myDemandes.filter((demande) => {
+      demandes.filter((demande) => {
         const isMission = isMissionDemande(demande);
+        if (
+          !normalizedDepartment ||
+          normalizeSearch(demande.demandeur.departement || "") !== normalizedDepartment
+        ) return false;
         if (univers === "CONGES") return !isMission;
         if (univers === "MISSIONS") return isMission;
         return true;
       }),
-    [myDemandes, univers],
+    [demandes, normalizedDepartment, univers],
   );
 
   // Filtres
   const [filterStatut, setFilterStatut] = useState<string>("TOUS");
   const [filterType, setFilterType] = useState<string>("TOUS");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
   const [sortBy, setSortBy] = useState<"DATE_DESC" | "DATE_ASC" | "DUREE">("DATE_DESC");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 8;
@@ -62,6 +78,8 @@ export function MesDemandesContent() {
 
   // Filtrage combiné rigoureux
   const filteredDemandes = useMemo(() => {
+    if (periodStart && periodEnd && periodStart > periodEnd) return [];
+
     return scopedDemandes
       .filter((dem) => {
         // Filtre Statut étendu (cycle de vie complet)
@@ -84,15 +102,32 @@ export function MesDemandesContent() {
           return false;
         }
 
-        // Recherche par mot clé (Référence, motif ou type)
+        // Recherche dans le collaborateur, la référence et le contenu de la demande.
         if (searchQuery.trim() !== "") {
-          const q = searchQuery.toLowerCase().trim();
-          const matchRef =
-            dem.codeReference.toLowerCase().includes(q) ||
-            Boolean(dem.numeroOrdreMission?.toLowerCase().includes(q));
-          const matchType = dem.libelleType.toLowerCase().includes(q);
-          const matchMotif = dem.motif.toLowerCase().includes(q);
-          if (!matchRef && !matchType && !matchMotif) return false;
+          const q = normalizeSearch(searchQuery);
+          const demandeur = dem.demandeur;
+          const searchableValues = [
+            demandeur.prenom,
+            demandeur.nom,
+            demandeur.matricule,
+            demandeur.email,
+            dem.codeReference,
+            dem.numeroOrdreMission,
+            dem.libelleType,
+            dem.motif,
+          ];
+          const match = searchableValues.some((value) =>
+            normalizeSearch(value || "").includes(q),
+          );
+          if (!match) return false;
+        }
+
+        if (periodStart || periodEnd) {
+          const startDate = dem.dateDebut?.slice(0, 10) || "";
+          const endDate = dem.dateFin?.slice(0, 10) || startDate;
+          if (!startDate || !endDate) return false;
+          if (periodStart && endDate < periodStart) return false;
+          if (periodEnd && startDate > periodEnd) return false;
         }
 
         return true;
@@ -107,7 +142,7 @@ export function MesDemandesContent() {
         }
         return 0;
       });
-  }, [scopedDemandes, filterStatut, filterType, searchQuery, sortBy]);
+  }, [scopedDemandes, filterStatut, filterType, searchQuery, periodStart, periodEnd, sortBy]);
 
   // Pagination
   const totalPages = Math.ceil(filteredDemandes.length / itemsPerPage) || 1;
@@ -191,14 +226,14 @@ export function MesDemandesContent() {
             <span className="w-2.5 h-2.5 bg-[#F0822A] shadow-xs" />
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
               {univers === "MISSIONS"
-                ? "Mes missions & interventions"
+                ? "Missions & interventions du département"
                 : univers === "CONGES"
-                  ? "Mes congés & permissions"
-                  : "Mes demandes d'absences & permissions"}
+                  ? "Congés & permissions du département"
+                  : "Demandes d'absences du département"}
             </h1>
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            Historique complet officiel Agilly, suivi des validations et téléchargement des autorisations scellées.
+            Demandes des collaborateurs de votre département, filtrées par personne, période et statut.
           </p>
         </div>
 
@@ -292,14 +327,53 @@ export function MesDemandesContent() {
       {/* ── BARRE D'OUTILS COMPLÈTE : RECHERCHE, SÉLECTEURS ET TRI ── */}
       <div className="bg-white border border-slate-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Recherche par référence ou mot-clé */}
+          {/* Département de rattachement */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1">
+            <label htmlFor="department-scope" className="text-slate-500 font-medium">Département :</label>
+            <select
+              id="department-scope"
+              value={department}
+              disabled
+              aria-label="Département de consultation"
+              className="max-w-[220px] truncate bg-transparent font-bold text-slate-800 focus:outline-none disabled:cursor-not-allowed disabled:opacity-100"
+            >
+              <option value={department}>{department || "Département non renseigné"}</option>
+            </select>
+          </div>
+
+          {/* Recherche par personne, référence ou mot-clé */}
           <div className="relative min-w-[200px]">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              placeholder="Rechercher par référence..."
+              aria-label="Rechercher une personne"
+              placeholder="Rechercher une personne..."
               className="w-full h-8 px-2.5 bg-slate-50 border border-slate-300 font-medium text-slate-900 focus:border-[#D96F1D] focus:outline-none"
+            />
+          </div>
+
+          {/* Filtre par période de la demande */}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="period-start">Début de période</label>
+            <input
+              id="period-start"
+              type="date"
+              value={periodStart}
+              onChange={(e) => { setPeriodStart(e.target.value); setCurrentPage(1); }}
+              aria-label="Date de début de période"
+              className="h-8 border border-slate-300 bg-slate-50 px-2 text-slate-800"
+            />
+            <span className="text-slate-500">au</span>
+            <label className="sr-only" htmlFor="period-end">Fin de période</label>
+            <input
+              id="period-end"
+              type="date"
+              min={periodStart || undefined}
+              value={periodEnd}
+              onChange={(e) => { setPeriodEnd(e.target.value); setCurrentPage(1); }}
+              aria-label="Date de fin de période"
+              className="h-8 border border-slate-300 bg-slate-50 px-2 text-slate-800"
             />
           </div>
 
@@ -377,13 +451,19 @@ export function MesDemandesContent() {
             </select>
           </div>
 
-          {(filterStatut !== "TOUS" || filterType !== "TOUS" || searchQuery !== "") && (
+          {(filterStatut !== "TOUS" ||
+            filterType !== "TOUS" ||
+            searchQuery !== "" ||
+            periodStart !== "" ||
+            periodEnd !== "") && (
             <button
               type="button"
               onClick={() => {
                 setFilterStatut("TOUS");
                 setFilterType("TOUS");
                 setSearchQuery("");
+                setPeriodStart("");
+                setPeriodEnd("");
                 setCurrentPage(1);
               }}
               className="text-xs font-bold text-[#D96F1D] hover:underline cursor-pointer"
@@ -416,7 +496,9 @@ export function MesDemandesContent() {
           <div className="p-12 text-center text-xs text-slate-500">
             <p className="font-bold text-slate-800 text-sm">Aucune demande trouvée</p>
             <p className="text-slate-500 mt-1">
-              Modifiez votre recherche ou vos filtres pour afficher vos demandes.
+              {department
+                ? "Modifiez votre recherche ou vos filtres pour afficher les demandes du département."
+                : "Le département de votre profil n'est pas renseigné; contactez les RH pour le faire compléter."}
             </p>
           </div>
         ) : (
@@ -425,6 +507,7 @@ export function MesDemandesContent() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                   <th className="py-3 px-4 whitespace-nowrap min-w-[150px]">Référence</th>
+                  <th className="py-3 px-4 whitespace-nowrap min-w-[180px]">Collaborateur</th>
                   <th className="py-3 px-4 whitespace-nowrap">Nature</th>
                   <th className="py-3 px-4 whitespace-nowrap">Période d&apos;absence</th>
                   <th className="py-3 px-4 whitespace-nowrap text-center">Durée</th>
@@ -435,6 +518,10 @@ export function MesDemandesContent() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {paginatedDemandes.map((dem) => {
+                  const isOwnRequest =
+                    dem.demandeur.id === currentPersona.id ||
+                    (Boolean(dem.demandeur.email) &&
+                      dem.demandeur.email.toLocaleLowerCase() === currentPersona.email.toLocaleLowerCase());
                   const isCircuitCourt =
                     dem.nombreJoursOuvres <= 2 &&
                     (dem.typeDemande === "PERMISSION_EXCEPTIONNELLE" || dem.typeDemande === "RECUPERATION");
@@ -448,6 +535,16 @@ export function MesDemandesContent() {
                       {/* Référence sans retour à la ligne */}
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap">
                         {dem.numeroOrdreMission || dem.codeReference}
+                      </td>
+
+                      {/* Collaborateur du département */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="block font-semibold text-slate-900">
+                          {dem.demandeur.prenom} {dem.demandeur.nom}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {dem.demandeur.departement}
+                        </span>
                       </td>
 
                       {/* Nature */}
@@ -507,7 +604,7 @@ export function MesDemandesContent() {
                       {/* Actions contextuelles : Corriger, Télécharger, Annuler, Voir */}
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          {dem.statut === "RETOURNEE_EMPLOYE" && (
+                          {isOwnRequest && dem.statut === "RETOURNEE_EMPLOYE" && (
                             <Link
                               href={
                                 univers === "MISSIONS"
@@ -521,7 +618,8 @@ export function MesDemandesContent() {
                             </Link>
                           )}
 
-                          {["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) && (
+                          {isOwnRequest &&
+                            ["APPROUVEE", "PERMISSION_EDITEE", "ARCHIVEE"].includes(dem.statut) && (
                             <Link
                               href={
                                 univers === "MISSIONS"
@@ -535,7 +633,8 @@ export function MesDemandesContent() {
                             </Link>
                           )}
 
-                          {["EN_VALIDATION_N1", "EN_VALIDATION_DRH"].includes(dem.statut) && (
+                          {isOwnRequest &&
+                            ["EN_VALIDATION_N1", "EN_VALIDATION_DRH"].includes(dem.statut) && (
                             <button
                               type="button"
                               onClick={() => setDemandeToCancel(dem)}

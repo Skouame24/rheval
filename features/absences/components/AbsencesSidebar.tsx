@@ -78,7 +78,7 @@ export function AbsencesSidebar() {
             ]
           : []),
         {
-          label: isMissionArea ? "Mes missions" : "Mes congés & permissions",
+          label: isMissionArea ? "Missions du département" : "Congés & permissions du département",
           href: isMissionArea ? "/absences/missions/demandes" : "/absences/demandes",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
