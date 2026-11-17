@@ -186,6 +186,8 @@ export function UserRoleSwitcher() {
     setIsOpen(false);
   };
 
+  if (process.env.NODE_ENV !== "development") return null;
+
   return (
     <div className="relative" ref={containerRef}>
       {/* Bouton déclencheur dans le Header */}

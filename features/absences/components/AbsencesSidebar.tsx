@@ -31,16 +31,18 @@ export function AbsencesSidebar() {
   const pathname = usePathname();
   const { currentPersona, pendingValidationsCount } = useAbsences();
   const [navigatingTo, setNavigatingTo] = React.useState<string | null>(null);
+  const isMissionArea = pathname.startsWith("/absences/missions");
 
   React.useEffect(() => {
     setNavigatingTo(null);
   }, [pathname]);
 
   const isRouteActive = (href: string) => {
-    if (href === "/absences") {
-      return pathname === "/absences";
+    const routePath = href.split("?")[0];
+    if (routePath === "/absences" || routePath === "/absences/missions") {
+      return pathname === routePath;
     }
-    return pathname.startsWith(href);
+    return pathname.startsWith(routePath);
   };
 
   const role = currentPersona.role;
@@ -49,11 +51,11 @@ export function AbsencesSidebar() {
 
   const navSections: NavSection[] = [
     {
-      title: "MON ESPACE PERSONNEL",
+      title: isMissionArea ? "Espace missions" : "Espace congés & permissions",
       items: [
         {
-          label: "Tableau de bord",
-          href: "/absences",
+          label: isMissionArea ? "Tableau de bord missions" : "Tableau de bord congés",
+          href: isMissionArea ? "/absences/missions" : "/absences",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="7" />
@@ -63,9 +65,23 @@ export function AbsencesSidebar() {
             </svg>
           ),
         },
+        ...(isMissionArea
+          ? [
+              {
+                label: "Nouvel ordre de mission",
+                href: "/absences/missions/nouvelle?type=MISSION_DEPLACEMENT&univers=MISSIONS",
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  </svg>
+                ),
+              },
+            ]
+          : []),
         {
-          label: "Mes demandes",
-          href: "/absences/demandes",
+          label: isMissionArea ? "Missions du département" : "Congés & permissions du département",
+          href: isMissionArea ? "/absences/missions/demandes" : "/absences/demandes",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -75,19 +91,23 @@ export function AbsencesSidebar() {
             </svg>
           ),
         },
+        ...(!isMissionArea
+          ? [
+              {
+                label: "Soldes & droits",
+                href: "/absences/soldes",
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  </svg>
+                ),
+              },
+            ]
+          : []),
         {
-          label: "Soldes & droits",
-          href: "/absences/soldes",
-          icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="14" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-            </svg>
-          ),
-        },
-        {
-          label: "Agenda des présences",
-          href: "/absences/planning",
+          label: isMissionArea ? "Agenda des missions" : "Agenda des congés",
+          href: isMissionArea ? "/absences/missions/planning" : "/absences/planning",
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" />
@@ -139,8 +159,8 @@ export function AbsencesSidebar() {
                       ),
                     },
                     {
-                      label: "Registre & GED",
-                      href: "/absences/registre",
+                      label: isMissionArea ? "Registre des missions" : "Registre & GED",
+                      href: isMissionArea ? "/absences/missions/registre" : "/absences/registre",
                       icon: (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -171,8 +191,8 @@ export function AbsencesSidebar() {
     <aside className="w-60 bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col justify-between shrink-0 select-none z-30">
       <div className="flex flex-col">
         <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-orange-50/60 to-white">
-          <Link href="/absences" className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 flex items-center justify-center p-0.5 rounded-none bg-white border border-orange-100">
+          <Link href={isMissionArea ? "/absences/missions" : "/absences"} className="flex items-center gap-2.5">
+            <div className="relative w-8 h-8 flex items-center justify-center p-0.5 rounded-xs bg-white shadow-2xs border border-orange-100">
               <Image
                 src="/logo.png"
                 alt="Logo Agilly"
@@ -190,7 +210,7 @@ export function AbsencesSidebar() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#F0822A]" />
               </div>
               <span className="text-[10px] text-[#C25E00] font-bold mt-0.5 tracking-tight">
-                Portail RH &amp; Terrain
+                {isMissionArea ? "Missions & Interventions" : "Congés & Permissions"}
               </span>
             </div>
           </Link>

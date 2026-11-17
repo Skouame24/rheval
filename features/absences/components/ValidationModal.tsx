@@ -79,7 +79,7 @@ export function ValidationModal({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-semibold text-[#F0822A]">
-                {demande.codeReference}
+                {demande.numeroOrdreMission || demande.codeReference}
               </span>
               <span className="text-slate-300">·</span>
               <span className="text-xs text-slate-500 font-medium">

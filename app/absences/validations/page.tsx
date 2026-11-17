@@ -14,6 +14,14 @@ import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { DemandeRHItem } from "@/types/absences.types";
 import { demandesApi } from "@/lib/api";
 
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 export default function ValidationsInboxPage() {
   const {
     currentPersona,
@@ -26,6 +34,10 @@ export default function ValidationsInboxPage() {
   } = useAbsences();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [personSearch, setPersonSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("TOUS");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
 
   // État du modal de refus / motif obligatoire (RG-05)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -121,13 +133,65 @@ export default function ValidationsInboxPage() {
     }
   };
 
+  const departments = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          pendingForCurrentRoleDemandes
+            .map((demande) => demande.demandeur.departement?.trim())
+            .filter((department): department is string => Boolean(department)),
+        ),
+      ).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())),
+    [pendingForCurrentRoleDemandes],
+  );
+
+  const filteredPendingDemandes = useMemo(() => {
+    if (periodStart && periodEnd && periodStart > periodEnd) return [];
+
+    const query = normalizeSearch(personSearch);
+    return pendingForCurrentRoleDemandes.filter((demande) => {
+      if (
+        departmentFilter !== "TOUS" &&
+        demande.demandeur.departement?.trim() !== departmentFilter
+      ) {
+        return false;
+      }
+
+      if (query) {
+        const person = demande.demandeur;
+        const searchableText = normalizeSearch(
+          [person.prenom, person.nom, person.matricule, person.email]
+            .filter(Boolean)
+            .join(" "),
+        );
+        if (!searchableText.includes(query)) return false;
+      }
+
+      if (periodStart || periodEnd) {
+        const startDate = demande.dateDebut?.slice(0, 10) || "";
+        const endDate = demande.dateFin?.slice(0, 10) || startDate;
+        if (!startDate || !endDate) return false;
+        if (periodStart && endDate < periodStart) return false;
+        if (periodEnd && startDate > periodEnd) return false;
+      }
+
+      return true;
+    });
+  }, [
+    pendingForCurrentRoleDemandes,
+    departmentFilter,
+    personSearch,
+    periodStart,
+    periodEnd,
+  ]);
+
   const activeDemande = useMemo(() => {
     if (selectedId) {
-      const found = pendingForCurrentRoleDemandes.find((d) => d.id === selectedId);
+      const found = filteredPendingDemandes.find((d) => d.id === selectedId);
       if (found) return found;
     }
-    return pendingForCurrentRoleDemandes[0] || null;
-  }, [selectedId, pendingForCurrentRoleDemandes]);
+    return filteredPendingDemandes[0] || null;
+  }, [selectedId, filteredPendingDemandes]);
 
   // Destination de retour selon les règles §3.2
   const getDestinationRetour = () => {
@@ -248,11 +312,93 @@ export default function ValidationsInboxPage() {
         <div className="lg:col-span-4 bg-white border border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
             <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
-              Demandes à traiter ({pendingForCurrentRoleDemandes.length})
+              Demandes à traiter ({filteredPendingDemandes.length}
+              {filteredPendingDemandes.length !== pendingForCurrentRoleDemandes.length &&
+                ` / ${pendingForCurrentRoleDemandes.length}`}
+              )
             </span>
             <span className="text-[10px] text-slate-500 font-mono">
               SLA entreprise : 48h
             </span>
+          </div>
+
+          <div className="p-3 border-b border-slate-200 flex flex-col gap-2 text-xs">
+            <div>
+              <label htmlFor="validation-person-search" className="block text-slate-500 font-medium mb-1">
+                Rechercher une personne
+              </label>
+              <input
+                id="validation-person-search"
+                type="search"
+                value={personSearch}
+                onChange={(event) => setPersonSearch(event.target.value)}
+                placeholder="Nom, matricule ou courriel"
+                className="w-full bg-slate-50 border border-slate-200 px-2.5 py-2 text-slate-900 focus:bg-white focus:outline-none focus:border-[#F0822A]"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="validation-department-filter" className="block text-slate-500 font-medium mb-1">
+                Département
+              </label>
+              <select
+                id="validation-department-filter"
+                value={departmentFilter}
+                onChange={(event) => setDepartmentFilter(event.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 px-2.5 py-2 text-slate-900 focus:bg-white focus:outline-none focus:border-[#F0822A] cursor-pointer"
+              >
+                <option value="TOUS">Tous les départements</option>
+                {departments.map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor="validation-period-start" className="block text-slate-500 font-medium mb-1">
+                  Période du
+                </label>
+                <input
+                  id="validation-period-start"
+                  type="date"
+                  value={periodStart}
+                  max={periodEnd || undefined}
+                  onChange={(event) => setPeriodStart(event.target.value)}
+                  className="w-full min-w-0 bg-slate-50 border border-slate-200 px-2 py-2 text-slate-900 focus:bg-white focus:outline-none focus:border-[#F0822A]"
+                />
+              </div>
+              <div>
+                <label htmlFor="validation-period-end" className="block text-slate-500 font-medium mb-1">
+                  Au
+                </label>
+                <input
+                  id="validation-period-end"
+                  type="date"
+                  value={periodEnd}
+                  min={periodStart || undefined}
+                  onChange={(event) => setPeriodEnd(event.target.value)}
+                  className="w-full min-w-0 bg-slate-50 border border-slate-200 px-2 py-2 text-slate-900 focus:bg-white focus:outline-none focus:border-[#F0822A]"
+                />
+              </div>
+            </div>
+
+            {(personSearch || departmentFilter !== "TOUS" || periodStart || periodEnd) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPersonSearch("");
+                  setDepartmentFilter("TOUS");
+                  setPeriodStart("");
+                  setPeriodEnd("");
+                }}
+                className="self-start text-[11px] font-semibold text-slate-600 hover:text-[#C25E00] underline"
+              >
+                Effacer les filtres
+              </button>
+            )}
           </div>
 
           <div className="divide-y divide-slate-100 max-h-[640px] overflow-y-auto">
@@ -269,15 +415,21 @@ export default function ValidationsInboxPage() {
                   </div>
                 ))}
               </div>
-            ) : pendingForCurrentRoleDemandes.length === 0 ? (
+            ) : filteredPendingDemandes.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500">
-                <p className="font-bold text-slate-700">Aucun dossier en attente</p>
+              <p className="font-bold text-slate-700">
+                {pendingForCurrentRoleDemandes.length === 0
+                  ? "Aucun dossier en attente"
+                  : "Aucune demande ne correspond aux filtres"}
+              </p>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Toutes les demandes assignées à votre niveau sont déjà arbitrées.
+                {pendingForCurrentRoleDemandes.length === 0
+                  ? "Toutes les demandes assignées à votre niveau sont déjà arbitrées."
+                  : "Modifiez la personne, le département ou la période sélectionnée."}
                 </p>
               </div>
             ) : (
-              pendingForCurrentRoleDemandes.map((dem) => {
+              filteredPendingDemandes.map((dem) => {
                 const isSelected = activeDemande?.id === dem.id;
                 return (
                   <div

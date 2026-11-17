@@ -10,6 +10,7 @@ import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { Role, User } from "@/types";
 import { ROLE_DASHBOARD } from "@/lib/constants/routes";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
+import { authApi } from "@/lib/api/auth.api";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -40,29 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Synchronisation dynamique avec la session Microsoft Entra ID
   useEffect(() => {
-    // Si un profil simulé a été choisi volontairement pour les tests, le conserver en priorité
-    if (typeof window !== "undefined") {
-      const simulated = localStorage.getItem("agilly_simulated_user");
-      if (simulated) {
-        try {
-          const parsed = JSON.parse(simulated);
-          if (parsed && parsed.id) {
-            const roleOverride = localStorage.getItem("agilly_user_role_override") as Role | null;
-            setUser(roleOverride ? { ...parsed, role: roleOverride } : parsed);
-            setIsSimulated(true);
-            setIsLoading(false);
-            return;
-          }
-        } catch {
-          localStorage.removeItem("agilly_simulated_user");
-        }
-      }
+    // A real SSO session always takes precedence over development simulations.
+    if (status === "authenticated" && typeof window !== "undefined") {
+      localStorage.removeItem("agilly_simulated_user");
+      localStorage.removeItem("agilly_user_role_override");
     }
 
     if (status === "loading") {
       setIsLoading(true);
       return;
     }
+
+    let cancelled = false;
 
     if (status === "authenticated" && session?.user) {
       const u = session.user as any;
@@ -116,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         poste: u.jobTitle || "Collaborateur",
         departement: u.department || "Direction",
         telephone: u.mobilePhone || "",
+        managerId: u.manager?.id,
         n1: n1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -124,9 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(realUser);
       setIsSimulated(false);
       localStorage.setItem("agilly_user", JSON.stringify(realUser));
-      if (u.accessToken) {
-        localStorage.setItem("agilly_token", u.accessToken);
-      }
+      localStorage.removeItem("agilly_token");
 
       // Synchronisation optimisée avec PostgreSQL (anti-tempête : max 1 fois par tranche de 5 min par utilisateur)
       const lastSyncKey = `agilly_last_sync_${realUser.id}`;
@@ -149,10 +138,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             poste: realUser.poste,
             departement: realUser.departement,
             telephone: realUser.telephone,
+            managerId: realUser.managerId,
             role: realUser.role,
           }),
         })
           .then(async (res) => {
+            if (cancelled) return;
             if (!res.ok) return;
             const resData = await res.json().catch(() => null);
             if (resData?.user) {
@@ -177,30 +168,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setIsLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const storedToken = typeof window !== "undefined" ? localStorage.getItem("agilly_token") : null;
+    if (!storedToken) {
+      const simulatedUser =
+        process.env.NODE_ENV === "development" && typeof window !== "undefined"
+          ? localStorage.getItem("agilly_simulated_user")
+          : null;
+      if (simulatedUser) {
+        try {
+          const parsedUser = JSON.parse(simulatedUser) as User;
+          setUser(parsedUser);
+          setIsSimulated(true);
+          localStorage.setItem("agilly_user", JSON.stringify(parsedUser));
+        } catch (error) {
+          console.error("[AuthContext] Profil de simulation invalide:", error);
+          localStorage.removeItem("agilly_simulated_user");
+          localStorage.removeItem("agilly_user");
+          setUser(null);
+          setIsSimulated(false);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      localStorage.removeItem("agilly_simulated_user");
+      localStorage.removeItem("agilly_user_role_override");
+      localStorage.removeItem("agilly_user");
+      setUser(null);
+      setIsSimulated(false);
+      setIsLoading(false);
       return;
     }
 
-    // Si non connecté via Microsoft, vérifier si une session locale persiste
-    const stored = typeof window !== "undefined" ? localStorage.getItem("agilly_user") : null;
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setUser(parsed);
-      } catch {
+    // Un profil en cache ne prouve pas une connexion : seul le backend peut valider son jeton.
+    authApi.getMe()
+      .then((validatedUser) => {
+        if (cancelled) return;
+        setUser(validatedUser);
+        localStorage.setItem("agilly_user", JSON.stringify(validatedUser));
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("[AuthContext] Impossible de valider la session backend:", error);
+        localStorage.removeItem("agilly_token");
+        localStorage.removeItem("agilly_user");
         setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-    setIsLoading(false);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [status, session]);
 
-  const login = async (email: string): Promise<void> => {
-    console.info("[Auth] Connexion standard pour:", email);
+  const login = async (email: string, password: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const res = await authApi.login({ email, password });
+      if (!res?.user || !res?.access_token) {
+        throw new Error("Réponse de connexion invalide");
+      }
+      setUser(res.user);
+      setIsSimulated(false);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("agilly_user", JSON.stringify(res.user));
+        localStorage.setItem("agilly_token", res.access_token);
+        localStorage.removeItem("agilly_simulated_user");
+        localStorage.removeItem("agilly_user_role_override");
+      }
+      const target = ROLE_DASHBOARD[res.user.role] || "/dashboard/mon-espace";
+      window.location.href = target;
+    } catch (err) {
+      console.error("[AuthContext] Erreur lors de la connexion:", err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const switchRole = (newRole: Role) => {
-    if (user) {
+    if (user && isSimulated && process.env.NODE_ENV === "development") {
       const updatedUser = { ...user, role: newRole };
       setUser(updatedUser);
       if (typeof window !== "undefined") {
@@ -216,6 +270,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const switchProfile = (newUser: User) => {
+    if (process.env.NODE_ENV !== "development") return;
+
     if (typeof window !== "undefined") {
       localStorage.setItem("agilly_simulated_user", JSON.stringify(newUser));
       localStorage.setItem("agilly_user", JSON.stringify(newUser));

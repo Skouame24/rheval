@@ -7,13 +7,18 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { notificationsApi, AppNotification } from "@/lib/api/notifications.api";
 import { isAbsenceNotif } from "@/lib/utils/notificationScope";
 
 const TITLES: [string, string][] = [
-  ["/absences/demandes", "Mes demandes"],
+  ["/absences/missions/planning", "Agenda des missions"],
+  ["/absences/missions/nouvelle", "Nouvel ordre de mission"],
+  ["/absences/missions/demandes", "Missions du département"],
+  ["/absences/missions/registre", "Registre des missions"],
+  ["/absences/missions", "Missions & Interventions"],
+  ["/absences/demandes", "Demandes du département"],
   ["/absences/nouvelle", "Nouvelle demande"],
   ["/absences/validations", "À valider"],
   ["/absences/planning", "Agenda"],
@@ -46,8 +51,12 @@ export function AbsencesTopBar() {
     return [];
   });
   const notifRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
-  const title = TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Accueil";
+  const title =
+    pathname === "/absences/missions/nouvelle" && searchParams.get("type") === "INTERVENTION_TERRAIN"
+      ? "Nouvelle fiche d'intervention"
+      : TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Accueil";
 
   const fetchAbsenceNotifs = useCallback(async () => {
     setIsNotifLoading(true);

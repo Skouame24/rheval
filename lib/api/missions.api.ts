@@ -5,6 +5,7 @@
 // ============================================================
 
 import { client } from "./client";
+import type { MissionFeeCategory } from "@/types/absences.types";
 
 export type ZoneBaremeMission =
   | "GRAND_ABIDJAN"
@@ -56,6 +57,54 @@ export interface CalculFraisMissionResult {
   avanceSuggeree80: number;
   avanceSuggeree100: number;
   detailsCalcul: string;
+}
+
+export const MISSION_FEE_CATEGORY_LABELS: Record<MissionFeeCategory, string> = {
+  DIRECTEUR: "Directeur",
+  CADRE: "Cadre",
+  AGENT_MAITRISE: "Agent de maîtrise",
+  EMPLOYE: "Employé",
+};
+
+export const BAREME_FRAIS_MISSION: Record<
+  MissionFeeCategory,
+  { hebergement: number; restauration: number }
+> = {
+  DIRECTEUR: { hebergement: 35000, restauration: 20000 },
+  CADRE: { hebergement: 30000, restauration: 20000 },
+  AGENT_MAITRISE: { hebergement: 25000, restauration: 10000 },
+  EMPLOYE: { hebergement: 15000, restauration: 10000 },
+};
+
+export const BAREME_FRAIS_INTERVENTION_LOCALE: Record<
+  MissionFeeCategory,
+  { deplacementReel: boolean; restauration: number }
+> = {
+  DIRECTEUR: { deplacementReel: false, restauration: 3000 },
+  CADRE: { deplacementReel: true, restauration: 2000 },
+  AGENT_MAITRISE: { deplacementReel: true, restauration: 2000 },
+  EMPLOYE: { deplacementReel: true, restauration: 2000 },
+};
+
+export function inferMissionFeeCategory(poste?: string | null): MissionFeeCategory | null {
+  const normalizedPoste = (poste || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (/\b(directeur|directrice|dg|dga|president|presidente)\b/.test(normalizedPoste)) {
+    return "DIRECTEUR";
+  }
+  if (/\bagent\s+de\s+maitrise\b|\bmaitrise\b/.test(normalizedPoste)) {
+    return "AGENT_MAITRISE";
+  }
+  if (/\b(cadre|responsable|chef|manager|ingenieur|juriste|dpo)\b/.test(normalizedPoste)) {
+    return "CADRE";
+  }
+  if (/\b(employe|employee|salarie|salariee|stagiaire)\b/.test(normalizedPoste)) {
+    return "EMPLOYE";
+  }
+  return null;
 }
 
 // ── RÉFÉRENTIEL LOCAL IMMÉDIAT (OFFLINE-FIRST & REACTIF) ──

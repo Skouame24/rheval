@@ -5,6 +5,7 @@
 // ============================================================
 
 export type FamilleDemandeRH = "CONGES" | "PERMISSIONS" | "MISSIONS";
+export type MissionFeeCategory = "DIRECTEUR" | "CADRE" | "AGENT_MAITRISE" | "EMPLOYE";
 
 export type TypeDemandeRH =
   // ── FAMILLE 1 : CONGÉS FORMELS (6) ──
@@ -132,6 +133,10 @@ export interface DocumentPermissionPDF {
 export interface DemandeRHItem {
   id: string;
   codeReference: string; // DEM-2026-XXXX
+  numeroOrdreMission?: string;
+  ordreDonneAId?: string;
+  ordreDonneANom?: string;
+  ordreDonneAEmail?: string;
   typeDemande: TypeDemandeRH;
   libelleType: string;
   statut: StatutDemandeRH;
@@ -160,6 +165,15 @@ export interface DemandeRHItem {
   destination?: string; // pour mission/déplacement
   moyenTransport?: string;
   fraisPrevisionnels?: number;
+  clientProjet?: string;
+  intituleIntervention?: string;
+  tarifInterventionJour?: number;
+  equipeIntervention?: InterventionTeamMember[];
+  categorieFrais?: MissionFeeCategory;
+  fraisHebergement?: number;
+  fraisRestauration?: number;
+  fraisDeplacement?: number;
+  forfaitIntervention?: number;
 
   // Compteurs & Règles de gestion
   cycleRetoursCount: number; // Max 2 avant refus définitif
@@ -177,6 +191,14 @@ export interface DemandeRHItem {
 
   dateCreation: string;
   dateDerniereAction: string;
+}
+
+export interface InterventionTeamMember {
+  id: string;
+  nom: string;
+  email: string;
+  poste?: string;
+  categorieFrais?: MissionFeeCategory;
 }
 
 export interface SoldeCongesInfo {

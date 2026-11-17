@@ -157,7 +157,6 @@ const authOptions: NextAuthOptions = {
         session.user.name = token.name || session.user.name;
         session.user.email = token.email || session.user.email;
         session.user.role = token.role || session.user.role || "SALARIE";
-        session.user.accessToken = token.accessToken;
         session.user.jobTitle = token.jobTitle || "";
         session.user.mobilePhone = token.mobilePhone || "";
         session.user.department = token.department || "Direction Générale";
@@ -170,10 +169,8 @@ const authOptions: NextAuthOptions = {
     signIn: "/",
     error: "/",
   },
-  secret: process.env.NEXTAUTH_SECRET || "agilly_rheval_secret_key_entra_id_2026_sso",
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
-
-
