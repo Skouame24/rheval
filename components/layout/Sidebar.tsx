@@ -72,6 +72,14 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const normalizedRole = role.toUpperCase();
+  const { user } = useAuth();
+  const detected = detectRoleFromPoste(user?.poste, user?.email || userEmail);
+  const isPdg =
+    detected.displayRole === "PDG" ||
+    (user?.poste || "").toLowerCase().includes("pdg") ||
+    (userEmail || "").toLowerCase().includes("christian.bamba") ||
+    (userName || "").toLowerCase().includes("christian bamba") ||
+    normalizedRole === "PDG";
 
   const [n1PendingCount, setN1PendingCount] = useState<number | undefined>(undefined);
   const [rhPendingCount, setRhPendingCount] = useState<number | undefined>(undefined);
@@ -83,7 +91,17 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
         .getN2TeamEvaluations()
         .then((fiches) => {
           const pending = (fiches || []).filter(
-            (f) => f.statut === "VALIDATION_N2" || f.statut === "EVALUATION_N2" || f.statut === "EN_ATTENTE_N2" || f.statut === "VISA_SALARIE"
+            (f) => {
+              const isDirectReport = f.salarie?.managerId === user?.id;
+              return isDirectReport
+                ? f.statut === "FIXATION_OBJECTIFS" ||
+                    f.statut === "EVALUATION_N1" ||
+                    f.statut === "EN_ATTENTE_N1"
+                : f.statut === "VALIDATION_OBJECTIFS_N2" ||
+                    f.statut === "VALIDATION_N2" ||
+                    f.statut === "EVALUATION_N2" ||
+                    f.statut === "EN_ATTENTE_N2";
+            }
           );
           setN1PendingCount(pending.length > 0 ? pending.length : undefined);
         })
@@ -121,7 +139,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
           setArbitrageCount(undefined);
         });
     }
-  }, [normalizedRole]);
+  }, [normalizedRole, isPdg, user?.id]);
 
   const [hasTeam, setHasTeam] = useState(false);
   const [hasN2Scope, setHasN2Scope] = useState(false);
@@ -136,7 +154,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
       .catch(() => setHasTeam(false));
 
     // Si rôle N2, vérifier le périmètre N2
-    if (normalizedRole === "N2") {
+    if (normalizedRole === "N2" && !isPdg) {
       employeesApi
         .getN2Subordinates()
         .then((subs) => {
@@ -144,16 +162,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
         })
         .catch(() => setHasN2Scope(false));
     }
-  }, [normalizedRole]);
-
-  const { user } = useAuth();
-  const detected = detectRoleFromPoste(user?.poste, user?.email || userEmail);
-  const isPdg =
-    detected.displayRole === "PDG" ||
-    (user?.poste || "").toLowerCase().includes("pdg") ||
-    (userEmail || "").toLowerCase().includes("christian.bamba") ||
-    (userName || "").toLowerCase().includes("christian bamba") ||
-    normalizedRole === "PDG";
+  }, [normalizedRole, isPdg, user?.id]);
 
   const sections: NavSection[] = [];
 
@@ -165,7 +174,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
       title: "DIRECTION GÉNÉRALE",
       items: [
         { label: "Vue d'ensemble", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
-        { label: "Toutes les évaluations", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount },
+        ...(hasTeam ? [{ label: "Évaluations des directeurs et de leurs équipes", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount }] : []),
         { label: "Base du personnel", href: "/dashboard/personnel", iconSvg: NAV_ICONS.team },
         { label: "Cycles & Campagnes", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
       ]
@@ -186,7 +195,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     }
 
     // DIRECTION (POUR DIRECTEUR / DIRECTRICE / N2)
-    if (normalizedRole === "N2" || hasN2Scope) {
+    if (normalizedRole === "N2" && hasN2Scope) {
       sections.push({
         title: "ESPACE DIRECTION",
         items: [
@@ -197,7 +206,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     }
 
     // MON ÉQUIPE (POUR LES MANAGERS N1, LA DRH OU TOUT ENCADRANT AYANT DES COLLABORATEURS DIRECTS)
-    if (normalizedRole === "N1" || normalizedRole === "DRH" || (normalizedRole !== "N2" && hasTeam)) {
+    if (normalizedRole !== "N2" && hasTeam) {
       sections.push({
         title: normalizedRole === "DRH" ? "MON ÉQUIPE (DIRECTION RH)" : "MON ÉQUIPE",
         items: [
@@ -367,4 +376,3 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     </aside>
   );
 }
-

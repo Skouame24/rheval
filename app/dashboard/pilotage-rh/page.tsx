@@ -132,10 +132,10 @@ export default function RhDashboardPage() {
   const fichesN2Done = dossiers.filter((d) => ["ACCORD_SALARIE", "VALIDATION_DRH", "EN_ATTENTE_RH", "VALIDE", "CLOTURE", "CLOTUREE"].includes(d.statut)).length;
 
   const handleArbitrageSuccess = async (dossierId?: string, noteFinale?: number, commentaire?: string) => {
-    if (dossierId && noteFinale !== undefined) {
+    if (dossierId) {
       try {
         await rhApi.resolveArbitrage(dossierId, {
-          noteFinale,
+          ...(noteFinale !== undefined ? { noteFinale } : {}),
           decision: commentaire || "Arbitrage résolu par la Direction des Ressources Humaines",
         });
       } catch (err: any) {
@@ -210,7 +210,10 @@ export default function RhDashboardPage() {
             key={arbitrageModalItem.id}
             isOpen={true}
             onClose={() => setArbitrageModalItem(null)}
-            dossier={arbitrageModalItem}
+            dossier={{
+              ...arbitrageModalItem,
+              noteParcours: arbitrageModalItem.noteGlobale ?? null,
+            }}
             onSuccess={handleArbitrageSuccess}
           />
         )}
@@ -425,6 +428,7 @@ export default function RhDashboardPage() {
                           direction: (arbitragesEnAttente[0].salarie as any)?.departement || "Direction",
                           noteN1: (arbitragesEnAttente[0] as any).evaluationN1?.moyenneNotes ?? 0,
                           noteN2: (arbitragesEnAttente[0] as any).evaluationN2?.moyenneNotes ?? 0,
+                          noteParcours: arbitragesEnAttente[0].noteGlobale ?? null,
                         })}
                         className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-black transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >

@@ -351,6 +351,22 @@ export async function exportEvaluationToExcel(data: EvaluationExportData): Promi
     currentRow++;
   }
 
+  if (data.noteGlobale !== undefined && data.noteGlobale !== null) {
+    ws.mergeCells(currentRow, 1, currentRow, 3);
+    ws.getCell(currentRow, 1).value = "Note finale officielle retenue";
+    ws.getCell(currentRow, 4).value = `${Number(data.noteGlobale).toFixed(2)} / 20`;
+    styleRange(ws, currentRow, 1, currentRow, 4, {
+      border: thinBorder,
+      fill: labelLightFill,
+      font: { name: FONT_FAMILY, size: 10, bold: true },
+      alignment: { vertical: "middle", horizontal: "right" },
+    });
+    ws.getCell(currentRow, 1).alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+    ws.getCell(currentRow, 4).font = { name: FONT_FAMILY, size: 11, bold: true, color: { argb: "FF006B54" } };
+    ws.getRow(currentRow).height = 28;
+    currentRow++;
+  }
+
   // Ligne d'espacement
   ws.getRow(currentRow).height = 12;
   currentRow++;

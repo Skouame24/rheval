@@ -21,9 +21,12 @@ export default function RhArbitragesPage() {
   const [arbitrageModalItem, setArbitrageModalItem] = useState<EvaluationCycle | null>(null);
   const { arbitrages, isLoading, error, refetch } = useArbitrages();
 
-  const handleArbitrageSuccess = async (id: string, noteFinale: number, decision: string) => {
+  const handleArbitrageSuccess = async (id: string, noteFinale: number | undefined, decision: string) => {
     try {
-      await rhApi.resolveArbitrage(id, { noteFinale, decision });
+      await rhApi.resolveArbitrage(id, {
+        ...(noteFinale !== undefined ? { noteFinale } : {}),
+        decision,
+      });
       await refetch();
       setArbitrageModalItem(null);
     } catch (err) {
@@ -52,6 +55,7 @@ export default function RhArbitragesPage() {
               : "Manager N+1",
             noteN1: (arbitrageModalItem as any).evaluationN1?.moyenneNotes ?? 0,
             noteN2: (arbitrageModalItem as any).evaluationN2?.moyenneNotes ?? 0,
+            noteParcours: arbitrageModalItem.noteGlobale ?? null,
           }}
           onSuccess={handleArbitrageSuccess}
           />

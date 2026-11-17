@@ -19,12 +19,13 @@ interface ModalArbitrageRHProps {
     n1: string;
     noteN1: number;
     noteN2: number;
+    noteParcours?: number | null;
   } | null;
-  onSuccess: (id: string, noteFinale: number, commentaire: string) => void | Promise<void>;
+  onSuccess: (id: string, noteFinale: number | undefined, commentaire: string) => void | Promise<void>;
 }
 
 export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalArbitrageRHProps) {
-  const [decisionNote, setDecisionNote] = useState<"CONFIRMER_N1" | "NOUVELLE_NOTE">("CONFIRMER_N1");
+  const [decisionNote, setDecisionNote] = useState<"CONSERVER" | "MODIFIER">("CONSERVER");
   const [noteConclue, setNoteConclue] = useState<number | "">("");
   const [pvCommentaire, setPvCommentaire] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -43,20 +44,24 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
       return;
     }
     if (
-      decisionNote === "NOUVELLE_NOTE" &&
+      decisionNote === "CONSERVER" &&
+      (dossier.noteParcours == null || !Number.isFinite(Number(dossier.noteParcours)))
+    ) {
+      setSubmitError("Aucune note du parcours n'est enregistrée. Saisissez la note convenue en réunion.");
+      return;
+    }
+    if (
+      decisionNote === "MODIFIER" &&
       (typeof noteConclue !== "number" || !Number.isFinite(noteConclue) || noteConclue < 0 || noteConclue > 20)
     ) {
-      setSubmitError("Saisissez une nouvelle note comprise entre 0 et 20.");
+      setSubmitError("Saisissez la note finale convenue en réunion, entre 0 et 20.");
       return;
     }
 
     setSubmitted(true);
     setSubmitError(null);
     try {
-      const noteFinale = decisionNote === "CONFIRMER_N1"
-        ? dossier.noteN1
-        : Number(noteConclue);
-      await onSuccess(dossier.id, noteFinale, pvCommentaire);
+      await onSuccess(dossier.id, decisionNote === "MODIFIER" ? Number(noteConclue) : undefined, pvCommentaire);
       onClose();
     } catch (error) {
       console.error("[ModalArbitrageRH] Erreur enregistrement arbitrage:", error);
@@ -83,7 +88,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
         width: "100%",
         maxWidth: 720,
         maxHeight: "calc(100vh - 32px)",
-        borderRadius: 24,
+        borderRadius: 0,
         boxShadow: "0 24px 80px rgba(15, 23, 42, 0.2)",
         overflow: "hidden",
         display: "flex",
@@ -103,7 +108,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
             <div style={{
               width: 46,
               height: 46,
-              borderRadius: 15,
+              borderRadius: 0,
               background: "#FFF7ED",
               color: "#EA580C",
               display: "flex",
@@ -127,7 +132,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
             style={{
               width: 38,
               height: 38,
-              borderRadius: 12,
+              borderRadius: 0,
               background: "#F8FAFC",
               border: "1px solid #E2E8F0",
               color: "#64748B",
@@ -142,14 +147,14 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
           <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
           
           {/* Card Collaborateur */}
-          <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 16, border: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, boxShadow: "0 2px 8px rgba(15,23,42,0.03)" }}>
+          <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 0, border: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, boxShadow: "0 2px 8px rgba(15,23,42,0.03)" }}>
             <div>
               <span style={{ fontSize: 10, fontWeight: 800, color: "#C2410C", textTransform: "uppercase", letterSpacing: "0.08em" }}>Contestation en cours</span>
               <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: "3px 0 0 0" }}>{dossier.prenom} {dossier.nom}</h4>
               <p style={{ fontSize: 12, fontWeight: 500, color: "#64748B", margin: "3px 0 0 0" }}>{dossier.poste} · Direction {dossier.direction}</p>
             </div>
             <div style={{ textAlign: "right" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#B91C1C", background: "#FEF2F2", padding: "6px 10px", borderRadius: 999, border: "1px solid #FECACA", display: "inline-block", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#B91C1C", background: "#FEF2F2", padding: "6px 10px", borderRadius: 0, border: "1px solid #FECACA", display: "inline-block", whiteSpace: "nowrap" }}>
                 Écart {ecart} pts ({ecartPct} %)
               </span>
             </div>
@@ -157,7 +162,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
 
           {/* BAROMÈTRE D'ARBITRAGE DUAL (N+1 vs N+2) */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 16, border: "1px solid #FED7AA", textAlign: "center" }}>
+            <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 0, border: "1px solid #FED7AA", textAlign: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 900, color: "#6B6359", textTransform: "uppercase", letterSpacing: "0.08em" }}>Note & Taux N+1</span>
               <p style={{ fontSize: 24, fontWeight: 900, color: "#F0822A", margin: "4px 0 0 0" }}>
                 {dossier.noteN1} <span style={{ fontSize: 13, color: "#94A3B8" }}>/ 20</span>
@@ -166,7 +171,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
                 {((dossier.noteN1 / 20) * 100).toFixed(1)} %
               </p>
             </div>
-            <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 16, border: "1px solid #BFDBFE", textAlign: "center" }}>
+            <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 0, border: "1px solid #BFDBFE", textAlign: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 900, color: "#6B6359", textTransform: "uppercase", letterSpacing: "0.08em" }}>Note & Taux N+2</span>
               <p style={{ fontSize: 24, fontWeight: 900, color: "#0060AC", margin: "4px 0 0 0" }}>
                 {dossier.noteN2} <span style={{ fontSize: 13, color: "#94A3B8" }}>/ 20</span>
@@ -177,39 +182,44 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
             </div>
           </div>
 
-          {/* Décision RH prise à l'issue de la réunion */}
-          <div style={{ background: "#FFFFFF", padding: 20, borderRadius: 18, border: "1px solid #FED7AA", boxShadow: "0 2px 8px rgba(249,115,22,0.05)" }}>
+          {/* Une note unique convenue collectivement pendant la réunion */}
+          <div style={{ background: "#FFFFFF", padding: 20, borderRadius: 0, border: "1px solid #FED7AA", boxShadow: "0 2px 8px rgba(249,115,22,0.05)" }}>
             <label style={{ fontSize: 11, fontWeight: 900, color: "#111827", textTransform: "uppercase", display: "block", marginBottom: 8, letterSpacing: "0.06em" }}>
-              Conclusion de la réunion d&apos;arbitrage
+              Décision sur la note du parcours
             </label>
+            <p style={{ margin: "0 0 12px", color: "#64748B", fontSize: 12, lineHeight: 1.5 }}>
+              Si les participants estiment que la note issue du parcours est correcte, conservez-la. Sinon, saisissez la note unique convenue ensemble.
+            </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#334155", cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#334155", cursor: dossier.noteParcours == null ? "not-allowed" : "pointer", opacity: dossier.noteParcours == null ? 0.6 : 1 }}>
                 <input
                   type="radio"
                   name="decision-note-arbitrage"
-                  checked={decisionNote === "CONFIRMER_N1"}
+                  checked={decisionNote === "CONSERVER"}
+                  disabled={dossier.noteParcours == null}
                   onChange={() => {
-                    setDecisionNote("CONFIRMER_N1");
+                    setDecisionNote("CONSERVER");
                     setSubmitError(null);
                   }}
                 />
-                La note N+1 est correcte : confirmer {dossier.noteN1}/20
+                Conserver la note issue du parcours :{" "}
+                {dossier.noteParcours != null ? `${Number(dossier.noteParcours).toFixed(2)} / 20` : "indisponible"}
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#334155", cursor: "pointer" }}>
                 <input
                   type="radio"
                   name="decision-note-arbitrage"
-                  checked={decisionNote === "NOUVELLE_NOTE"}
+                  checked={decisionNote === "MODIFIER"}
                   onChange={() => {
-                    setDecisionNote("NOUVELLE_NOTE");
+                    setDecisionNote("MODIFIER");
                     setSubmitError(null);
                   }}
                 />
-                La note doit être modifiée
+                Modifier la note et saisir la note commune décidée en réunion
               </label>
             </div>
-            {decisionNote === "NOUVELLE_NOTE" && (
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14 }}>
+            {decisionNote === "MODIFIER" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
                 <input
                   type="number"
                   min="0"
@@ -221,6 +231,8 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
                     setNoteConclue(e.target.value === "" ? "" : Number(e.target.value));
                     setSubmitError(null);
                   }}
+                  aria-label="Note finale convenue en réunion sur 20"
+                  placeholder="Note /20"
                   style={{
                     width: 110,
                     height: 48,
@@ -229,7 +241,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
                     color: "#111827",
                     background: "#FFF8F2",
                     border: "2px solid #F0822A",
-                    borderRadius: 12,
+                    borderRadius: 0,
                     textAlign: "center",
                     outline: "none"
                   }}
@@ -238,7 +250,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
                   background: "#ECFDF5",
                   border: "1.5px solid #A7F3D0",
                   padding: "8px 16px",
-                  borderRadius: 12,
+                  borderRadius: 0,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center"
@@ -249,14 +261,14 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
                   </span>
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#535B6A", flex: 1 }}>
-                  Cette note remplacera les notes proposées précédemment.
+                  La note convenue remplacera la note issue du parcours.
                 </span>
               </div>
             )}
           </div>
 
           {/* Champ 2 : PV / Décision RH */}
-          <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 16, border: "1px solid #E2E8F0" }}>
+          <div style={{ background: "#FFFFFF", padding: 18, borderRadius: 0, border: "1px solid #E2E8F0" }}>
             <label style={{ fontSize: 12, fontWeight: 800, color: "#535B6A", display: "block", marginBottom: 8 }}>
               Procès-Verbal d&apos;Arbitrage & Conclusions DRH
             </label>
@@ -268,11 +280,11 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
                 setPvCommentaire(e.target.value);
                 setSubmitError(null);
               }}
-              placeholder="Résumer la réunion et justifier la confirmation ou la modification de la note..."
+              placeholder="Consigner les échanges et expliquer la note convenue par les participants..."
               style={{
                 width: "100%",
                 padding: 12,
-                borderRadius: 12,
+                borderRadius: 0,
                 border: "1px solid #CBD5E1",
                 fontSize: 13,
                 fontWeight: 500,
@@ -283,7 +295,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
             />
           </div>
           {submitError && (
-            <p role="alert" style={{ margin: "0 24px 16px", padding: "12px 14px", borderRadius: 12, background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", fontSize: 13, fontWeight: 700 }}>
+            <p role="alert" style={{ margin: "0 24px 16px", padding: "12px 14px", borderRadius: 0, background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", fontSize: 13, fontWeight: 700 }}>
               {submitError}
             </p>
           )}
@@ -295,7 +307,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
               onClick={onClose}
               style={{
                 padding: "11px 18px",
-                borderRadius: 12,
+                borderRadius: 0,
                 border: "1px solid #E2E8F0",
                 background: "#FFFFFF",
                 color: "#475569",
@@ -310,7 +322,7 @@ export function ModalArbitrageRH({ isOpen, onClose, dossier, onSuccess }: ModalA
             <button
               type="submit"
               disabled={submitted}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 18px", border: "none", borderRadius: 12, background: submitted ? "#94A3B8" : "#F0822A", color: "#FFFFFF", fontSize: 13, fontWeight: 800, cursor: submitted ? "wait" : "pointer", boxShadow: "0 4px 10px rgba(240,130,42,0.22)" }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 18px", border: "none", borderRadius: 0, background: submitted ? "#94A3B8" : "#F0822A", color: "#FFFFFF", fontSize: 13, fontWeight: 800, cursor: submitted ? "wait" : "pointer", boxShadow: "0 4px 10px rgba(240,130,42,0.22)" }}
             >
               <CheckCircleIcon size={17} color="#FFFFFF" />
               {submitted ? "Enregistrement en cours..." : "Confirmer la décision RH"}

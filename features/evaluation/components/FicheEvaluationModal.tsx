@@ -256,7 +256,7 @@ export function FicheEvaluationModal({
         setActiveTab("N1");
       }
     } else if (propRole === "N1" || effectiveRole === "N1") {
-      setActiveTab(isCollabManager ? "N2" : "N1");
+      setActiveTab("N1");
     } else if (
       fetchedEval?.statut === "VALIDATION_N2" ||
       fetchedEval?.statut === "VALIDATION_NOTES_N2" ||
@@ -268,7 +268,7 @@ export function FicheEvaluationModal({
     } else {
       setActiveTab("N1");
     }
-  }, [effectiveRole, isOpen, isCollabHimself, propRole, isCollabManager, fetchedEval?.statut, isPhaseObjectifs]);
+  }, [effectiveRole, isOpen, isCollabHimself, propRole, fetchedEval?.statut, isPhaseObjectifs]);
 
   // Initialisation des objectifs avec pondération et notes
   const apiObjectifsKey = effectiveObjectifs?.map((o: any) => o.id).join(",") ?? "";
@@ -416,8 +416,12 @@ export function FicheEvaluationModal({
     : (objectifs.length > 0 ? objectifs.reduce((acc, obj) => acc + Number(obj.noteObtenue || 0), 0) / objectifs.length : 0);
   const noteGlobaleN1 = Math.min(20, Math.max(0, rawNoteN1));
 
-  // La note officielle unique est celle attribuée par le Manager N+1
-  const noteAffichee = noteGlobaleN1;
+  // Après clôture, la note RH d'arbitrage enregistrée sur la fiche est la note officielle.
+  const noteFinaleFiche = fetchedEval?.noteGlobale;
+  const noteAffichee = isFicheCloturee && noteFinaleFiche !== undefined && noteFinaleFiche !== null && Number.isFinite(Number(noteFinaleFiche))
+    ? Math.min(20, Math.max(0, Number(noteFinaleFiche)))
+    : noteGlobaleN1;
+  const isArbitrageResolved = Boolean(fetchedEval?.historique?.some((h: any) => h.action === "ARBITRAGE_RESOLU"));
   const tauxGlobal = Math.min(100, ((noteAffichee / 20) * 100)).toFixed(1);
   const numTaux = parseFloat(tauxGlobal) || 0;
 
@@ -1084,17 +1088,25 @@ export function FicheEvaluationModal({
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.05em", background: "#065F46", color: "#FFFFFF", padding: "2px 8px" }}>
-                      CYCLE OFFICIELLEMENT CLÔTURÉ & ARCHIVÉ
+                      {isArbitrageResolved
+                        ? "ARBITRAGE RH RENDU & DOSSIER CLÔTURÉ"
+                        : "CYCLE OFFICIELLEMENT CLÔTURÉ & ARCHIVÉ"}
                     </span>
                   </div>
                   <p style={{ margin: "4px 0 0 0", fontSize: 13, fontWeight: 700, color: "#065F46" }}>
-                    L&apos;évaluation annuelle a été validée par le Manager, approuvée par le N+2 et signée par le collaborateur.
+                    {isArbitrageResolved
+                      ? "La RH a rendu sa décision après réunion d'arbitrage. La note finale ci-contre est désormais la note officielle."
+                      : "L'évaluation annuelle a été validée par le Manager, approuvée par le N+2 et signée par le collaborateur."}
                   </p>
                 </div>
               </div>
               <div style={{ background: "#FFFFFF", border: "1.5px solid #059669", padding: "8px 16px", textAlign: "right" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", textTransform: "uppercase", display: "block" }}>Note Finale Officielle</span>
-                <span style={{ fontSize: 20, fontWeight: 900, color: "#065F46" }}>{noteAffichee.toFixed(2)} / 20</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: "#065F46" }}>
+                  {isArbitrageResolved && noteFinaleFiche != null
+                    ? Number(noteFinaleFiche).toFixed(2)
+                    : noteAffichee.toFixed(2)} / 20
+                </span>
               </div>
             </div>
           )}
@@ -1254,7 +1266,7 @@ export function FicheEvaluationModal({
                   {isPhaseObjectifs ? "Statut Notation" : "Note globale"}
                 </span>
                 <span style={{ fontSize: isPhaseObjectifs ? 13 : 15, fontWeight: 900, color: isPhaseObjectifs ? "#0284C7" : "#F0822A" }}>
-                  {isPhaseObjectifs ? "⏳ Fixation des objectifs" : `${noteGlobaleN1.toFixed(2)} / 20`}
+                  {isPhaseObjectifs ? "⏳ Fixation des objectifs" : `${noteAffichee.toFixed(2)} / 20`}
                 </span>
               </div>
               <div style={{ textAlign: "center" }}>
@@ -2271,6 +2283,7 @@ export function FicheEvaluationModal({
                         nom: auth.user?.n1?.nom || (effectiveDossier as any)?.n1 || "Manager N+1",
                         poste: auth.user?.n1?.poste || "Responsable",
                       },
+                      noteGlobale: noteAffichee,
                       objectifs: objectifs.map((o) => ({
                         intitule: o.intitule,
                         ponderation: o.ponderation,

@@ -24,7 +24,7 @@ export interface RhDashboardStats {
 
 export interface ResolveArbitrageDto {
   decision: string;
-  noteFinale: number;
+  noteFinale?: number;
 }
 
 // ─── Service ────────────────────────────────────────────────

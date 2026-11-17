@@ -212,7 +212,11 @@ export default function EvaluationsEquipePage() {
           <FicheEvaluationModal
             isOpen={true}
             evaluationId={selectedFicheId}
-            role={isN2 ? "N2" : "N1"}
+            role={
+              isN2 && evaluations.find((evaluation) => evaluation.id === selectedFicheId)?.salarie?.managerId !== user?.id
+                ? "N2"
+                : "N1"
+            }
             onClose={() => {
               setSelectedFicheId(null);
               loadData();
@@ -247,14 +251,14 @@ export default function EvaluationsEquipePage() {
         <PageHeader
           title={
             isPdg
-              ? "Supervision des Évaluations — Direction Générale"
+              ? "Évaluations des hauts directeurs"
               : isN2
               ? "Campagne d'Évaluation de la Direction"
               : "Campagne d'Évaluation de l'Équipe"
           }
           subtitle={
             isPdg
-              ? "Vue d'ensemble et supervision de toutes les fiches de fixation d'objectifs et de notation de l'entreprise Agilly"
+              ? "Évaluez les directeurs rattachés à vous et validez les évaluations de leur périmètre"
               : "Suivez distinctement la fixation des objectifs de début d'année et l'évaluation des performances"
           }
           breadcrumbs={[
@@ -585,7 +589,7 @@ export default function EvaluationsEquipePage() {
                               item.statut === "AUTO_EVALUATION" ||
                               item.statut === "VALIDATION_OBJECTIFS_SALARIE"
                             ) ? (
-                              isN2 ? (
+                              isN2 && !isDirectReport ? (
                                 <>
                                   <span className="px-2.5 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 inline-flex items-center gap-1.5">
                                     ⏳ En attente notation N+1
@@ -615,7 +619,7 @@ export default function EvaluationsEquipePage() {
                               item.statut === "VALIDATION_NOTES_N2" ||
                               item.statut === "EN_ATTENTE_N2"
                             ) ? (
-                              isN2 ? (
+                              isN2 && !isDirectReport ? (
                                 <Button
                                   variant="primary"
                                   size="sm"
