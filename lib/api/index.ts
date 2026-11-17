@@ -16,7 +16,7 @@ export { demandesApi, mapFrontendTypeToBackend } from "./demandes.api";
 export { client, clearApiCache, peekApiCache, onDataChanged } from "./client";
 
 // Re-export des types utiles
-export type { LoginDto, AuthResponse } from "./auth.api";
+export type { AuthResponse } from "./auth.api";
 export type { SignSalarieDto, HistoriqueItem, HistoriqueFilters } from "./evaluations.api";
 export type { CreateObjectifsDto } from "./objectives.api";
 export type { RhDashboardStats, ResolveArbitrageDto } from "./rh.api";

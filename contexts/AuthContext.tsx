@@ -20,7 +20,6 @@ interface AuthContextValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   isSimulated: boolean;
-  login: (email: string, password: string) => Promise<void>;
   switchRole: (newRole: Role) => void;
   switchProfile?: (newUser: User) => void;
   resetToSsoUser?: () => void;
@@ -228,31 +227,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [status, session]);
 
-  const login = async (email: string, password: string): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const res = await authApi.login({ email, password });
-      if (!res?.user || !res?.access_token) {
-        throw new Error("Réponse de connexion invalide");
-      }
-      setUser(res.user);
-      setIsSimulated(false);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("agilly_user", JSON.stringify(res.user));
-        localStorage.setItem("agilly_token", res.access_token);
-        localStorage.removeItem("agilly_simulated_user");
-        localStorage.removeItem("agilly_user_role_override");
-      }
-      const target = ROLE_DASHBOARD[res.user.role] || "/dashboard/mon-espace";
-      window.location.href = target;
-    } catch (err) {
-      console.error("[AuthContext] Erreur lors de la connexion:", err);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const switchRole = (newRole: Role) => {
     if (user && isSimulated && process.env.NODE_ENV === "development") {
       const updatedUser = { ...user, role: newRole };
@@ -313,7 +287,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         isSimulated,
-        login,
         switchRole,
         switchProfile,
         resetToSsoUser,

@@ -1281,17 +1281,6 @@ export function NouvelleDemandeForm() {
 
               <div className="flex flex-col gap-3">
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">
-                    Numéro d&apos;Ordre de Mission
-                  </label>
-                  <input
-                    type="text"
-                    value="JPC/AAAA-XX — généré à la soumission"
-                    readOnly
-                    className="w-full bg-slate-100 border border-slate-300 p-2 text-slate-500 text-xs"
-                  />
-                </div>
-                <div>
                   <label htmlFor="mission-collaborateur" className="block text-slate-700 font-semibold mb-1">
                     Ordre donné à
                   </label>
@@ -2117,4 +2106,3 @@ export function NouvelleDemandeForm() {
     </div>
   );
 }
-

@@ -103,16 +103,14 @@ export function AbsencesDashboard({ mode }: { mode: "CONGES" | "MISSIONS" }) {
           >
             Planning d&apos;équipe
           </Link>
-          <Link
-            href={
-              mode === "CONGES"
-                ? "/absences/nouvelle?type=CONGES_ANNUELS&univers=CONGES"
-                : "/absences/missions/nouvelle?type=MISSION_DEPLACEMENT&univers=MISSIONS"
-            }
-            className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
-          >
-            <span>{mode === "CONGES" ? "+ Nouvelle demande de congé" : "+ Nouvel ordre de mission"}</span>
-          </Link>
+          {mode === "CONGES" && (
+            <Link
+              href="/absences/nouvelle?type=CONGES_ANNUELS&univers=CONGES"
+              className="inline-flex items-center gap-2 bg-[#F0822A] hover:bg-[#D96F1D] text-white font-bold text-xs py-2 px-4 transition-all shadow-2xs active:scale-[0.99]"
+            >
+              <span>+ Nouvelle demande de congé</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -124,7 +122,7 @@ export function AbsencesDashboard({ mode }: { mode: "CONGES" | "MISSIONS" }) {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">
               Types de demandes fréquents
             </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Link
                 href="/absences/nouvelle?type=CONGES_ANNUELS&univers=CONGES"
                 className="bg-white border border-slate-200 hover:border-[#F0822A] p-4 transition-all group flex flex-col justify-between shadow-2xs"
@@ -159,22 +157,6 @@ export function AbsencesDashboard({ mode }: { mode: "CONGES" | "MISSIONS" }) {
                 </div>
               </Link>
 
-              <Link
-                href="/absences/nouvelle?type=CONGES_MALADIE&univers=CONGES"
-                className="bg-white border border-slate-200 hover:border-slate-400 p-4 transition-all group flex flex-col justify-between shadow-2xs"
-              >
-                <div>
-                  <div className="w-6 h-0.5 bg-slate-600 mb-3" />
-                  <span className="text-xs font-bold text-slate-900 block">Arrêt Maladie</span>
-                  <span className="text-[11px] text-slate-500 leading-tight block mt-1">
-                    Certificat médical à fournir sous 48h
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 mt-4">
-                  <span>Transmettre</span>
-                  <ArrowRightSvg />
-                </div>
-              </Link>
             </div>
           </div>
 
@@ -498,4 +480,3 @@ export function AbsencesDashboard({ mode }: { mode: "CONGES" | "MISSIONS" }) {
     </div>
   );
 }
-

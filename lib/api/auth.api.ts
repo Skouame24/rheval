@@ -5,12 +5,7 @@
 // ============================================================
 
 import { client } from "./client";
-import type { Role, User } from "@/types";
-
-export interface LoginDto {
-  email: string;
-  password: string;
-}
+import type { User } from "@/types";
 
 export interface AuthResponse {
   access_token: string;
@@ -48,13 +43,6 @@ export const authApi = {
    */
   loginMicrosoft: async (accessToken?: string): Promise<AuthResponse> => {
     return client.post<AuthResponse>("/auth/azure-ad", { accessToken });
-  },
-
-  /**
-   * Authentification classique / fallback
-   */
-  login: async (dto: LoginDto): Promise<AuthResponse> => {
-    return client.post<AuthResponse>("/auth/login", dto);
   },
 
   /**
