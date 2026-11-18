@@ -107,7 +107,7 @@ export default function PortailPage() {
         {/* ─── Applications Grid (Charte Bords Carrés rounded-none) ─── */}
         <div className="w-full max-w-[1200px] grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           
-          {/* 1. RHEVAL - ÉVALUATIONS ANNUELLES */}
+          {/* 1. Performances - ÉVALUATIONS ANNUELLES */}
           <button 
             onClick={navigateToDashboard}
             className="group relative flex flex-col bg-white border border-slate-200 hover:border-[#F0822A] shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-[#F0822A]"
@@ -121,14 +121,14 @@ export default function PortailPage() {
                 </svg>
               </div>
              
-              <h3 className="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-[#F0822A] transition-colors">AGILLY RHEVAL</h3>
+              <h3 className="text-lg font-extrabold text-slate-900 mb-2 group-hover:text-[#F0822A] transition-colors">Performances</h3>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
                 Plateforme officielle de gestion des évaluations annuelles de performance, entretiens annuels et suivi des objectifs.
               </p>
             </div>
             
             <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-[#FFF7ED] transition-colors">
-              <span className="text-xs font-extrabold text-[#F0822A]">Ouvrir RHEVAL →</span>
+              <span className="text-xs font-extrabold text-[#F0822A]">Ouvrir Performances →</span>
               <svg className="text-[#F0822A] transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
               </svg>
@@ -171,16 +171,16 @@ export default function PortailPage() {
           {/* MISSIONS & INTERVENTIONS - APPLICATION DISPONIBLE */}
           <button
             onClick={() => router.push("/absences/missions")}
-            className="group relative flex flex-col bg-white border border-slate-200 hover:border-purple-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-purple-600"
+            className="group relative flex flex-col bg-white border border-slate-200 hover:border-emerald-600 shadow-sm hover:shadow-xl transition-all duration-300 text-left overflow-hidden rounded-none cursor-pointer border-t-4 border-t-emerald-600"
           >
             <div className="p-6 pb-4">
-              <div className="w-12 h-12 bg-purple-50 text-purple-600 flex items-center justify-center rounded-none mb-4 border border-purple-100 group-hover:scale-105 transition-transform">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-700 flex items-center justify-center rounded-none mb-4 border border-emerald-100 group-hover:scale-105 transition-transform">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="7" width="20" height="14" rx="0" ry="0"/>
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                 </svg>
               </div>
-              <h3 className="text-xl font-extrabold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">
+              <h3 className="text-xl font-extrabold text-slate-900 mb-2 group-hover:text-emerald-700 transition-colors">
                 Missions &amp; Interventions
               </h3>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
@@ -188,9 +188,9 @@ export default function PortailPage() {
               </p>
             </div>
 
-            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-purple-50/50 transition-colors">
-              <span className="text-xs font-extrabold text-purple-600">Accéder aux missions →</span>
-              <svg className="text-purple-600 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="mt-auto px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-emerald-50/50 transition-colors">
+              <span className="text-xs font-extrabold text-emerald-700">Accéder aux missions →</span>
+              <svg className="text-emerald-700 transform group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
               </svg>
             </div>
