@@ -11,13 +11,15 @@ import { APPLICATIONS } from "../data/catalogue";
 import {
   ACTUALITES,
   IS_DEMO_DATA,
+  getAnniversairesDuJour,
   getAnniversairesDuMois,
   getNouveauxArrivants,
   type Collaborateur,
 } from "../data/portail.mock";
 import { useAnnuaire } from "../hooks/useAnnuaire";
 import { AppsCatalogue } from "./AppsCatalogue";
-import { NewsFeed } from "./NewsFeed";
+import { BirthdayCelebration } from "./BirthdayCelebration";
+import { NewsSpotlight } from "./NewsSpotlight";
 import { PersonModal } from "./PersonModal";
 import { PortailBackground } from "./PortailBackground";
 import { PortailFooter } from "./PortailFooter";
@@ -56,7 +58,7 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
         onSelectPerson={setPersonne}
       />
 
-      <main className="flex-1 w-full max-w-[1240px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-14">
+      <main className="flex-1 w-full max-w-[1240px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6">
         <WelcomeHero
           prenom={prenom}
           dateDuJour={dateDuJour}
@@ -68,16 +70,20 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
           ]}
         />
 
-        <AppsCatalogue onOpen={onOpenApp} />
+        <BirthdayCelebration personnes={getAnniversairesDuJour(collaborateurs)} onSelect={setPersonne} />
 
-        <div className="grid gap-10 lg:gap-8 lg:grid-cols-[1fr_360px] items-start">
-          <NewsFeed actualites={ACTUALITES} />
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px] items-stretch">
+          <NewsSpotlight actualites={ACTUALITES} />
           <TeamWidget
             equipe={collaborateurs}
             nouveaux={getNouveauxArrivants(collaborateurs)}
             anniversaires={getAnniversairesDuMois(collaborateurs)}
             onSelect={setPersonne}
           />
+        </div>
+
+        <div className="pt-6">
+          <AppsCatalogue onOpen={onOpenApp} />
         </div>
 
         {IS_DEMO_DATA && (

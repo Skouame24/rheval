@@ -120,3 +120,60 @@
 }
 
 
+
+/* ─── Portail : animations « vie de l'entreprise » ─── */
+
+/* Confettis carrés (charte Agilly) : chute douce, une seule fois */
+@keyframes confettiFall {
+  0%   { transform: translate3d(0, -20px, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate3d(var(--drift, 0px), 260px, 0) rotate(var(--spin, 360deg)); opacity: 0; }
+}
+.animate-confetti {
+  animation: confettiFall var(--duree, 3.2s) cubic-bezier(0.25, 0.6, 0.4, 1) var(--delai, 0s) 1 both;
+}
+
+/* Flottement léger (avatars, ballons) */
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.animate-float-soft {
+  animation: floatSoft 3.6s ease-in-out infinite;
+}
+
+/* Halo qui respire */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50%      { transform: scale(1.08); opacity: 0.9; }
+}
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* Barre de progression du carrousel */
+@keyframes progressFill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-progress {
+  transform-origin: left;
+  animation: progressFill var(--duree, 6s) linear forwards;
+}
+
+/* Fondu d'une diapositive */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in {
+  animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-confetti { display: none; }
+  .animate-float-soft,
+  .animate-breathe,
+  .animate-slide-in { animation: none; }
+  .animate-progress { animation-duration: 0.01s; }
+}

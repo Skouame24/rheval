@@ -26,16 +26,12 @@ export function TeamWidget({ equipe, nouveaux, anniversaires, onSelect }: Props)
 
   return (
     <section aria-labelledby="titre-equipe">
-      <div className="mb-5">
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-agilly-primary">Trombinoscope</span>
-        <h2 id="titre-equipe" className="text-2xl font-extrabold text-agilly-black tracking-tight mt-1">L&apos;équipe</h2>
-      </div>
-
-      <div className="bg-white border border-slate-200 shadow-[0_2px_10px_rgba(15,23,42,0.04)] overflow-hidden">
+      <div className="h-full flex flex-col bg-white border border-slate-200 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.35)] overflow-hidden">
         {/* En-tête : aperçu de l'équipe */}
         <div className="relative p-6 bg-gradient-to-br from-agilly-black to-slate-800 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
           <div className="absolute -top-8 -right-8 w-28 h-28 border-2 border-agilly-primary/50 rotate-12" />
+          <p id="titre-equipe" className="relative text-[11px] font-extrabold uppercase tracking-[0.18em] text-agilly-primary mb-2">L&apos;équipe Agilly</p>
           <p className="relative text-3xl font-extrabold text-white">{equipe.length}</p>
           <p className="relative text-xs font-semibold text-white/60">collaborateurs dans l&apos;entreprise</p>
           <div className="relative flex flex-wrap mt-4 gap-1.5">
@@ -119,7 +115,7 @@ export function TeamWidget({ equipe, nouveaux, anniversaires, onSelect }: Props)
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-slate-50/70">
+        <div className="mt-auto p-4 border-t border-slate-100 bg-slate-50/70">
           <Link href="/portail/annuaire" className="btn-soft-secondary w-full gap-2 group">
             Voir tout le trombinoscope
             <ArrowRightIcon size={15} className="group-hover:translate-x-0.5 transition-transform" />

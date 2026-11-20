@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import type { Actualite } from "../data/portail.mock";
 import { ArrowRightIcon, LinkedInIcon, MegaphoneIcon, PinIcon } from "./PortailIcons";
 
-function depuis(dateIso: string): string {
+export function depuis(dateIso: string): string {
   const jours = Math.floor((Date.now() - new Date(dateIso).getTime()) / 86_400_000);
   if (jours <= 0) return "Aujourd'hui";
   if (jours === 1) return "Hier";
@@ -16,7 +16,7 @@ function depuis(dateIso: string): string {
 }
 
 /** Visuel de couverture (remplacé par l'image du post quand elle existe). */
-function Couverture({ source, grande = false }: { source: Actualite["source"]; grande?: boolean }) {
+export function Couverture({ source, grande = false }: { source: Actualite["source"]; grande?: boolean }) {
   const linkedin = source === "LINKEDIN";
   return (
     <div
@@ -43,7 +43,7 @@ function Couverture({ source, grande = false }: { source: Actualite["source"]; g
   );
 }
 
-function SourceBadge({ source, surFond = false }: { source: Actualite["source"]; surFond?: boolean }) {
+export function SourceBadge({ source, surFond = false }: { source: Actualite["source"]; surFond?: boolean }) {
   const linkedin = source === "LINKEDIN";
   return (
     <span
