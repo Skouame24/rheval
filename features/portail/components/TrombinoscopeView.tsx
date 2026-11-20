@@ -38,6 +38,10 @@ export function TrombinoscopeView({ prenom, nom, libelleRole, onLogout, onOpenAp
   const [vue, setVue] = useState<Vue>("grille");
   const [personne, setPersonne] = useState<Collaborateur | null>(null);
   const fermer = useCallback(() => setPersonne(null), []);
+  const filtrerDirection = useCallback((d: string) => {
+    setDirection(d);
+    document.getElementById("resultats-trombi")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const directions = useMemo(() => getDirections(collaborateurs), [collaborateurs]);
   const nouveaux = useMemo(() => getNouveauxArrivants(collaborateurs), [collaborateurs]);
@@ -70,13 +74,13 @@ export function TrombinoscopeView({ prenom, nom, libelleRole, onLogout, onOpenAp
       <main className="flex-1 w-full max-w-[1240px] mx-auto px-4 md:px-8 py-8 md:py-12">
         <Hero
           collaborateurs={collaborateurs}
-          nbDirections={directions.length}
+          directions={directions}
           nbNouveaux={nouveaux.length}
           q={q}
           setQ={setQ}
           source={source}
           chargement={chargement}
-          onSelect={setPersonne}
+          onFiltrer={filtrerDirection}
         />
 
         {/* Ils nous ont rejoints */}
@@ -100,7 +104,7 @@ export function TrombinoscopeView({ prenom, nom, libelleRole, onLogout, onOpenAp
         )}
 
         {/* Barre d'outils collante */}
-        <div className="sticky top-16 z-30 mt-12 -mx-4 px-4 md:mx-0 md:px-0 py-3 bg-agilly-bg/85 backdrop-blur-md">
+        <div id="resultats-trombi" className="scroll-mt-16 sticky top-16 z-30 mt-12 -mx-4 px-4 md:mx-0 md:px-0 py-3 bg-agilly-bg/85 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0 flex gap-1 p-1 bg-white border border-slate-200 shadow-sm overflow-x-auto">
               <FiltreChip actif={direction === "TOUTES"} onClick={() => setDirection("TOUTES")} label="Toutes" count={collaborateurs.length} />
@@ -181,24 +185,24 @@ export function TrombinoscopeView({ prenom, nom, libelleRole, onLogout, onOpenAp
 
 function Hero({
   collaborateurs,
-  nbDirections,
+  directions,
   nbNouveaux,
   q,
   setQ,
   source,
   chargement,
-  onSelect,
+  onFiltrer,
 }: {
   collaborateurs: Collaborateur[];
-  nbDirections: number;
+  directions: { nom: string; effectif: number }[];
   nbNouveaux: number;
   q: string;
   setQ: (v: string) => void;
   source: "microsoft" | "demo";
   chargement: boolean;
-  onSelect: (c: Collaborateur) => void;
+  onFiltrer: (direction: string) => void;
 }) {
-  const mosaique = collaborateurs.slice(0, 12);
+  const maxEffectif = Math.max(1, ...directions.map((d) => d.effectif));
 
   return (
     <section className="relative overflow-hidden bg-agilly-black text-white shadow-[0_30px_70px_-30px_rgba(15,23,42,0.6)] animate-fade-in">
@@ -238,7 +242,7 @@ function Hero({
 
           <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4">
             <Stat valeur={chargement ? "—" : collaborateurs.length} label="Collaborateurs" />
-            <Stat valeur={chargement ? "—" : nbDirections} label="Directions" />
+            <Stat valeur={chargement ? "—" : directions.length} label="Directions" />
             <Stat valeur={chargement ? "—" : nbNouveaux} label="Nouveaux arrivants" accent />
           </dl>
 
@@ -252,34 +256,66 @@ function Hero({
           </p>
         </div>
 
-        {/* Mosaïque de visages */}
-        <div className="hidden lg:grid grid-cols-4 gap-3 content-center">
-          {(chargement ? Array.from({ length: 12 }) : mosaique).map((c, i) => {
-            const decale = i % 4 === 1 || i % 4 === 3;
-            if (!c || typeof c !== "object") {
-              return <div key={i} className={cn("aspect-square bg-white/5 animate-pulse", decale && "translate-y-6")} />;
-            }
-            const p = c as Collaborateur;
-            const col = couleurDirection(p.direction);
-            return (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p)}
-                title={`${p.prenom} ${p.nom}`}
-                className={cn(
-                  "group relative aspect-square overflow-hidden cursor-pointer animate-fade-in opacity-0 ring-1 ring-white/10 hover:ring-agilly-primary hover:z-10 hover:scale-105 transition-transform duration-300",
-                  decale && "translate-y-6",
-                )}
-                style={{ animationDelay: `${150 + i * 50}ms` }}
-              >
-                <PersonAvatar prenom={p.prenom} nom={p.nom} photoUrl={p.photoUrl} size="full" teinte="bg-white/[0.07] text-white/85 group-hover:bg-white/15" className="text-2xl backdrop-blur-sm" />
-                <span className={cn("absolute top-0 left-0 w-full h-0.5", col.dot)} />
-                <span className="absolute inset-x-0 bottom-0 px-2 py-1 bg-gradient-to-t from-black/70 to-transparent text-[10px] font-bold text-white text-left opacity-0 group-hover:opacity-100 transition-opacity truncate">
-                  {p.prenom}
-                </span>
-              </button>
-            );
-          })}
+        {/* Répartition par direction (clic = filtre) */}
+        <div className="hidden lg:flex flex-col justify-center">
+          <div className="bg-white/[0.06] border border-white/10 backdrop-blur-sm p-6">
+            <div className="flex items-baseline justify-between mb-5">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/50">Répartition par direction</p>
+              <p className="text-[11px] font-semibold text-white/35">Cliquez pour filtrer</p>
+            </div>
+
+            {chargement ? (
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-11 bg-white/5 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {directions.slice(0, 6).map((d, i) => {
+                  const col = couleurDirection(d.nom);
+                  const membres = collaborateurs.filter((c) => c.direction === d.nom);
+                  const part = Math.max(6, Math.round((d.effectif / maxEffectif) * 100));
+                  return (
+                    <li key={d.nom} className="animate-fade-in opacity-0" style={{ animationDelay: `${150 + i * 60}ms` }}>
+                      <button
+                        onClick={() => onFiltrer(d.nom)}
+                        className="group w-full text-left px-3 py-2.5 -mx-3 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={cn("w-2 h-2 shrink-0", col.dot)} />
+                          <span className="flex-1 min-w-0 truncate text-sm font-bold text-white/90 group-hover:text-white">
+                            {libelleCourt(d.nom)}
+                          </span>
+                          <span className="flex -space-x-1.5">
+                            {membres.slice(0, 3).map((m) => (
+                              <PersonAvatar
+                                key={m.id}
+                                prenom={m.prenom}
+                                nom={m.nom}
+                                photoUrl={m.photoUrl}
+                                size="sm"
+                                teinte={cn(col.soft, col.text)}
+                                className="w-7 h-7 text-[10px] ring-2 ring-agilly-black"
+                              />
+                            ))}
+                          </span>
+                          <span className="w-8 text-right text-sm font-extrabold text-white">{d.effectif}</span>
+                        </div>
+                        <div className="mt-2 ml-5 h-1 bg-white/10">
+                          <div className={cn("h-full transition-all duration-700", col.dot)} style={{ width: `${part}%` }} />
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {directions.length > 6 && (
+              <p className="mt-4 text-[11px] font-semibold text-white/40">+ {directions.length - 6} autres directions dans les filtres</p>
+            )}
+          </div>
         </div>
       </div>
     </section>
