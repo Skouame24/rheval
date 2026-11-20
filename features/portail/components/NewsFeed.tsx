@@ -9,20 +9,55 @@ import { ArrowRightIcon, LinkedInIcon, MegaphoneIcon, PinIcon } from "./PortailI
 
 function depuis(dateIso: string): string {
   const jours = Math.floor((Date.now() - new Date(dateIso).getTime()) / 86_400_000);
-  if (jours <= 0) return "aujourd'hui";
-  if (jours === 1) return "hier";
-  if (jours < 7) return `il y a ${jours} jours`;
+  if (jours <= 0) return "Aujourd'hui";
+  if (jours === 1) return "Hier";
+  if (jours < 7) return `Il y a ${jours} jours`;
   return new Date(dateIso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 }
 
-function SourceBadge({ source }: { source: Actualite["source"] }) {
-  return source === "LINKEDIN" ? (
-    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0A66C2]">
-      <LinkedInIcon size={12} /> LinkedIn
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-agilly-primary">
-      <MegaphoneIcon size={12} /> Interne
+/** Visuel de couverture (remplacé par l'image du post quand elle existe). */
+function Couverture({ source, grande = false }: { source: Actualite["source"]; grande?: boolean }) {
+  const linkedin = source === "LINKEDIN";
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden flex items-center justify-center",
+        linkedin ? "bg-gradient-to-br from-[#0A66C2] to-[#08427E]" : "bg-gradient-to-br from-agilly-primary to-amber-400",
+        grande ? "h-56 md:h-full min-h-[220px]" : "h-28",
+      )}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.35)_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
+      <div className="absolute -bottom-10 -right-10 w-40 h-40 border-2 border-white/25 rotate-12" />
+      <div className="absolute -top-6 -left-6 w-20 h-20 bg-white/10 -rotate-12" />
+      {grande ? (
+        <div className="relative bg-white px-6 py-4 shadow-xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Agilly" className="h-10 object-contain" />
+        </div>
+      ) : linkedin ? (
+        <LinkedInIcon size={34} className="relative text-white/95" />
+      ) : (
+        <MegaphoneIcon size={34} className="relative text-white/95" />
+      )}
+    </div>
+  );
+}
+
+function SourceBadge({ source, surFond = false }: { source: Actualite["source"]; surFond?: boolean }) {
+  const linkedin = source === "LINKEDIN";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2 py-1",
+        surFond
+          ? "bg-white/95 shadow-sm " + (linkedin ? "text-[#0A66C2]" : "text-agilly-primary")
+          : linkedin
+            ? "bg-blue-50 text-[#0A66C2]"
+            : "bg-orange-50 text-agilly-primary",
+      )}
+    >
+      {linkedin ? <LinkedInIcon size={11} /> : <MegaphoneIcon size={11} />}
+      {linkedin ? "LinkedIn" : "Interne"}
     </span>
   );
 }
@@ -33,70 +68,74 @@ export function NewsFeed({ actualites }: { actualites: Actualite[] }) {
   const autres = tries.filter((a) => a.id !== une?.id).slice(0, 4);
 
   return (
-    <section aria-labelledby="titre-actus" className="bg-white border border-slate-200">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <h2 id="titre-actus" className="text-base font-extrabold text-agilly-black">Actualités</h2>
-        <button className="text-xs font-bold text-agilly-gray hover:text-agilly-primary inline-flex items-center gap-1 cursor-pointer">
-          Tout voir <ArrowRightIcon size={13} />
+    <section aria-labelledby="titre-actus">
+      <div className="flex items-end justify-between mb-5">
+        <div>
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-agilly-primary">La vie d&apos;Agilly</span>
+          <h2 id="titre-actus" className="text-2xl font-extrabold text-agilly-black tracking-tight mt-1">Actualités</h2>
+        </div>
+        <button className="group text-xs font-bold text-agilly-gray hover:text-agilly-primary inline-flex items-center gap-1 cursor-pointer">
+          Toutes les actualités <ArrowRightIcon size={13} className="group-hover:translate-x-0.5 transition-transform" />
         </button>
-      </header>
+      </div>
 
+      {/* À la une */}
       {une && (
-        <a href={une.url ?? "#"} target={une.url ? "_blank" : undefined} rel="noreferrer" className="group block p-6 border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-          <div className="grid gap-5 md:grid-cols-[220px_1fr]">
-            {/* Visuel : remplacé par l'image du post LinkedIn quand elle est disponible */}
-            <div className="aspect-[16/10] md:aspect-auto md:h-full min-h-[130px] bg-orange-50 border border-orange-100 flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(#F0822A_1px,transparent_1px)] [background-size:14px_14px] opacity-20" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" className="h-10 object-contain relative" />
+        <a
+          href={une.url ?? "#"}
+          target={une.url ? "_blank" : undefined}
+          rel="noreferrer"
+          className="group grid md:grid-cols-[1fr_1.1fr] bg-white border border-slate-200 overflow-hidden shadow-[0_2px_10px_rgba(15,23,42,0.04)] hover:shadow-[0_18px_40px_-12px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 transition-all duration-300"
+        >
+          <div className="relative">
+            <Couverture source={une.source} grande />
+            <div className="absolute top-4 left-4 flex gap-2">
+              <SourceBadge source={une.source} surFond />
+              {une.epingle && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider bg-agilly-black/85 text-white px-2 py-1">
+                  <PinIcon size={11} /> À la une
+                </span>
+              )}
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <SourceBadge source={une.source} />
-                {une.epingle && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400">
-                    <PinIcon size={12} /> À la une
-                  </span>
-                )}
-              </div>
-              <h3 className="text-lg font-extrabold text-agilly-black leading-snug group-hover:text-agilly-primary transition-colors">
-                {une.titre}
-              </h3>
-              <p className="text-sm text-agilly-gray mt-2 leading-relaxed line-clamp-3">{une.extrait}</p>
-              <p className="text-xs text-slate-400 font-medium mt-3">
-                {une.auteur} · {depuis(une.date)}
-              </p>
-            </div>
+          </div>
+          <div className="p-6 md:p-8 flex flex-col">
+            <p className="text-xs font-semibold text-slate-400">{depuis(une.date)} · {une.auteur}</p>
+            <h3 className="mt-2 text-xl md:text-2xl font-extrabold text-agilly-black leading-snug group-hover:text-agilly-primary transition-colors">
+              {une.titre}
+            </h3>
+            <p className="mt-3 text-sm text-agilly-gray leading-relaxed line-clamp-4">{une.extrait}</p>
+            <span className="mt-auto pt-6 inline-flex items-center gap-1.5 text-xs font-extrabold text-agilly-primary">
+              Lire la suite <ArrowRightIcon size={14} className="group-hover:translate-x-1 transition-transform" />
+            </span>
           </div>
         </a>
       )}
 
-      <ul className="divide-y divide-slate-100">
+      {/* Autres actualités */}
+      <div className="grid sm:grid-cols-2 gap-5 mt-5">
         {autres.map((a) => (
-          <li key={a.id}>
-            <a
-              href={a.url ?? "#"}
-              target={a.url ? "_blank" : undefined}
-              rel="noreferrer"
-              className="group flex items-start gap-4 px-6 py-4 hover:bg-slate-50/60 transition-colors"
-            >
-              <span
-                className={cn(
-                  "mt-1.5 w-1.5 h-1.5 shrink-0",
-                  a.source === "LINKEDIN" ? "bg-[#0A66C2]" : "bg-agilly-primary",
-                )}
-              />
-              <div className="min-w-0 flex-1">
-                <h4 className="text-sm font-bold text-agilly-black group-hover:text-agilly-primary transition-colors">{a.titre}</h4>
-                <div className="flex flex-wrap items-center gap-x-2 mt-1">
-                  <SourceBadge source={a.source} />
-                  <span className="text-xs text-slate-400">· {a.auteur} · {depuis(a.date)}</span>
-                </div>
+          <a
+            key={a.id}
+            href={a.url ?? "#"}
+            target={a.url ? "_blank" : undefined}
+            rel="noreferrer"
+            className="group flex flex-col bg-white border border-slate-200 overflow-hidden shadow-[0_2px_10px_rgba(15,23,42,0.04)] hover:shadow-[0_18px_40px_-12px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <Couverture source={a.source} />
+            <div className="p-5 flex-1 flex flex-col">
+              <div className="flex items-center justify-between gap-2">
+                <SourceBadge source={a.source} />
+                <span className="text-[11px] font-semibold text-slate-400">{depuis(a.date)}</span>
               </div>
-            </a>
-          </li>
+              <h4 className="mt-3 text-[15px] font-extrabold text-agilly-black leading-snug group-hover:text-agilly-primary transition-colors">
+                {a.titre}
+              </h4>
+              <p className="mt-1.5 text-[13px] text-agilly-gray leading-relaxed line-clamp-2">{a.extrait}</p>
+              <p className="mt-auto pt-4 text-[11px] font-semibold text-slate-400">{a.auteur}</p>
+            </div>
+          </a>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }

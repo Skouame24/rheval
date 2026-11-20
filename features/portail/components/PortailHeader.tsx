@@ -54,8 +54,8 @@ export function PortailHeader({ prenom, nom, libelleRole, onLogout, onOpenApp, o
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
-      <div className="max-w-[1200px] mx-auto h-16 px-4 md:px-8 flex items-center gap-4">
+    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/80">
+      <div className="max-w-[1240px] mx-auto h-16 px-4 md:px-8 flex items-center gap-4">
         <Link href="/portail" className="flex items-center gap-3 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="Agilly" className="h-8 object-contain" />
@@ -65,7 +65,7 @@ export function PortailHeader({ prenom, nom, libelleRole, onLogout, onOpenApp, o
         </Link>
 
         {/* Recherche globale */}
-        <div ref={zoneRef} className="relative flex-1 max-w-xl mx-auto">
+        <div ref={zoneRef} className="relative flex-1 min-w-0 max-w-xl mx-auto">
           <SearchIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="search"
@@ -75,7 +75,7 @@ export function PortailHeader({ prenom, nom, libelleRole, onLogout, onOpenApp, o
             onKeyDown={(e) => e.key === "Escape" && setOuvert(false)}
             placeholder="Rechercher une personne, une application…"
             aria-label="Recherche globale"
-            className="w-full h-10 pl-10 pr-4 bg-agilly-bg border border-transparent text-sm text-agilly-black placeholder:text-slate-400 outline-none focus:bg-white focus:border-agilly-primary/60 focus:ring-2 focus:ring-agilly-primary/15 transition"
+            className="w-full min-w-0 h-10 pl-10 pr-4 bg-agilly-bg border border-transparent text-sm text-agilly-black placeholder:text-slate-400 outline-none focus:bg-white focus:border-agilly-primary/60 focus:ring-2 focus:ring-agilly-primary/15 transition"
           />
 
           {ouvert && resultats && (
