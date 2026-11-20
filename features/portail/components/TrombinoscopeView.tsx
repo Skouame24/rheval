@@ -5,6 +5,7 @@
 
 "use client";
 
+import { AssistantWidget } from "@/features/assistant/components/AssistantWidget";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
@@ -177,6 +178,7 @@ export function TrombinoscopeView({ prenom, nom, libelleRole, onLogout, onOpenAp
 
       <PortailFooter />
       <PersonModal personne={personne} onClose={fermer} />
+      <AssistantWidget prenom={prenom} />
     </div>
   );
 }

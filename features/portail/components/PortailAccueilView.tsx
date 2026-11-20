@@ -5,6 +5,7 @@
 
 "use client";
 
+import { AssistantWidget } from "@/features/assistant/components/AssistantWidget";
 import { useCallback, useState } from "react";
 import type { PortailApp } from "../data/catalogue";
 import { APPLICATIONS } from "../data/catalogue";
@@ -95,6 +96,7 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
 
       <PortailFooter />
       <PersonModal personne={personne} onClose={fermer} />
+      <AssistantWidget prenom={prenom} />
     </div>
   );
 }

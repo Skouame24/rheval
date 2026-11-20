@@ -170,10 +170,31 @@
   animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Ouverture de l'assistant (depuis le coin bas-droit) */
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-pop-in {
+  transform-origin: bottom right;
+  animation: popIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Indicateur « en train d'écrire » */
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+.animate-typing-dot {
+  animation: typingDot 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-confetti { display: none; }
   .animate-float-soft,
   .animate-breathe,
-  .animate-slide-in { animation: none; }
+  .animate-slide-in,
+  .animate-pop-in,
+  .animate-typing-dot { animation: none; }
   .animate-progress { animation-duration: 0.01s; }
 }
