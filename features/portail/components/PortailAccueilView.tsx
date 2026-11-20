@@ -8,7 +8,6 @@
 import { AssistantWidget } from "@/features/assistant/components/AssistantWidget";
 import { useCallback, useState } from "react";
 import type { PortailApp } from "../data/catalogue";
-import { APPLICATIONS } from "../data/catalogue";
 import {
   ACTUALITES,
   IS_DEMO_DATA,
@@ -45,6 +44,10 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
   const dateDuJour = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const salutation = now.getHours() < 18 ? "Bonjour" : "Bonsoir";
 
+  const anniversairesDuJour = getAnniversairesDuJour(collaborateurs);
+  const nouveaux = getNouveauxArrivants(collaborateurs);
+  const resume = construireResume(anniversairesDuJour.length, nouveaux.length);
+
   return (
     <div className="relative isolate min-h-screen flex flex-col">
       <PortailBackground />
@@ -60,24 +63,15 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
       />
 
       <main className="flex-1 w-full max-w-[1240px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6">
-        <WelcomeHero
-          prenom={prenom}
-          dateDuJour={dateDuJour}
-          salutation={salutation}
-          stats={[
-            { valeur: APPLICATIONS.filter((a) => a.statut === "DISPONIBLE").length, label: "Applications disponibles" },
-            { valeur: collaborateurs.length || "—", label: "Collaborateurs" },
-            { valeur: ACTUALITES.length, label: "Actualités récentes" },
-          ]}
-        />
+        <WelcomeHero prenom={prenom} dateDuJour={dateDuJour} salutation={salutation} resume={resume} />
 
-        <BirthdayCelebration personnes={getAnniversairesDuJour(collaborateurs)} onSelect={setPersonne} />
+        <BirthdayCelebration personnes={anniversairesDuJour} onSelect={setPersonne} />
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px] items-stretch">
           <NewsSpotlight actualites={ACTUALITES} />
           <TeamWidget
             equipe={collaborateurs}
-            nouveaux={getNouveauxArrivants(collaborateurs)}
+            nouveaux={nouveaux}
             anniversaires={getAnniversairesDuMois(collaborateurs)}
             onSelect={setPersonne}
           />
@@ -99,4 +93,18 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
       <AssistantWidget prenom={prenom} />
     </div>
   );
+}
+
+/** « 2 anniversaires à fêter et 3 nouveaux collègues à accueillir. » */
+function construireResume(nbAnniversaires: number, nbNouveaux: number): string {
+  const parties: string[] = [];
+  if (nbAnniversaires > 0) {
+    parties.push(nbAnniversaires === 1 ? "un anniversaire à fêter" : `${nbAnniversaires} anniversaires à fêter`);
+  }
+  if (nbNouveaux > 0) {
+    parties.push(nbNouveaux === 1 ? "un nouveau collègue à accueillir" : `${nbNouveaux} nouveaux collègues à accueillir`);
+  }
+  if (parties.length === 0) return "Belle journée chez Agilly.";
+  const phrase = parties.join(" et ");
+  return `Aujourd'hui, ${phrase}.`;
 }

@@ -66,7 +66,7 @@ export function AppsCatalogue({ onOpen }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-5">
         {apps.map((app, i) => (
           <AppTile key={app.id} app={app} onOpen={onOpen} index={i} />
         ))}
@@ -81,41 +81,43 @@ function AppTile({ app, onOpen, index }: { app: PortailApp; onOpen: (app: Portai
 
   const corps = (
     <>
-      <div className="p-6 pb-5 flex-1">
-        <div className="flex items-start justify-between mb-5">
+      <div className="p-4 sm:p-6 sm:pb-5 flex-1">
+        <div className="flex items-start justify-between mb-3 sm:mb-5">
           <div
             className={cn(
-              "w-12 h-12 flex items-center justify-center border transition-transform duration-300",
+              "w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center border transition-transform duration-300",
               dep.accent.bg,
               dep.accent.border,
               dep.accent.text,
               dispo && "group-hover:scale-110 group-hover:-rotate-3",
             )}
           >
-            <AppIcon icon={app.icon} size={24} />
+            <AppIcon icon={app.icon} size={22} />
           </div>
         </div>
-        <p className={cn("text-[10px] font-extrabold uppercase tracking-wider mb-1", dep.accent.text)}>{dep.label}</p>
-        <h3 className="text-lg font-extrabold text-agilly-black leading-snug mb-2">
+        <p className={cn("text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mb-1 truncate", dep.accent.text)}>{dep.label}</p>
+        <h3 className="text-[15px] sm:text-lg font-extrabold text-agilly-black leading-snug sm:mb-2">
           {app.nom}
         </h3>
-        <p className="text-[13px] text-agilly-gray leading-relaxed">{app.description}</p>
+        <p className="hidden sm:block text-[13px] text-agilly-gray leading-relaxed">{app.description}</p>
       </div>
 
       <div
         className={cn(
-          "px-6 py-3.5 border-t border-slate-100 flex items-center justify-between transition-colors",
+          "px-4 sm:px-6 py-2.5 sm:py-3.5 border-t border-slate-100 flex items-center justify-between transition-colors",
           dispo ? cn("bg-slate-50/80", dep.accent.hoverBg) : "bg-slate-50/60",
         )}
       >
         {dispo ? (
           <>
-            <span className={cn("text-xs font-extrabold", dep.accent.text)}>Ouvrir l&apos;application</span>
+            <span className={cn("text-xs font-extrabold", dep.accent.text)}>
+              Ouvrir<span className="hidden sm:inline"> l&apos;application</span>
+            </span>
             <ArrowRightIcon size={16} className={cn(dep.accent.text, "group-hover:translate-x-1 transition-transform")} />
           </>
         ) : (
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 bg-slate-200/70 border border-slate-300/70 px-2 py-1">
-            Bientôt disponible
+            Bientôt<span className="hidden sm:inline"> disponible</span>
           </span>
         )}
       </div>
