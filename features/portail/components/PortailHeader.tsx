@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APPLICATIONS, getDepartement, type PortailApp } from "../data/catalogue";
-import { COLLABORATEURS, type Collaborateur } from "../data/portail.mock";
+import type { Collaborateur } from "../data/portail.mock";
 import { PersonAvatar } from "./PersonAvatar";
 import { AppIcon, LogoutIcon, SearchIcon } from "./PortailIcons";
 
@@ -16,6 +16,8 @@ interface Props {
   prenom: string;
   nom: string;
   libelleRole: string;
+  /** Collaborateurs pour la recherche globale */
+  personnes: Collaborateur[];
   onLogout: () => void;
   onOpenApp: (app: PortailApp) => void;
   onSelectPerson: (c: Collaborateur) => void;
@@ -23,7 +25,7 @@ interface Props {
 
 const normaliser = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-export function PortailHeader({ prenom, nom, libelleRole, onLogout, onOpenApp, onSelectPerson }: Props) {
+export function PortailHeader({ prenom, nom, libelleRole, personnes: annuaire, onLogout, onOpenApp, onSelectPerson }: Props) {
   const [q, setQ] = useState("");
   const [ouvert, setOuvert] = useState(false);
   const zoneRef = useRef<HTMLDivElement>(null);
@@ -41,11 +43,11 @@ export function PortailHeader({ prenom, nom, libelleRole, onLogout, onOpenApp, o
     if (t.length < 2) return null;
     return {
       apps: APPLICATIONS.filter((a) => normaliser(`${a.nom} ${a.description}`).includes(t)).slice(0, 4),
-      personnes: COLLABORATEURS.filter((c) =>
+      personnes: annuaire.filter((c) =>
         normaliser(`${c.prenom} ${c.nom} ${c.poste} ${c.direction}`).includes(t),
       ).slice(0, 5),
     };
-  }, [q]);
+  }, [q, annuaire]);
 
   const choisir = (fn: () => void) => {
     fn();
@@ -116,7 +118,7 @@ export function PortailHeader({ prenom, nom, libelleRole, onLogout, onOpenApp, o
                       onClick={() => choisir(() => onSelectPerson(c))}
                       className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 cursor-pointer"
                     >
-                      <PersonAvatar prenom={c.prenom} nom={c.nom} size="sm" />
+                      <PersonAvatar prenom={c.prenom} nom={c.nom} photoUrl={c.photoUrl} size="sm" />
                       <span className="min-w-0">
                         <span className="block text-sm font-semibold text-agilly-black truncate">{c.prenom} {c.nom}</span>
                         <span className="block text-xs text-agilly-gray truncate">{c.poste} · {c.direction}</span>

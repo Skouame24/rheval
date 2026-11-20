@@ -41,7 +41,7 @@ export function TeamWidget({ equipe, nouveaux, anniversaires, onSelect }: Props)
           <div className="relative flex flex-wrap mt-4 gap-1.5">
             {apercu.map((c) => (
               <button key={c.id} onClick={() => onSelect(c)} className="cursor-pointer hover:-translate-y-1 transition-transform" title={`${c.prenom} ${c.nom}`}>
-                <PersonAvatar prenom={c.prenom} nom={c.nom} size="sm" className="ring-1 ring-white/20" />
+                <PersonAvatar prenom={c.prenom} nom={c.nom} photoUrl={c.photoUrl} size="sm" className="ring-1 ring-white/20" />
               </button>
             ))}
             {reste > 0 && (
@@ -68,7 +68,7 @@ export function TeamWidget({ equipe, nouveaux, anniversaires, onSelect }: Props)
                     onClick={() => onSelect(c)}
                     className="group w-full flex items-center gap-3 p-2 -mx-2 text-left hover:bg-orange-50/60 transition-colors cursor-pointer"
                   >
-                    <PersonAvatar prenom={c.prenom} nom={c.nom} size="md" />
+                    <PersonAvatar prenom={c.prenom} nom={c.nom} photoUrl={c.photoUrl} size="md" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-agilly-black truncate group-hover:text-agilly-primary transition-colors">{c.prenom} {c.nom}</p>
                       <p className="text-xs text-agilly-gray truncate">{c.poste}</p>
@@ -94,7 +94,7 @@ export function TeamWidget({ equipe, nouveaux, anniversaires, onSelect }: Props)
           ) : (
             <div className="grid grid-cols-4 gap-3">
               {anniversaires.slice(0, 8).map((c) => {
-                const aujourdhui = c.anniversaire.jour === jourCourant;
+                const aujourdhui = c.anniversaire!.jour === jourCourant;
                 return (
                   <button
                     key={c.id}
@@ -110,7 +110,7 @@ export function TeamWidget({ equipe, nouveaux, anniversaires, onSelect }: Props)
                     />
                     <span className="text-[11px] font-bold text-agilly-black mt-1.5 truncate w-full text-center">{c.prenom}</span>
                     <span className={aujourdhui ? "text-[10px] font-extrabold text-agilly-primary" : "text-[10px] font-semibold text-slate-400"}>
-                      {aujourdhui ? "Aujourd'hui 🎉" : `${c.anniversaire.jour} ${MOIS_COURT[c.anniversaire.mois - 1]}`}
+                      {aujourdhui ? "Aujourd'hui 🎉" : `${c.anniversaire!.jour} ${MOIS_COURT[c.anniversaire!.mois - 1]}`}
                     </span>
                   </button>
                 );

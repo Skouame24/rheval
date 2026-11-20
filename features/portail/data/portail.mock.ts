@@ -14,9 +14,14 @@ export interface Collaborateur {
   direction: string;
   email: string;
   telephone?: string;
-  dateArrivee: string; // ISO
-  anniversaire: { jour: number; mois: number }; // mois 1-12
+  /** Photo Microsoft 365 (servie par /api/portail/photo/[id]) */
+  photoUrl?: string;
+  /** ISO — date d'embauche (ou de création du compte) si connue */
+  dateArrivee?: string;
+  /** mois 1-12 — non fourni par Microsoft Graph en liste */
+  anniversaire?: { jour: number; mois: number };
   manager?: string;
+  bureau?: string;
 }
 
 export type SourceActualite = "INTERNE" | "LINKEDIN";
@@ -112,15 +117,27 @@ export const ACTUALITES: Actualite[] = [
 
 // ─── Sélecteurs ─────────────────────────────────────────────
 
-export function getNouveauxArrivants(jours = 45): Collaborateur[] {
-  const limite = Date.now() - jours * 86_400_000;
-  return COLLABORATEURS.filter((c) => new Date(c.dateArrivee).getTime() >= limite).sort(
-    (a, b) => new Date(b.dateArrivee).getTime() - new Date(a.dateArrivee).getTime(),
-  );
+const JOUR_MS = 86_400_000;
+
+export function getNouveauxArrivants(liste: Collaborateur[], jours = 45): Collaborateur[] {
+  const limite = Date.now() - jours * JOUR_MS;
+  return liste
+    .filter((c) => c.dateArrivee && new Date(c.dateArrivee).getTime() >= limite)
+    .sort((a, b) => new Date(b.dateArrivee!).getTime() - new Date(a.dateArrivee!).getTime());
 }
 
-export function getAnniversairesDuMois(): Collaborateur[] {
-  return COLLABORATEURS.filter((c) => c.anniversaire.mois === moisCourant).sort(
-    (a, b) => a.anniversaire.jour - b.anniversaire.jour,
-  );
+export function getAnniversairesDuMois(liste: Collaborateur[]): Collaborateur[] {
+  const mois = new Date().getMonth() + 1;
+  return liste
+    .filter((c) => c.anniversaire?.mois === mois)
+    .sort((a, b) => a.anniversaire!.jour - b.anniversaire!.jour);
+}
+
+/** Directions présentes dans la liste, triées par effectif décroissant. */
+export function getDirections(liste: Collaborateur[]): { nom: string; effectif: number }[] {
+  const compte = new Map<string, number>();
+  for (const c of liste) compte.set(c.direction, (compte.get(c.direction) ?? 0) + 1);
+  return [...compte.entries()]
+    .map(([nom, effectif]) => ({ nom, effectif }))
+    .sort((a, b) => b.effectif - a.effectif || a.nom.localeCompare(b.nom, "fr"));
 }
