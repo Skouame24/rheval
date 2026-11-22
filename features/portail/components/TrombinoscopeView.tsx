@@ -13,6 +13,7 @@ import type { PortailApp } from "../data/catalogue";
 import { couleurDirection, libelleCourt } from "../data/directions";
 import { getDirections, getNouveauxArrivants, type Collaborateur } from "../data/portail.mock";
 import { useAnnuaire } from "../hooks/useAnnuaire";
+import { usePortailNotifications } from "../hooks/usePortailNotifications";
 import { PersonAvatar } from "./PersonAvatar";
 import { PersonModal } from "./PersonModal";
 import { PortailBackground } from "./PortailBackground";
@@ -39,6 +40,7 @@ export function TrombinoscopeView({ prenom, nom, libelleRole, onLogout, onOpenAp
   const [vue, setVue] = useState<Vue>("grille");
   const [personne, setPersonne] = useState<Collaborateur | null>(null);
   const fermer = useCallback(() => setPersonne(null), []);
+  const notif = usePortailNotifications();
   const filtrerDirection = useCallback((d: string) => {
     setDirection(d);
     document.getElementById("resultats-trombi")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -67,6 +69,7 @@ export function TrombinoscopeView({ prenom, nom, libelleRole, onLogout, onOpenAp
         nom={nom}
         libelleRole={libelleRole}
         personnes={collaborateurs}
+        notif={notif}
         onLogout={onLogout}
         onOpenApp={onOpenApp}
         onSelectPerson={setPersonne}

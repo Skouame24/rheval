@@ -12,11 +12,13 @@ import { AppIcon, ArrowRightIcon } from "./PortailIcons";
 
 interface Props {
   onOpen: (app: PortailApp) => void;
+  /** Notifications non lues par application (clé = id de l'application) */
+  nonLuesParApp?: Partial<Record<string, number>>;
 }
 
 type Filtre = "TOUTES" | DepartementCode;
 
-export function AppsCatalogue({ onOpen }: Props) {
+export function AppsCatalogue({ onOpen, nonLuesParApp = {} }: Props) {
   const [filtre, setFiltre] = useState<Filtre>("TOUTES");
 
   const apps = useMemo(
@@ -68,14 +70,14 @@ export function AppsCatalogue({ onOpen }: Props) {
 
       <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-5">
         {apps.map((app, i) => (
-          <AppTile key={app.id} app={app} onOpen={onOpen} index={i} />
+          <AppTile key={app.id} app={app} onOpen={onOpen} index={i} nonLues={nonLuesParApp[app.id] ?? 0} />
         ))}
       </div>
     </section>
   );
 }
 
-function AppTile({ app, onOpen, index }: { app: PortailApp; onOpen: (app: PortailApp) => void; index: number }) {
+function AppTile({ app, onOpen, index, nonLues }: { app: PortailApp; onOpen: (app: PortailApp) => void; index: number; nonLues: number }) {
   const dep = getDepartement(app.departement);
   const dispo = app.statut === "DISPONIBLE";
 
@@ -94,6 +96,15 @@ function AppTile({ app, onOpen, index }: { app: PortailApp; onOpen: (app: Portai
           >
             <AppIcon icon={app.icon} size={22} />
           </div>
+          {nonLues > 0 && (
+            <span
+              title={`${nonLues} notification${nonLues > 1 ? "s" : ""} non lue${nonLues > 1 ? "s" : ""}`}
+              className="inline-flex items-center gap-1 h-6 px-2 bg-agilly-primary text-white text-[11px] font-extrabold shadow-[0_6px_14px_-6px_rgba(240,130,42,0.8)]"
+            >
+              {nonLues > 99 ? "99+" : nonLues}
+              <span className="hidden sm:inline font-semibold">nouveau{nonLues > 1 ? "x" : ""}</span>
+            </span>
+          )}
         </div>
         <p className={cn("text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mb-1 truncate", dep.accent.text)}>{dep.label}</p>
         <h3 className="text-[15px] sm:text-lg font-extrabold text-agilly-black leading-snug sm:mb-2">

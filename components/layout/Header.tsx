@@ -12,7 +12,7 @@ import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
 import { notificationsApi, type AppNotification } from "@/lib/api";
-import { isAbsenceNotif as isAbsenceScope } from "@/lib/utils/notificationScope";
+import { APPS_EVALUATION, isAbsenceNotif as isAbsenceScope } from "@/lib/utils/notificationScope";
 import { TEST_PROFILES, type TestProfile } from "@/lib/constants/testProfiles";
 
 function formatRelativeTime(dateStr?: string) {
@@ -116,7 +116,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
   };
 
   const handleMarkAllHeaderAsRead = async () => {
-    await notificationsApi.markAllAsRead();
+    await notificationsApi.markAllAsRead(APPS_EVALUATION);
     setHeaderNotifs((prev) => prev.map((n) => ({ ...n, lu: true })));
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("notifications-updated"));

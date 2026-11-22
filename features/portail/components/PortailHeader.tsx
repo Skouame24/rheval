@@ -9,6 +9,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APPLICATIONS, getDepartement, type PortailApp } from "../data/catalogue";
 import type { Collaborateur } from "../data/portail.mock";
+import type { NotificationsPortail } from "../hooks/usePortailNotifications";
+import { NotificationBell } from "./NotificationBell";
 import { PersonAvatar } from "./PersonAvatar";
 import { AppIcon, LogoutIcon, SearchIcon } from "./PortailIcons";
 
@@ -18,6 +20,8 @@ interface Props {
   libelleRole: string;
   /** Collaborateurs pour la recherche globale */
   personnes: Collaborateur[];
+  /** Notifications de tout l'écosystème (cloche) */
+  notif?: NotificationsPortail;
   onLogout: () => void;
   onOpenApp: (app: PortailApp) => void;
   onSelectPerson: (c: Collaborateur) => void;
@@ -25,7 +29,7 @@ interface Props {
 
 const normaliser = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-export function PortailHeader({ prenom, nom, libelleRole, personnes: annuaire, onLogout, onOpenApp, onSelectPerson }: Props) {
+export function PortailHeader({ prenom, nom, libelleRole, personnes: annuaire, notif, onLogout, onOpenApp, onSelectPerson }: Props) {
   const [q, setQ] = useState("");
   const [ouvert, setOuvert] = useState(false);
   const zoneRef = useRef<HTMLDivElement>(null);
@@ -132,7 +136,8 @@ export function PortailHeader({ prenom, nom, libelleRole, personnes: annuaire, o
         </div>
 
         {/* Utilisateur */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {notif && <NotificationBell notif={notif} />}
           <div className="hidden md:block text-right leading-tight">
             <p className="text-sm font-bold text-agilly-black">{prenom} {nom}</p>
             <p className="text-[11px] font-semibold text-agilly-primary">{libelleRole}</p>

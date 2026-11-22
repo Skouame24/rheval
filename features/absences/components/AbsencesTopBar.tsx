@@ -10,7 +10,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { notificationsApi, AppNotification } from "@/lib/api/notifications.api";
-import { isAbsenceNotif } from "@/lib/utils/notificationScope";
+import { APPS_ABSENCES, isAbsenceNotif } from "@/lib/utils/notificationScope";
 
 const TITLES: [string, string][] = [
   ["/absences/missions/planning", "Agenda des missions"],
@@ -307,7 +307,7 @@ export function AbsencesTopBar() {
       sessionStorage.setItem("agy_absences_read_notifs", JSON.stringify(updated));
     } catch {}
 
-    await notificationsApi.markAllAsRead().catch(() => {});
+    await notificationsApi.markAllAsRead(APPS_ABSENCES).catch(() => {});
   };
 
   // Fermeture des dropdowns au clic en dehors

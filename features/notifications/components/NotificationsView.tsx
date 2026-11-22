@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { notificationsApi, type AppNotification } from "@/lib/api";
-import { isEvalNotif } from "@/lib/utils/notificationScope";
+import { APPS_EVALUATION, isEvalNotif } from "@/lib/utils/notificationScope";
 import { Card, Button } from "@/components/ui";
 import { CheckIcon, ClockIcon, CheckCircleIcon } from "@/components/ui/Icons";
 
@@ -113,7 +113,7 @@ export function NotificationsView({
     if (unreadCount === 0) return;
     setLoading(true);
     try {
-      await notificationsApi.markAllAsRead();
+      await notificationsApi.markAllAsRead(APPS_EVALUATION);
       setNotifications((prev) => prev.map((n) => ({ ...n, lu: true })));
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("notifications-updated"));

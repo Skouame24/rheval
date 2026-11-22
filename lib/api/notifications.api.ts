@@ -5,12 +5,19 @@
 
 import { client } from "./client";
 
+/** ?application=a,b — limite la requête à certaines applications */
+function filtreApps(applications?: string[]): string {
+  return applications && applications.length > 0 ? `?application=${encodeURIComponent(applications.join(","))}` : "";
+}
+
 export interface AppNotification {
   id: string;
   userId: string;
   titre: string;
   message: string;
   type: "INFO" | "ACTION" | "VALIDATION" | "ALERTE";
+  /** Application émettrice (rheval, absences, missions, caisse, portail) */
+  application?: string;
   lu: boolean;
   lien?: string | null;
   ficheId?: string | null;
@@ -23,9 +30,9 @@ export const notificationsApi = {
    * GET /api/notifications
    * Récupère la liste de toutes les notifications de l'utilisateur connecté.
    */
-  getAll: async (): Promise<AppNotification[]> => {
+  getAll: async (applications?: string[]): Promise<AppNotification[]> => {
     try {
-      const res = await client.get<any>("/notifications");
+      const res = await client.get<any>(`/notifications${filtreApps(applications)}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.notifications)) return res.notifications;
       return [];
@@ -65,17 +72,18 @@ export const notificationsApi = {
     }
   },
 
-  /**
-   * POST /api/notifications/read-all
-   * Marque toutes les notifications comme lues.
-   */
   sendTestMail: async (to: string): Promise<any> => {
     return await client.post("/mail/test", { to });
   },
 
-  markAllAsRead: async (): Promise<number> => {
+  /**
+   * POST /api/notifications/read-all?application=…
+   * Marque comme lues les notifications des applications indiquées
+   * (toutes si aucune — à réserver à la cloche du portail).
+   */
+  markAllAsRead: async (applications?: string[]): Promise<number> => {
     try {
-      const res = await client.post<{ success: boolean; count?: number }>("/notifications/read-all", {});
+      const res = await client.post<{ success: boolean; count?: number }>(`/notifications/read-all${filtreApps(applications)}`, {});
       return res?.count ?? 0;
     } catch (err) {
       console.error("[notificationsApi.markAllAsRead] Erreur:", err);

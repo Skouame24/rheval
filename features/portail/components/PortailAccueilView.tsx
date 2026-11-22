@@ -17,6 +17,7 @@ import {
   type Collaborateur,
 } from "../data/portail.mock";
 import { useAnnuaire } from "../hooks/useAnnuaire";
+import { usePortailNotifications } from "../hooks/usePortailNotifications";
 import { AppsCatalogue } from "./AppsCatalogue";
 import { BirthdayCelebration } from "./BirthdayCelebration";
 import { NewsSpotlight } from "./NewsSpotlight";
@@ -38,6 +39,7 @@ interface Props {
 export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenApp }: Props) {
   const [personne, setPersonne] = useState<Collaborateur | null>(null);
   const fermer = useCallback(() => setPersonne(null), []);
+  const notif = usePortailNotifications();
   const { collaborateurs, source } = useAnnuaire();
 
   const now = new Date();
@@ -57,6 +59,7 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
         nom={nom}
         libelleRole={libelleRole}
         personnes={collaborateurs}
+        notif={notif}
         onLogout={onLogout}
         onOpenApp={onOpenApp}
         onSelectPerson={setPersonne}
@@ -78,7 +81,7 @@ export function PortailAccueilView({ prenom, nom, libelleRole, onLogout, onOpenA
         </div>
 
         <div className="pt-6">
-          <AppsCatalogue onOpen={onOpenApp} />
+          <AppsCatalogue onOpen={onOpenApp} nonLuesParApp={notif.nonLuesParApp} />
         </div>
 
         {IS_DEMO_DATA && (
