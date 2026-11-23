@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
+import { detectRoleFromPoste, estPdgPoste } from "@/lib/utils/roleDetector";
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { employeesApi } from "@/lib/api/employees.api";
 
@@ -76,7 +76,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
   const detected = detectRoleFromPoste(user?.poste, user?.email || userEmail);
   const isPdg =
     detected.displayRole === "PDG" ||
-    (user?.poste || "").toLowerCase().includes("pdg") ||
+    estPdgPoste(user?.poste) ||
     (userEmail || "").toLowerCase().includes("christian.bamba") ||
     (userName || "").toLowerCase().includes("christian bamba") ||
     normalizedRole === "PDG";
@@ -121,7 +121,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
         .catch(() => setN1PendingCount(undefined));
     }
 
-    if (normalizedRole === "RH" || normalizedRole === "DRH") {
+    if (normalizedRole === "RH" || normalizedRole === "DRH" || isPdg) {
       evaluationsApi
         .getAllForRh()
         .then((fiches) => {
@@ -164,6 +164,20 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
     }
   }, [normalizedRole, isPdg, user?.id]);
 
+  const menuPilotageRh: NavItem[] = [
+    { label: "Vue globale RH", href: "/dashboard/pilotage-rh", iconSvg: NAV_ICONS.dashboard },
+    { label: "Base du personnel", href: "/dashboard/personnel", iconSvg: NAV_ICONS.team },
+    { label: "Cycles d'évaluation", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
+    { label: "Toutes les évaluations", href: "/dashboard/pilotage-rh/evaluations", iconSvg: NAV_ICONS.evaluations, badge: rhPendingCount },
+    { label: "Arbitrages RH", href: "/dashboard/pilotage-rh/arbitrages", iconSvg: NAV_ICONS.arbitrage, badge: arbitrageCount },
+    { label: "Anniversaires", href: "/dashboard/pilotage-rh/anniversaires", iconSvg: NAV_ICONS.team },
+  ];
+  const menuAdministration: NavItem[] = [
+    { label: "Console d'Administration", href: "/dashboard/admin", iconSvg: NAV_ICONS.admin },
+    { label: "Gestion Utilisateurs", href: "/dashboard/admin/utilisateurs", iconSvg: NAV_ICONS.team },
+    { label: "Journal d'Audit & Sécurité", href: "/dashboard/admin/audit", iconSvg: NAV_ICONS.admin },
+  ];
+
   const sections: NavSection[] = [];
 
   // 1. ESPACES DE GESTION & SUPERVISION (SELON LE RÔLE)
@@ -175,24 +189,15 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
       items: [
         { label: "Vue d'ensemble", href: "/dashboard/mon-equipe", iconSvg: NAV_ICONS.dashboard },
         ...(hasTeam ? [{ label: "Évaluations des directeurs et de leurs équipes", href: "/dashboard/mon-equipe/evaluations", iconSvg: NAV_ICONS.evaluations, badge: n1PendingCount }] : []),
-        { label: "Base du personnel", href: "/dashboard/personnel", iconSvg: NAV_ICONS.team },
-        { label: "Cycles & Campagnes", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
       ]
     });
+    // Le PDG a tous les droits : pilotage RH complet + administration
+    sections.push({ title: "PILOTAGE RH", items: menuPilotageRh });
+    sections.push({ title: "ADMINISTRATION", items: menuAdministration });
   } else {
     // PILOTAGE RH (POUR RH & DRH)
     if (normalizedRole === "RH" || normalizedRole === "DRH") {
-      sections.push({
-        title: "PILOTAGE RH",
-        items: [
-          { label: "Vue globale RH", href: "/dashboard/pilotage-rh", iconSvg: NAV_ICONS.dashboard },
-          { label: "Base du personnel", href: "/dashboard/personnel", iconSvg: NAV_ICONS.team },
-          { label: "Cycles d'évaluation", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
-          { label: "Toutes les évaluations", href: "/dashboard/pilotage-rh/evaluations", iconSvg: NAV_ICONS.evaluations, badge: rhPendingCount },
-          { label: "Arbitrages RH", href: "/dashboard/pilotage-rh/arbitrages", iconSvg: NAV_ICONS.arbitrage, badge: arbitrageCount },
-          { label: "Anniversaires", href: "/dashboard/pilotage-rh/anniversaires", iconSvg: NAV_ICONS.team },
-        ]
-      });
+      sections.push({ title: "PILOTAGE RH", items: menuPilotageRh });
     }
 
     // DIRECTION (POUR DIRECTEUR / DIRECTRICE / N2)
@@ -231,15 +236,8 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
   }
 
   // ADMIN SYSTEME EXCLUSIF
-  if (normalizedRole === "ADMIN") {
-    sections.push({
-      title: "ADMINISTRATION SYSTEME",
-      items: [
-        { label: "Console d'Administration", href: "/dashboard/admin", iconSvg: NAV_ICONS.admin },
-        { label: "Gestion Utilisateurs", href: "/dashboard/admin/utilisateurs", iconSvg: NAV_ICONS.team },
-        { label: "Journal d'Audit & Sécurité", href: "/dashboard/admin/audit", iconSvg: NAV_ICONS.admin },
-      ]
-    });
+  if (normalizedRole === "ADMIN" && !isPdg) {
+    sections.push({ title: "ADMINISTRATION SYSTEME", items: menuAdministration });
   }
 
 

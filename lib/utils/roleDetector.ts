@@ -18,6 +18,19 @@ export interface RoleResolution {
  * Détermine le rôle technique et le libellé d'affichage en analysant
  * le poste (jobTitle) et l'email de l'utilisateur connecté.
  */
+/**
+ * PDG / DG / CEO / Président·e (hors adjoints et vice-présidents).
+ * Mots entiers uniquement : « budget » ne doit pas être pris pour « DG ».
+ * Même règle que le backend (rhevalback/src/common/auth/auth.constants.ts).
+ */
+const MOTIF_PDG = /\b(pdg|p\.d\.g|dg|ceo)\b|directeur g[ée]n[ée]ral|directrice g[ée]n[ée]rale|(^|[^a-z])pr[ée]sident/i;
+const MOTIF_PAS_PDG = /adjoint|vice/i;
+
+export function estPdgPoste(poste?: string | null): boolean {
+  const p = poste ?? "";
+  return MOTIF_PDG.test(p) && !MOTIF_PAS_PDG.test(p);
+}
+
 export function detectRoleFromPoste(poste?: string, email?: string): RoleResolution {
   const p = (poste || "").toLowerCase().trim();
   const e = (email || "").toLowerCase().trim();
@@ -28,19 +41,7 @@ export function detectRoleFromPoste(poste?: string, email?: string): RoleResolut
   }
 
   // 2. PDG / Directeur Général / Directrice Générale (Un seul sommet de pyramide)
-  if (
-    p.includes("pdg") ||
-    p.includes("directeur général") ||
-    p.includes("directeur general") ||
-    p.includes("directrice générale") ||
-    p.includes("directrice generale") ||
-    p.includes("dg") ||
-    p.includes("ceo") ||
-    p.includes("président") ||
-    p.includes("présidente") ||
-    p.includes("president") ||
-    p.includes("presidente")
-  ) {
+  if (estPdgPoste(poste)) {
     return { role: "N2", displayRole: "PDG", label: "PDG" };
   }
 
