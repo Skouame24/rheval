@@ -42,17 +42,15 @@ function getHeaders(includeBody = false): HeadersInit {
     headers["Content-Type"] = "application/json";
   }
 
-  // Injection du token JWT et identifiant utilisateur depuis le localStorage
+  // L'identité est ajoutée côté serveur par le proxy (/api/proxy) à partir de la
+  // session SSO. x-user-id ne sert plus qu'au simulateur de profils, et n'est
+  // pris en compte que si AUTORISER_SIMULATION=true (environnements de test).
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("agilly_token");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
     const savedUserStr = localStorage.getItem("agilly_user");
     if (savedUserStr) {
       try {
         const u = JSON.parse(savedUserStr);
         if (u.id) headers["x-user-id"] = u.id;
-        if (u.email) headers["x-user-email"] = u.email;
       } catch {}
     }
   }

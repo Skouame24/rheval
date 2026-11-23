@@ -39,13 +39,6 @@ export const isEntraIdConfigured = (): boolean => {
 
 export const authApi = {
   /**
-   * Se connecter via Microsoft Entra ID (SSO / Outlook)
-   */
-  loginMicrosoft: async (accessToken?: string): Promise<AuthResponse> => {
-    return client.post<AuthResponse>("/auth/azure-ad", { accessToken });
-  },
-
-  /**
    * Récupère le profil courant
    */
   getMe: async (): Promise<User> => {
