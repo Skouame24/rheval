@@ -30,6 +30,18 @@ type Avis = "utile" | "pas-utile";
 
 const CLE_TEASER = "agilly_assistant_teaser_vu";
 
+/**
+ * Avis envoyé à l'API pour améliorer la FAQ (sans bloquer ni signaler d'erreur).
+ * entreeId null = question non comprise par l'assistant.
+ */
+function envoyerAvis(entreeId: string | null, question: string, utile: boolean) {
+  fetch("/api/proxy/portail/assistant/avis", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entreeId, question: question.slice(0, 500), utile }),
+  }).catch(() => {});
+}
+
 // ─── Icônes ─────────────────────────────────────────────────
 
 const Ico = ({ d, size = 18, className }: { d: React.ReactNode; size?: number; className?: string }) => (
@@ -139,6 +151,8 @@ export function AssistantWidget({ prenom, ouvertParDefaut = false, questionIniti
     setSaisie("");
     setEcrit(true);
     const contenu = contenuForce ?? repondre(q, prenom);
+    // Question non comprise : remontée à la RH pour enrichir la FAQ
+    if (contenu.type === "inconnu") envoyerAvis(null, q, false);
     setTimeout(() => {
       ajouter({ auteur: "bot", contenu });
       setEcrit(false);
@@ -213,7 +227,17 @@ export function AssistantWidget({ prenom, ouvertParDefaut = false, questionIniti
                     contenu={m.contenu}
                     prenom={prenom}
                     avis={avis[m.id]}
-                    onAvis={(a) => setAvis((prev) => ({ ...prev, [m.id]: a }))}
+                    onAvis={(a) => {
+                      setAvis((prev) => ({ ...prev, [m.id]: a }));
+                      if (m.contenu.type !== "reponse") return;
+                      const i = messages.findIndex((x) => x.id === m.id);
+                      const precedent = messages.slice(0, i).reverse().find((x) => x.auteur === "moi");
+                      envoyerAvis(
+                        m.contenu.entree.id,
+                        precedent?.auteur === "moi" ? precedent.texte : m.contenu.entree.question,
+                        a === "utile",
+                      );
+                    }}
                     onQuestion={poserQuestion}
                     onCategorie={ouvrirCategorie}
                     onNaviguer={() => setOuvert(false)}

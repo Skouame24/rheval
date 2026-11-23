@@ -10,11 +10,7 @@
 
 import { getToken } from "next-auth/jwt";
 import { NextResponse, type NextRequest } from "next/server";
-import { secretApi, signerJetonApi } from "@/lib/server/jetonApi";
-
-const BACKEND =
-  process.env.BACKEND_INTERNAL_URL ||
-  (process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "") : "http://10.5.6.8:3001");
+import { BACKEND_URL as BACKEND, identiteDepuisSession, secretApi, signerJetonApi } from "@/lib/server/jetonApi";
 
 /** En-têtes de la requête transmis à l'API (aucun en-tête d'identité) */
 const ENTETES_REQUETE = ["content-type", "accept", "accept-language"];
@@ -28,27 +24,17 @@ async function relayer(req: NextRequest): Promise<Response> {
     return NextResponse.json({ statusCode: 500, message: "Configuration serveur incomplète." }, { status: 500 });
   }
 
-  const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const sub = (session?.oid as string | undefined) || session?.sub;
-  if (!session || !sub) {
+  const identite = identiteDepuisSession(await getToken({ req, secret: process.env.NEXTAUTH_SECRET }));
+  if (!identite) {
     return NextResponse.json({ statusCode: 401, message: "Session expirée — reconnectez-vous." }, { status: 401 });
   }
 
   // Simulateur de profils : environnements de test uniquement
   const profilDemande = req.headers.get("x-user-id") || undefined;
   const sim =
-    process.env.AUTORISER_SIMULATION === "true" && profilDemande && profilDemande !== sub ? profilDemande : undefined;
+    process.env.AUTORISER_SIMULATION === "true" && profilDemande && profilDemande !== identite.sub ? profilDemande : undefined;
 
-  const jeton = signerJetonApi(
-    {
-      sub,
-      email: (session.email as string | undefined) ?? undefined,
-      name: (session.name as string | undefined) ?? undefined,
-      role: (session.role as string | undefined) ?? undefined,
-      sim,
-    },
-    secret,
-  );
+  const jeton = signerJetonApi({ ...identite, sim }, secret);
 
   const chemin = req.nextUrl.pathname.replace(/^\/api\/proxy/, "");
   const cible = `${BACKEND}/api${chemin}${req.nextUrl.search}`;

@@ -138,11 +138,18 @@ export function PortailHeader({ prenom, nom, libelleRole, personnes: annuaire, n
         {/* Utilisateur */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {notif && <NotificationBell notif={notif} />}
-          <div className="hidden md:block text-right leading-tight">
-            <p className="text-sm font-bold text-agilly-black">{prenom} {nom}</p>
-            <p className="text-[11px] font-semibold text-agilly-primary">{libelleRole}</p>
-          </div>
-          <PersonAvatar prenom={prenom || "?"} nom={nom || "?"} size="sm" />
+          <Link
+            href="/portail/preferences"
+            title="Mes préférences"
+            aria-label="Mes préférences"
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
+            <span className="hidden md:block text-right leading-tight">
+              <span className="block text-sm font-bold text-agilly-black">{prenom} {nom}</span>
+              <span className="block text-[11px] font-semibold text-agilly-primary">{libelleRole}</span>
+            </span>
+            <PersonAvatar prenom={prenom || "?"} nom={nom || "?"} size="sm" />
+          </Link>
           <button
             onClick={onLogout}
             title="Déconnexion"

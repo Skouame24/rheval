@@ -190,6 +190,7 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
           { label: "Cycles d'évaluation", href: "/dashboard/pilotage-rh/cycles", iconSvg: NAV_ICONS.historique },
           { label: "Toutes les évaluations", href: "/dashboard/pilotage-rh/evaluations", iconSvg: NAV_ICONS.evaluations, badge: rhPendingCount },
           { label: "Arbitrages RH", href: "/dashboard/pilotage-rh/arbitrages", iconSvg: NAV_ICONS.arbitrage, badge: arbitrageCount },
+          { label: "Anniversaires", href: "/dashboard/pilotage-rh/anniversaires", iconSvg: NAV_ICONS.team },
         ]
       });
     }

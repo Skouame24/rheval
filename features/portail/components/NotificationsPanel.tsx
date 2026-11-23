@@ -5,6 +5,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { AppNotification } from "@/lib/api/notifications.api";
@@ -138,6 +139,14 @@ export function NotificationsPanel({ notifications, chargement, onOuvrir, onTout
           </ul>
         )}
       </div>
+
+      {/* Réglages */}
+      <Link
+        href="/portail/preferences"
+        className="px-5 py-3 border-t border-slate-100 text-xs font-semibold text-slate-500 hover:text-agilly-primary transition-colors"
+      >
+        ✉️ Choisir quand recevoir des e-mails
+      </Link>
     </div>
   );
 }
