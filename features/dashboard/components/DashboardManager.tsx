@@ -9,7 +9,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
+import { detectRoleFromPoste, estPdgPoste } from "@/lib/utils/roleDetector";
 import { StatCard } from "@/components/shared/StatCard";
 import { EvaluationStatusBadge } from "@/components/shared/EvaluationStatusBadge";
 import { Card, CardHeader, Button, CollaborateursListSkeleton } from "@/components/ui";
@@ -37,8 +37,7 @@ export function DashboardManager() {
   const detected = detectRoleFromPoste(user?.poste, user?.email);
   const isPdg =
     detected.displayRole === "PDG" ||
-    (user?.poste || "").toLowerCase().includes("pdg") ||
-    (user?.email || "").toLowerCase().includes("christian.bamba");
+    estPdgPoste(user?.poste);
 
   // Initialisation instantanée depuis le cache synchrone (0ms de chargement si déjà visité)
   const [fiches, setFiches] = useState<EvaluationCycle[]>(() => {

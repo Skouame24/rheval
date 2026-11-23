@@ -236,7 +236,7 @@ export default function WorkflowsConfigPage() {
             </div>
             <div className="min-w-0">
               <div className="text-[10px] font-bold text-[#D96F1D] uppercase tracking-wider">Étape 1 · Manager N+1</div>
-              <div className="text-xs font-extrabold text-slate-900 truncate">Ange-Dieudonne TIANGBO</div>
+              <div className="text-xs font-extrabold text-slate-900 truncate">Responsable N+1</div>
               <div className="text-[11px] text-slate-500 truncate">Directeur Juridique & DPO</div>
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function WorkflowsConfigPage() {
             </div>
             <div className="min-w-0">
               <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Étape 2 · Direction RH</div>
-              <div className="text-xs font-extrabold text-slate-900 truncate">Germaine YAO</div>
+              <div className="text-xs font-extrabold text-slate-900 truncate">Direction RH</div>
               <div className="text-[11px] text-slate-500 truncate">Directrice des RH (DRH)</div>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function WorkflowsConfigPage() {
             </div>
             <div className="min-w-0">
               <div className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Étape 3 · Direction Générale</div>
-              <div className="text-xs font-extrabold text-slate-900 truncate">David Martial AKPA</div>
+              <div className="text-xs font-extrabold text-slate-900 truncate">Direction Générale</div>
               <div className="text-[11px] text-slate-500 truncate">Directeur Exécutif & DG</div>
             </div>
           </div>
@@ -376,7 +376,7 @@ export default function WorkflowsConfigPage() {
                         </div>
                         <div>
                           <div className="text-xs font-extrabold text-slate-900">Avis Responsable Hiérarchique (N+1)</div>
-                          <div className="text-[11px] text-slate-500">Validation opérationnelle (Ange-Dieudonne TIANGBO)</div>
+                          <div className="text-[11px] text-slate-500">Validation opérationnelle (N+1)</div>
                         </div>
                       </div>
 
@@ -404,7 +404,7 @@ export default function WorkflowsConfigPage() {
                         </div>
                         <div>
                           <div className="text-xs font-extrabold text-slate-900">Visa Ressources Humaines (DRH)</div>
-                          <div className="text-[11px] text-slate-500">Contrôle conformité & réservation de solde (Germaine YAO)</div>
+                          <div className="text-[11px] text-slate-500">Contrôle conformité & réservation de solde (DRH)</div>
                         </div>
                       </div>
 
@@ -433,7 +433,7 @@ export default function WorkflowsConfigPage() {
                           </div>
                           <div>
                             <div className="text-xs font-extrabold text-slate-900">Accord Direction Générale (DG)</div>
-                            <div className="text-[11px] text-slate-500">Arbitrage final et approbation exécutive (David Martial AKPA)</div>
+                            <div className="text-[11px] text-slate-500">Arbitrage final et approbation exécutive (Direction)</div>
                           </div>
                         </div>
 
@@ -572,7 +572,7 @@ export default function WorkflowsConfigPage() {
                               <div className="w-5 h-5 rounded-none bg-[#F0822A] text-white flex items-center justify-center font-extrabold text-[10px]">
                                 1
                               </div>
-                              <span className="font-extrabold text-slate-900">Avis N+1 : Ange Tiangbo</span>
+                              <span className="font-extrabold text-slate-900">Avis N+1</span>
                               <span className="ml-auto text-[10px] font-bold text-[#D96F1D] uppercase tracking-wider">Requis</span>
                             </div>
                           </>
@@ -586,7 +586,7 @@ export default function WorkflowsConfigPage() {
                               <div className="w-5 h-5 rounded-none bg-slate-800 text-white flex items-center justify-center font-extrabold text-[10px]">
                                 2
                               </div>
-                              <span className="font-extrabold text-slate-900">Visa DRH : Germaine YAO</span>
+                              <span className="font-extrabold text-slate-900">Visa DRH</span>
                               <span className="ml-auto text-[10px] font-bold text-slate-600 uppercase tracking-wider">Requis</span>
                             </div>
                           </>
@@ -601,7 +601,7 @@ export default function WorkflowsConfigPage() {
                                 3
                               </div>
                               <div className="flex flex-col">
-                                <span className="font-extrabold text-slate-900">Accord DG : David Martial AKPA</span>
+                                <span className="font-extrabold text-slate-900">Accord Direction</span>
                                 <span className="text-[10px] text-slate-500 font-medium">
                                   {type.seuilDgJours === 0 ? "Systématique" : `Si durée > ${type.seuilDgJours} jours`}
                                 </span>

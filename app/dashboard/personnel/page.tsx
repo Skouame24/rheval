@@ -63,7 +63,7 @@ export default function SalariesRhPage() {
       n1: u.n1 ? `${u.n1.prenom} ${u.n1.nom}` : "Direction Générale",
       email: u.email,
       matricule: `EMP-${u.id.slice(0, 6).toUpperCase()}`,
-      telephone: u.telephone || "+225 07 00 00 00 00",
+      telephone: u.telephone || "",
       evaluation: userEval,
       statutCycle: userEval ? userEval.statut : "Non démarré",
       noteActuelle: userEval?.noteGlobale ? `${userEval.noteGlobale} / 20` : "En attente",

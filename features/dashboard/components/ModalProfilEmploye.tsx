@@ -75,7 +75,7 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="bg-slate-50 p-3 border border-slate-200">
                 <span className="text-slate-400 font-bold block mb-1">Matricule RH</span>
-                <strong className="text-slate-900 font-extrabold text-sm">{employe.matricule || "EMP-2026-084"}</strong>
+                <strong className="text-slate-900 font-extrabold text-sm">{employe.matricule || "Non renseigné"}</strong>
               </div>
 
               <div className="bg-slate-50 p-3 border border-slate-200">
@@ -90,7 +90,7 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
 
               <div className="bg-slate-50 p-3 border border-slate-200">
                 <span className="text-slate-400 font-bold block mb-1">Téléphone</span>
-                <strong className="text-slate-900 font-semibold text-xs">{employe.telephone || "+225 07 88 99 00 11"}</strong>
+                <strong className="text-slate-900 font-semibold text-xs">{employe.telephone || "Non renseigné"}</strong>
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
 
               <div className="border-l-4 border-l-blue-600 bg-blue-50/60 p-4 border border-slate-200">
                 <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider block mb-1">Direction N+2</span>
-                <p className="text-sm font-extrabold text-slate-900 m-0">Direction Technique (Alexis BAMBA)</p>
+                <p className="text-sm font-extrabold text-slate-900 m-0">Direction {employe.direction}</p>
                 <span className="text-[11px] text-slate-500 font-semibold mt-1 block">Validateur Secondaire</span>
               </div>
             </div>
@@ -125,15 +125,24 @@ export function ModalProfilEmploye({ isOpen, onClose, employe, onOpenFiche }: Mo
             <div className="flex items-center justify-between bg-slate-50 p-4 border border-slate-200 flex-wrap gap-4">
               <div>
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Statut Officiel</span>
-                <span className="text-xs font-extrabold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block">
-                  {employe.statutCycle || "Dossier Validé & Signé RH"}
+                <span className="text-xs font-extrabold px-3 py-1 bg-slate-50 text-slate-600 border border-slate-200 inline-block">
+                  {employe.statutCycle || "Non démarré"}
                 </span>
               </div>
 
               <div className="text-right">
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Note de Performance</span>
                 <p className="text-2xl font-extrabold text-[#F0822A] m-0">
-                  {employe.noteActuelle || "18.5"} <span className="text-xs text-slate-400">/ 20 (83%)</span>
+                  {Number.isFinite(parseFloat(employe.noteActuelle ?? "")) ? (
+                    <>
+                      {parseFloat(employe.noteActuelle as string)}{" "}
+                      <span className="text-xs text-slate-400">
+                        / 20 ({Math.round((parseFloat(employe.noteActuelle as string) / 20) * 100)}%)
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-slate-400">{employe.noteActuelle || "Pas encore évalué"}</span>
+                  )}
                 </p>
               </div>
             </div>

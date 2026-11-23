@@ -10,7 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ROLE_METADATA } from "@/lib/constants/roles";
 import type { Role } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
+import { detectRoleFromPoste, estPdgPoste } from "@/lib/utils/roleDetector";
 import { notificationsApi, type AppNotification } from "@/lib/api";
 import { APPS_EVALUATION, isAbsenceNotif as isAbsenceScope } from "@/lib/utils/notificationScope";
 import { TEST_PROFILES, type TestProfile } from "@/lib/constants/testProfiles";
@@ -46,8 +46,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
   const detected = detectRoleFromPoste(user?.poste, user?.email);
   const isPdg =
     detected.displayRole === "PDG" ||
-    (user?.poste || "").toLowerCase().includes("pdg") ||
-    (user?.email || "").toLowerCase().includes("christian.bamba");
+    estPdgPoste(user?.poste);
   const displayLabel =
     user?.poste?.toLowerCase().includes("assistante")
       ? "Assistante RH"

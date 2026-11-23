@@ -20,6 +20,7 @@ import { EyeIcon, TargetIcon, PencilIcon, FileTextIcon } from "@/components/ui/I
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useCurrentEvaluation } from "@/lib/hooks/useEvaluation";
 import { useAuth } from "@/contexts/AuthContext";
+import { estPdgPoste } from "@/lib/utils/roleDetector";
 
 function CycleTimeline({ statut }: { statut: StatutEvaluation }) {
   const currentStep = STATUT_METADATA[statut]?.step ?? 4;
@@ -121,9 +122,9 @@ export function DashboardSalarie() {
   const tauxAtteinte = noteAffichee !== null ? Math.min(100, Math.round((noteAffichee / 20) * 100)) : null;
   // Stabilise la référence du tableau — évite la boucle infinie dans FicheEvaluationModal
   const objectifs = useMemo(() => evaluation?.objectifs ?? [], [evaluation?.objectifs]);
-  const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : { prenom: "Ange-Dieudonne", nom: "TIANGBO" };
-  const evaluateurN2 = user?.n2 ? { prenom: user.n2.prenom, nom: user.n2.nom } : { prenom: "David Martial", nom: "AKPA" };
-  const drhRef = user?.drh ? { prenom: user.drh.prenom, nom: user.drh.nom } : { prenom: "Germaine", nom: "YAO" };
+  const evaluateurN1 = user?.n1 ? { prenom: user.n1.prenom || "Manager", nom: user.n1.nom || "" } : { prenom: "Votre responsable", nom: "N+1" };
+  const evaluateurN2 = user?.n2 ? { prenom: user.n2.prenom, nom: user.n2.nom } : { prenom: "Votre", nom: "directeur·rice" };
+  const drhRef = user?.drh ? { prenom: user.drh.prenom, nom: user.drh.nom } : { prenom: "Direction", nom: "RH" };
 
   const openFicheModal = (options?: { autoEval?: boolean; visa?: boolean }) => {
     setAutoEvalMode(true);
@@ -131,9 +132,7 @@ export function DashboardSalarie() {
     setIsFicheModalOpen(true);
   };
 
-  const isPdg =
-    (user?.poste || "").toLowerCase().includes("pdg") ||
-    (user?.email || "").toLowerCase().includes("christian.bamba");
+  const isPdg = estPdgPoste(user?.poste);
 
   if (isPdg) {
     return (

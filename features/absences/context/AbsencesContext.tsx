@@ -21,6 +21,7 @@ import {
 import type { User } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { demandesApi, mapFrontendTypeToBackend, onDataChanged } from "@/lib/api";
+import { SIMULATION_ACTIVE } from "@/lib/utils/simulation";
 
 function mapUserRoleToActeurRH(role?: string): RoleActeurRH {
   const normalized = (role || "").toUpperCase();
@@ -213,6 +214,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
 
   // Switcher de persona actif pour tests hiérarchiques Draw.io
   const setCurrentPersona = useCallback((p: PersonaUser) => {
+    if (!SIMULATION_ACTIVE) return; // comptes de test : jamais en production
     setCurrentPersonaState(p);
     if (typeof window !== "undefined") {
       localStorage.setItem("agilly_test_persona_id", p.id);
@@ -269,7 +271,7 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
     let savedPersona: PersonaUser | undefined;
     try {
       const savedPersonaId = localStorage.getItem("agilly_test_persona_id");
-      savedPersona = DIRECTION_PERSONAS.find((persona) => persona.id === savedPersonaId);
+      savedPersona = SIMULATION_ACTIVE ? DIRECTION_PERSONAS.find((persona) => persona.id === savedPersonaId) : undefined;
       if (savedPersonaId && !savedPersona) {
         localStorage.removeItem("agilly_test_persona_id");
       }
@@ -468,18 +470,13 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   const myDemandes = useMemo(() => {
     const curId = (currentPersona.id || user?.id || "").toLowerCase();
     const curEmail = (currentPersona.email || user?.email || "").toLowerCase();
-    const curNom = (currentPersona.nom || user?.nom || "").toLowerCase();
 
+    // Correspondance exacte uniquement : une demande sans identifiant ou un nom
+    // approchant (« Yao » / « Yao-Koffi ») ne doit jamais apparaître chez quelqu'un d'autre.
     return demandes.filter((d) => {
       const dId = (d.demandeur.id || "").toLowerCase();
       const dEmail = (d.demandeur.email || "").toLowerCase();
-      const dNom = (d.demandeur.nom || "").toLowerCase();
-
-      return (
-        (curId && (dId === curId || curId.includes(dId) || dId.includes(curId))) ||
-        (curEmail && (dEmail === curEmail || curEmail.includes(dEmail) || dEmail.includes(curEmail))) ||
-        (curNom && (dNom.includes(curNom) || curNom.includes(dNom)))
-      );
+      return (!!curId && dId === curId) || (!!curEmail && dEmail === curEmail);
     });
   }, [demandes, currentPersona, user]);
 

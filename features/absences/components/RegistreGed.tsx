@@ -2,7 +2,7 @@
 // app/absences/registre/page.tsx
 // Registre Numérique GED & Édition des Bulletins Officiels (EF-20 à EF-24)
 // Rendu fidèle au Formulaire Papier/Excel Agilly (Bulletin Individuel)
-// Signatures Salarié & Gérant (Christian BAMBA)
+// Signatures Salarié & Gérant (nom : NEXT_PUBLIC_SIGNATAIRE_GERANT)
 // Respect strict du Design System IBM Carbon x Agilly Corporate
 // ============================================================
 
@@ -13,6 +13,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { DemandeRHItem } from "@/types/absences.types";
 import { isMissionDemande } from "@/features/absences/utils/demandes";
+
+/** Nom imprimé sous la signature du gérant (configuré par environnement, jamais un compte de test) */
+const SIGNATAIRE_GERANT = process.env.NEXT_PUBLIC_SIGNATAIRE_GERANT || "La Direction Générale";
 
 export function RegistreGedContent() {
   const pathname = usePathname();
@@ -491,7 +494,7 @@ export function RegistreGedContent() {
                 </div>
               </div>
 
-              {/* 5. Signatures Salarié & Gérant (Christian BAMBA) */}
+              {/* 5. Signatures Salarié & Gérant */}
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="border border-slate-800 p-4 h-32 flex flex-col justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
@@ -517,7 +520,7 @@ export function RegistreGedContent() {
                   </div>
                   <div className="text-center">
                     <p className="font-serif italic font-bold text-slate-900 text-sm">
-                      Christian BAMBA
+                      {SIGNATAIRE_GERANT}
                     </p>
                     <p className="text-[9px] text-slate-500">Gérant / Direction Générale</p>
                   </div>

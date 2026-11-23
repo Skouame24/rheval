@@ -12,6 +12,7 @@ import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { notificationsApi, AppNotification } from "@/lib/api/notifications.api";
 import { APPS_ABSENCES, isAbsenceNotif } from "@/lib/utils/notificationScope";
 import { ROUTES_UNIVERS, appartientAUnivers, universDepuisChemin } from "@/features/absences/utils/univers";
+import { SIMULATION_ACTIVE } from "@/lib/utils/simulation";
 
 const TITLES: [string, string][] = [
   ["/absences/missions/planning", "Agenda des missions"],
@@ -359,7 +360,7 @@ export function AbsencesTopBar() {
         <div className="relative" ref={switcherRef}>
           <button
             type="button"
-            onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
+            onClick={() => SIMULATION_ACTIVE && setIsSwitcherOpen(!isSwitcherOpen)}
             className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-xs px-3 py-1.5 transition-all shadow-2xs cursor-pointer rounded-none"
             title="Profil actif"
           >
@@ -377,14 +378,14 @@ export function AbsencesTopBar() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
-              className={`text-slate-400 transition-transform ${isSwitcherOpen ? "rotate-180" : ""}`}
+              className={`text-slate-400 transition-transform ${isSwitcherOpen ? "rotate-180" : ""} ${SIMULATION_ACTIVE ? "" : "hidden"}`}
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
 
-          {/* Menu Dropdown de sélection des acteurs */}
-          {isSwitcherOpen && (
+          {/* Menu de sélection des comptes de test (environnement de test uniquement) */}
+          {SIMULATION_ACTIVE && isSwitcherOpen && (
             <div className="absolute right-0 mt-2 w-84 bg-white border border-slate-200 shadow-xl z-50 p-2 text-xs rounded-none">
               <div className="p-2 border-b border-orange-100 bg-gradient-to-r from-orange-50/60 to-white">
                 <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wider block">

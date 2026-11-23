@@ -29,7 +29,7 @@ import { ModalDefinirObjectifs } from "@/features/evaluation/components/ModalDef
 import { evaluationsApi } from "@/lib/api/evaluations.api";
 import { client } from "@/lib/api/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { detectRoleFromPoste } from "@/lib/utils/roleDetector";
+import { detectRoleFromPoste, estPdgPoste } from "@/lib/utils/roleDetector";
 import { exportEvaluationToExcel } from "@/lib/utils/exportExcelEvaluation";
 import type { EvaluationCycle, StatutEvaluation } from "@/types";
 
@@ -45,8 +45,7 @@ export default function EvaluationsEquipePage() {
   const detected = detectRoleFromPoste(user?.poste, user?.email);
   const isPdg =
     detected.displayRole === "PDG" ||
-    (user?.poste || "").toLowerCase().includes("pdg") ||
-    (user?.email || "").toLowerCase().includes("christian.bamba");
+    estPdgPoste(user?.poste);
 
   const isN2 = user?.role === "N2" || user?.role === "ADMIN";
   const userRole = isN2 ? "N2" : "N1";

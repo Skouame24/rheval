@@ -77,8 +77,6 @@ export function Sidebar({ role, userName = "Utilisateur", userEmail = "user@agil
   const isPdg =
     detected.displayRole === "PDG" ||
     estPdgPoste(user?.poste) ||
-    (userEmail || "").toLowerCase().includes("christian.bamba") ||
-    (userName || "").toLowerCase().includes("christian bamba") ||
     normalizedRole === "PDG";
 
   const [n1PendingCount, setN1PendingCount] = useState<number | undefined>(undefined);

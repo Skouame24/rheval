@@ -8,6 +8,9 @@
 
 import { DemandeRHItem } from "@/types/absences.types";
 
+/** Nom affiché pour la validation du gérant (configuré par environnement) */
+const SIGNATAIRE_GERANT = process.env.NEXT_PUBLIC_SIGNATAIRE_GERANT || "La Direction Générale";
+
 interface PermissionViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -219,7 +222,7 @@ export function PermissionViewerModal({
               <div className="border border-slate-300 p-3 h-24 flex flex-col justify-between bg-slate-50/30">
                 <span className="font-bold text-slate-700">Validation Gérant / Direction</span>
                 <div className="text-[10px] text-slate-500">
-                  <p className="m-0 font-semibold text-slate-800">Christian BAMBA (Gérant)</p>
+                  <p className="m-0 font-semibold text-slate-800">{SIGNATAIRE_GERANT}</p>
                   <p className="m-0 text-[9px] font-semibold text-emerald-700">Visa Officiel Approuvé</p>
                 </div>
               </div>
