@@ -13,6 +13,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { ROUTES_UNIVERS, appartientAUnivers, universDepuisChemin } from "@/features/absences/utils/univers";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 
 interface NavItem {
@@ -29,9 +30,13 @@ interface NavSection {
 
 export function AbsencesSidebar() {
   const pathname = usePathname();
-  const { currentPersona, pendingValidationsCount } = useAbsences();
+  const { currentPersona, pendingForCurrentRoleDemandes } = useAbsences();
   const [navigatingTo, setNavigatingTo] = React.useState<string | null>(null);
-  const isMissionArea = pathname.startsWith("/absences/missions");
+  const univers = universDepuisChemin(pathname);
+  const isMissionArea = univers === "MISSIONS";
+  const routes = ROUTES_UNIVERS[univers];
+  // Compteur « à valider » limité à l'univers affiché
+  const pendingValidationsCount = pendingForCurrentRoleDemandes.filter((d) => appartientAUnivers(d, univers)).length;
 
   React.useEffect(() => {
     setNavigatingTo(null);
@@ -126,7 +131,7 @@ export function AbsencesSidebar() {
             items: [
               {
                 label: "Boîte d'arbitrage",
-                href: "/absences/validations",
+                href: routes.validations,
                 badge: pendingValidationsCount > 0 ? pendingValidationsCount : undefined,
                 icon: (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -148,7 +153,7 @@ export function AbsencesSidebar() {
                 ? [
                     {
                       label: "Circuits & Workflows",
-                      href: "/absences/workflows",
+                      href: routes.workflows,
                       icon: (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="6" height="6" rx="0" />
@@ -172,7 +177,7 @@ export function AbsencesSidebar() {
                 : []),
               {
                 label: "Tableau de bord & SLA",
-                href: "/absences/rapports",
+                href: routes.rapports,
                 icon: (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10" />
@@ -216,7 +221,28 @@ export function AbsencesSidebar() {
           </Link>
         </div>
 
-        <nav className="p-3 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-140px)] mt-2">
+        {/* Sélecteur d'univers : on sait toujours où l'on est */}
+        <div className="px-3 pt-3">
+          <div className="grid grid-cols-2 p-0.5 bg-slate-100 border border-slate-200 text-[11px] font-bold">
+            {(["CONGES", "MISSIONS"] as const).map((u) => {
+              const actif = univers === u;
+              return (
+                <Link
+                  key={u}
+                  href={ROUTES_UNIVERS[u].accueil}
+                  aria-current={actif ? "page" : undefined}
+                  className={`text-center py-1.5 transition-colors ${
+                    actif ? "bg-white text-[#C25E00] shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  {u === "CONGES" ? "Congés" : "Missions"}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <nav className="p-3 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-180px)] mt-1">
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="flex flex-col gap-1">
               <span className="px-2.5 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-0.5">

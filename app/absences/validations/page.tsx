@@ -10,6 +10,8 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ROUTES_UNIVERS, appartientAUnivers, universDepuisChemin } from "@/features/absences/utils/univers";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { DemandeRHItem } from "@/types/absences.types";
 import { demandesApi } from "@/lib/api";
@@ -26,12 +28,21 @@ export default function ValidationsInboxPage() {
   const {
     currentPersona,
     demandes,
-    pendingForCurrentRoleDemandes,
+    pendingForCurrentRoleDemandes: pendingTousUnivers,
     validerDemande,
     refuserDemande,
     setIsDemoDrawerOpen,
     isLoading,
   } = useAbsences();
+
+  // Univers affiché (Congés ou Missions) : on ne mélange plus les deux boîtes
+  const pathname = usePathname();
+  const univers = universDepuisChemin(pathname);
+  const routes = ROUTES_UNIVERS[univers];
+  const pendingForCurrentRoleDemandes = useMemo(
+    () => pendingTousUnivers.filter((d) => appartientAUnivers(d, univers)),
+    [pendingTousUnivers, univers],
+  );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [personSearch, setPersonSearch] = useState("");
@@ -246,6 +257,9 @@ export default function ValidationsInboxPage() {
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Boîte d&apos;Arbitrage & Workflow de Décision
             </h1>
+            <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200">
+              {routes.libelle}
+            </span>
             <span className="text-xs font-bold px-2 py-0.5 bg-orange-50 text-[#C25E00] border border-orange-200">
               {currentPersona.labelRole}
             </span>
@@ -279,7 +293,7 @@ export default function ValidationsInboxPage() {
           </button>
 
           <Link
-            href="/absences/planning"
+            href={routes.planning}
             className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold"
           >
             Voir Agenda équipe &rarr;
@@ -695,7 +709,7 @@ export default function ValidationsInboxPage() {
               </div>
               <p className="font-bold text-slate-700 text-sm">Aucun dossier en attente d&apos;arbitrage</p>
               <p className="text-slate-400 max-w-sm">
-                Vous n&apos;avez aucune demande d&apos;absence à arbitrer pour le moment. Dès qu&apos;un collaborateur soumet une demande, elle s&apos;affichera automatiquement ici.
+                Vous n&apos;avez aucune {univers === "MISSIONS" ? "mission" : "demande de congé ou de permission"} à arbitrer pour le moment. Dès qu&apos;un collaborateur soumet une demande, elle s&apos;affichera automatiquement ici.
               </p>
             </div>
           )}

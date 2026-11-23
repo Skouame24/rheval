@@ -693,12 +693,11 @@ export function NouvelleDemandeForm() {
         ordreDonneAId: motifActif.famille === "MISSIONS" && !isIntervention ? collaborateurMissionId : undefined,
       });
 
+      // Retour dans l'univers du type réellement envoyé (mission → espace missions)
       router.push(
-        univers === "MISSIONS"
+        motifActif.famille === "MISSIONS" || univers === "MISSIONS"
           ? "/absences/missions/demandes"
-          : univers === "CONGES"
-            ? "/absences/demandes?univers=CONGES"
-            : "/absences/demandes",
+          : "/absences/demandes?univers=CONGES",
       );
     } catch (err: unknown) {
       console.error("[NouvelleDemandePage] Erreur:", err);

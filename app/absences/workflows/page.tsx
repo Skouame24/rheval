@@ -8,6 +8,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ROUTES_UNIVERS, universDepuisChemin } from "@/features/absences/utils/univers";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { TypeDemandeConfig } from "@/types/absences.types";
 import { demandesApi } from "@/lib/api";
@@ -50,6 +52,7 @@ const CATEGORIE_CONFIG: Record<
 
 export default function WorkflowsConfigPage() {
   const { currentPersona } = useAbsences();
+  const routesUnivers = ROUTES_UNIVERS[universDepuisChemin(usePathname())];
   const [types, setTypes] = useState<TypeDemandeConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -190,11 +193,11 @@ export default function WorkflowsConfigPage() {
           )}
 
           <Link
-            href="/absences"
+            href={routesUnivers.accueil}
             className="px-4 py-2.5 text-xs font-black text-white bg-slate-900 hover:bg-black rounded-none transition-all flex items-center gap-2 shadow-sm"
           >
             <span>←</span>
-            <span>Retour Absences</span>
+            <span>Retour {routesUnivers.libelle}</span>
           </Link>
         </div>
       </div>

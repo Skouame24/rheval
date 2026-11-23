@@ -22,6 +22,17 @@ const nextConfig: NextConfig = {
         destination: "/absences/demandes",
         permanent: false,
       },
+      // Anciennes pages « interventions » (doublons) → espace Missions
+      {
+        source: "/absences/interventions/nouvelle",
+        destination: "/absences/missions/nouvelle?type=INTERVENTION_TERRAIN&univers=MISSIONS",
+        permanent: false,
+      },
+      {
+        source: "/absences/interventions",
+        destination: "/absences/missions/demandes",
+        permanent: false,
+      },
       {
         source: "/dashboard/mon-equipe/demandes",
         destination: "/absences/validations",

@@ -11,12 +11,16 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { notificationsApi, AppNotification } from "@/lib/api/notifications.api";
 import { APPS_ABSENCES, isAbsenceNotif } from "@/lib/utils/notificationScope";
+import { ROUTES_UNIVERS, appartientAUnivers, universDepuisChemin } from "@/features/absences/utils/univers";
 
 const TITLES: [string, string][] = [
   ["/absences/missions/planning", "Agenda des missions"],
   ["/absences/missions/nouvelle", "Nouvel ordre de mission"],
   ["/absences/missions/demandes", "Missions du département"],
   ["/absences/missions/registre", "Registre des missions"],
+  ["/absences/missions/validations", "Missions à valider"],
+  ["/absences/missions/workflows", "Circuits & Workflows"],
+  ["/absences/missions/rapports", "Rapports & SLA"],
   ["/absences/missions", "Missions & Interventions"],
   ["/absences/demandes", "Demandes du département"],
   ["/absences/nouvelle", "Nouvelle demande"],
@@ -31,7 +35,11 @@ const TITLES: [string, string][] = [
 export function AbsencesTopBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentPersona, setCurrentPersona, allPersonas, pendingValidationsCount, isLoading, refreshDemandes, demandes } = useAbsences();
+  const { currentPersona, setCurrentPersona, allPersonas, pendingForCurrentRoleDemandes, isLoading, refreshDemandes, demandes } = useAbsences();
+  const univers = universDepuisChemin(pathname);
+  const routesUnivers = ROUTES_UNIVERS[univers];
+  // « N à valider » limité à l'univers affiché (Congés ou Missions)
+  const pendingValidationsCount = pendingForCurrentRoleDemandes.filter((d) => appartientAUnivers(d, univers)).length;
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
@@ -295,7 +303,7 @@ export function AbsencesTopBar() {
       }
     }
     setIsNotifOpen(false);
-    const targetLink = notif.lien?.startsWith("/absences") ? notif.lien : "/absences/demandes";
+    const targetLink = notif.lien?.startsWith("/absences") ? notif.lien : routesUnivers.demandes;
     router.push(targetLink);
   };
 
@@ -453,7 +461,7 @@ export function AbsencesTopBar() {
         {/* Bouton À valider si validations en attente */}
         {pendingValidationsCount > 0 && (
           <Link
-            href="/absences/validations"
+            href={routesUnivers.validations}
             className="text-xs font-bold text-[#C25E00] bg-orange-50 border border-orange-200 px-2.5 py-1 hover:bg-orange-100 transition-colors shadow-2xs whitespace-nowrap"
           >
             {pendingValidationsCount} à valider
@@ -545,11 +553,11 @@ export function AbsencesTopBar() {
 
               <div className="p-2 bg-slate-50 border-t border-slate-200 text-center">
                 <Link
-                  href="/absences/demandes"
+                  href={routesUnivers.demandes}
                   onClick={() => setIsNotifOpen(false)}
                   className="text-[11px] font-bold text-[#F0822A] hover:underline"
                 >
-                  Voir toutes mes demandes &rarr;
+                  {univers === "MISSIONS" ? "Voir toutes les missions" : "Voir toutes mes demandes"} &rarr;
                 </Link>
               </div>
             </div>

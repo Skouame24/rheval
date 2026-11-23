@@ -97,8 +97,8 @@ export const FAQ: EntreeFaq[] = [
     reponse:
       "Si vous êtes responsable, les demandes de votre équipe arrivent dans **Validations**. Pour chacune, vous pouvez **approuver** ou **refuser avec un motif**.\n\nLe **planning d'équipe** vous aide à éviter que tout le monde parte en même temps.",
     actions: [
-      { label: "Mes validations", href: "/absences/validations" },
-      { label: "Planning d'équipe", href: "/absences/planning" },
+      { label: "Congés à valider", href: "/absences/validations" },
+      { label: "Missions à valider", href: "/absences/missions/validations" },
     ],
     liees: ["delegation", "circuit-validation"],
   },
@@ -121,7 +121,7 @@ export const FAQ: EntreeFaq[] = [
     motsCles: ["ordre de mission", "mission", "deplacement", "voyage", "partir en mission", "frais de mission", "deplacement professionnel"],
     reponse:
       "Dans **Missions & Interventions**, cliquez sur **Nouvelle mission** et renseignez la destination, les dates, l'objet et les frais prévus.\n\nL'ordre de mission suit ensuite son circuit de validation, puis le document officiel est généré et archivé.",
-    actions: [{ label: "Nouvelle mission", href: "/absences/missions/nouvelle" }],
+    actions: [{ label: "Nouvel ordre de mission", href: "/absences/missions/nouvelle?type=MISSION_DEPLACEMENT&univers=MISSIONS" }],
     liees: ["intervention", "suivre-demande"],
   },
   {
@@ -130,8 +130,8 @@ export const FAQ: EntreeFaq[] = [
     question: "Comment déclarer une intervention terrain ?",
     motsCles: ["intervention", "terrain", "technicien", "site client", "declarer intervention"],
     reponse:
-      "Rendez-vous dans **Interventions**, puis **Nouvelle intervention** : indiquez le site, le collaborateur, les dates et la nature de l'intervention.",
-    actions: [{ label: "Nouvelle intervention", href: "/absences/interventions/nouvelle" }],
+      "Dans **Missions & Interventions**, choisissez **Intervention terrain** : indiquez le site, le collaborateur, les dates et la nature de l'intervention.",
+    actions: [{ label: "Nouvelle intervention", href: "/absences/missions/nouvelle?type=INTERVENTION_TERRAIN&univers=MISSIONS" }],
     liees: ["ordre-mission"],
   },
 
