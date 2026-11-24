@@ -14,6 +14,7 @@ import { detectRoleFromPoste, estPdgPoste } from "@/lib/utils/roleDetector";
 import { notificationsApi, type AppNotification } from "@/lib/api";
 import { APPS_EVALUATION, isAbsenceNotif as isAbsenceScope } from "@/lib/utils/notificationScope";
 import { TEST_PROFILES, type TestProfile } from "@/lib/constants/testProfiles";
+import { SIMULATION_ACTIVE } from "@/lib/utils/simulation";
 
 function formatRelativeTime(dateStr?: string) {
   if (!dateStr) return "";
@@ -450,14 +451,15 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
               <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Compte Connecté</p>
                 <p className="text-sm font-bold text-slate-900 mt-1">{userName}</p>
-                <p className="text-xs text-slate-500">{user?.email || "utilisateur@agilly.com"}</p>
+                <p className="text-xs text-slate-500">{user?.email || ""}</p>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none text-xs font-bold bg-[#FFF7ED] text-[#F0822A] border border-[#F0822A]/30">
                   Rôle actuel : {displayLabel}
                 </div>
               </div>
 
               
-              {/* Sélecteur de profil pour test et parcours de validation */}
+              {/* Simulateur de profils : environnements de TEST uniquement */}
+              {SIMULATION_ACTIVE && (
               <div className="py-2 px-3 border-b border-slate-200 bg-amber-50/50">
                 <p className="text-[10px] font-black uppercase text-amber-800 tracking-wider mb-1 flex items-center justify-between">
                   <span>Simulateur de Profils (Test)</span>
@@ -507,6 +509,7 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
                   })}
                 </div>
               </div>
+              )}
 
               <div className="py-1 border-b border-slate-100">
                 {(currentRole === "RH" || currentRole === "DRH") && (
