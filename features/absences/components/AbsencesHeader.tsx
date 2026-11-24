@@ -65,7 +65,7 @@ export function AbsencesHeader({
             </div>
           </div>
 
-          {/* DROITE : SIMULATION DU RÔLE & ACTION PRINCIPALE */}
+          {/* DROITE : COMPTE CONNECTÉ & ACTION PRINCIPALE */}
           <div className="flex items-center gap-3">
             
             {/* Profil utilisateur connecté */}

@@ -29,12 +29,7 @@ async function relayer(req: NextRequest): Promise<Response> {
     return NextResponse.json({ statusCode: 401, message: "Session expirée — reconnectez-vous." }, { status: 401 });
   }
 
-  // Simulateur de profils : environnements de test uniquement
-  const profilDemande = req.headers.get("x-user-id") || undefined;
-  const sim =
-    process.env.AUTORISER_SIMULATION === "true" && profilDemande && profilDemande !== identite.sub ? profilDemande : undefined;
-
-  const jeton = signerJetonApi({ ...identite, sim }, secret);
+  const jeton = signerJetonApi(identite, secret);
 
   const chemin = req.nextUrl.pathname.replace(/^\/api\/proxy/, "");
   const cible = `${BACKEND}/api${chemin}${req.nextUrl.search}`;

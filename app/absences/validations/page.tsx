@@ -31,7 +31,6 @@ export default function ValidationsInboxPage() {
     pendingForCurrentRoleDemandes: pendingTousUnivers,
     validerDemande,
     refuserDemande,
-    setIsDemoDrawerOpen,
     isLoading,
   } = useAbsences();
 

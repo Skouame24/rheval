@@ -13,8 +13,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { detectRoleFromPoste, estPdgPoste } from "@/lib/utils/roleDetector";
 import { notificationsApi, type AppNotification } from "@/lib/api";
 import { APPS_EVALUATION, isAbsenceNotif as isAbsenceScope } from "@/lib/utils/notificationScope";
-import { TEST_PROFILES, type TestProfile } from "@/lib/constants/testProfiles";
-import { SIMULATION_ACTIVE } from "@/lib/utils/simulation";
 
 function formatRelativeTime(dateStr?: string) {
   if (!dateStr) return "";
@@ -40,7 +38,7 @@ interface HeaderProps {
 
 export function Header({ role: initialRole, userName: initialUserName, pageTitle, notifCount = 0 }: HeaderProps) {
   const router = useRouter();
-  const { user, isSimulated, switchRole, switchProfile, resetToSsoUser, logout } = useAuth();
+  const { user, logout } = useAuth();
   const currentRole = user?.role || initialRole;
   const userName = user ? `${user.prenom} ${user.nom}` : initialUserName;
   const roleInfo = ROLE_METADATA[currentRole] || { labelCourt: currentRole };
@@ -143,22 +141,6 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
 
   return (
     <div className="sticky top-0 z-40 w-full flex flex-col">
-      {isSimulated && (
-        <div className="bg-amber-500 text-slate-950 px-6 py-2 text-xs font-black flex items-center justify-between shadow-xs shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🎭</span>
-            <span>Mode simulation actif : vous naviguez en tant que <strong>{userName}</strong> ({displayLabel} • {currentRole})</span>
-          </div>
-          {resetToSsoUser && (
-            <button
-              onClick={resetToSsoUser}
-              className="px-3 py-1 bg-slate-950 hover:bg-slate-800 text-white font-black text-xs cursor-pointer shadow-2xs"
-            >
-              ❌ Quitter la simulation (revenir à mon compte)
-            </button>
-          )}
-        </div>
-      )}
       <header className="flex items-center justify-between px-6 lg:px-8 h-18 shrink-0 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
       {/* Gauche — Titre de Page & Bouton Switch Rapide de Rôle */}
       <div className="flex items-center gap-4 flex-wrap">
@@ -458,59 +440,6 @@ export function Header({ role: initialRole, userName: initialUserName, pageTitle
               </div>
 
               
-              {/* Simulateur de profils : environnements de TEST uniquement */}
-              {SIMULATION_ACTIVE && (
-              <div className="py-2 px-3 border-b border-slate-200 bg-amber-50/50">
-                <p className="text-[10px] font-black uppercase text-amber-800 tracking-wider mb-1 flex items-center justify-between">
-                  <span>Simulateur de Profils (Test)</span>
-                  {isSimulated && (
-                    <button
-                      onClick={() => resetToSsoUser?.()}
-                      className="text-[9px] font-bold text-red-600 hover:underline cursor-pointer"
-                    >
-                      Réinitialiser
-                    </button>
-                  )}
-                </p>
-                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-1">
-                  {TEST_PROFILES.map((p) => {
-                    const isSelected = user?.email === p.email;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          switchProfile?.({
-                            id: p.id,
-                            nom: p.nom,
-                            prenom: p.prenom,
-                            email: p.email,
-                            role: p.role,
-                            poste: p.poste,
-                            departement: p.departement,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
-                          });
-                        }}
-                        className={`text-left p-1.5 text-xs transition-colors cursor-pointer border ${
-                          isSelected
-                            ? "bg-amber-100 border-amber-400 font-black text-amber-950"
-                            : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold truncate max-w-[170px]">{p.prenom} {p.nom}</span>
-                          <span className={`text-[9px] px-1 font-bold border ${p.badgeBg}`}>{p.role}</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 m-0 truncate">{p.roleLabel}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              )}
-
               <div className="py-1 border-b border-slate-100">
                 {(currentRole === "RH" || currentRole === "DRH") && (
                   <Link

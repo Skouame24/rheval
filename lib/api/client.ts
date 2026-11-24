@@ -42,18 +42,8 @@ function getHeaders(includeBody = false): HeadersInit {
     headers["Content-Type"] = "application/json";
   }
 
-  // L'identité est ajoutée côté serveur par le proxy (/api/proxy) à partir de la
-  // session SSO. x-user-id ne sert plus qu'au simulateur de profils, et n'est
-  // pris en compte que si AUTORISER_SIMULATION=true (environnements de test).
-  if (typeof window !== "undefined") {
-    const savedUserStr = localStorage.getItem("agilly_user");
-    if (savedUserStr) {
-      try {
-        const u = JSON.parse(savedUserStr);
-        if (u.id) headers["x-user-id"] = u.id;
-      } catch {}
-    }
-  }
+  // L'identité est ajoutée côté serveur par le proxy (/api/proxy) à partir de
+  // la session SSO : le navigateur n'envoie aucun en-tête d'identité.
 
   return headers;
 }

@@ -18,8 +18,6 @@ export interface IdentitePortail {
   name?: string;
   /** Rôle calculé par le SSO (utilisé seulement à la création du compte) */
   role?: string;
-  /** Profil simulé (honoré seulement si AUTORISER_SIMULATION=true des deux côtés) */
-  sim?: string;
 }
 
 const base64url = (data: string | Buffer) => Buffer.from(data).toString("base64url");

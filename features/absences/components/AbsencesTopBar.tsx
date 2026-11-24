@@ -12,7 +12,6 @@ import { useAbsences } from "@/features/absences/context/AbsencesContext";
 import { notificationsApi, AppNotification } from "@/lib/api/notifications.api";
 import { APPS_ABSENCES, isAbsenceNotif } from "@/lib/utils/notificationScope";
 import { ROUTES_UNIVERS, appartientAUnivers, universDepuisChemin } from "@/features/absences/utils/univers";
-import { SIMULATION_ACTIVE } from "@/lib/utils/simulation";
 
 const TITLES: [string, string][] = [
   ["/absences/missions/planning", "Agenda des missions"],
@@ -36,13 +35,11 @@ const TITLES: [string, string][] = [
 export function AbsencesTopBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentPersona, setCurrentPersona, allPersonas, pendingForCurrentRoleDemandes, isLoading, refreshDemandes, demandes } = useAbsences();
+  const { currentPersona, pendingForCurrentRoleDemandes, isLoading, refreshDemandes, demandes } = useAbsences();
   const univers = universDepuisChemin(pathname);
   const routesUnivers = ROUTES_UNIVERS[univers];
   // « N à valider » limité à l'univers affiché (Congés ou Missions)
   const pendingValidationsCount = pendingForCurrentRoleDemandes.filter((d) => appartientAUnivers(d, univers)).length;
-  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
-  const switcherRef = useRef<HTMLDivElement>(null);
 
   // Boîte de notifications Absences
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -322,9 +319,6 @@ export function AbsencesTopBar() {
   // Fermeture des dropdowns au clic en dehors
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (switcherRef.current && !switcherRef.current.contains(event.target as Node)) {
-        setIsSwitcherOpen(false);
-      }
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
       }
@@ -356,84 +350,18 @@ export function AbsencesTopBar() {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* ── SÉLECTEUR DE COMPTE CONNECTÉ ── */}
-        <div className="relative" ref={switcherRef}>
-          <button
-            type="button"
-            onClick={() => SIMULATION_ACTIVE && setIsSwitcherOpen(!isSwitcherOpen)}
-            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-xs px-3 py-1.5 transition-all shadow-2xs cursor-pointer rounded-none"
-            title="Profil actif"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="font-bold text-slate-900 truncate max-w-[140px] sm:max-w-none">
-              {currentPersona.prenom} {currentPersona.nom}
-            </span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
-              {currentPersona.labelRole}
-            </span>
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className={`text-slate-400 transition-transform ${isSwitcherOpen ? "rotate-180" : ""} ${SIMULATION_ACTIVE ? "" : "hidden"}`}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {/* Menu de sélection des comptes de test (environnement de test uniquement) */}
-          {SIMULATION_ACTIVE && isSwitcherOpen && (
-            <div className="absolute right-0 mt-2 w-84 bg-white border border-slate-200 shadow-xl z-50 p-2 text-xs rounded-none">
-              <div className="p-2 border-b border-orange-100 bg-gradient-to-r from-orange-50/60 to-white">
-                <span className="text-[10px] font-black uppercase text-[#C25E00] tracking-wider block">
-                  Direction Juridique & Conformité (Test Workflow)
-                </span>
-                <span className="text-[11px] text-slate-500 mt-0.5 block">
-                  Basculez de profil pour tester les circuits de validation
-                </span>
-              </div>
-
-              <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto mt-1">
-                {allPersonas.map((p) => {
-                  const isSelected = p.matricule === currentPersona.matricule;
-                  return (
-                    <button
-                      key={p.matricule}
-                      type="button"
-                      onClick={() => {
-                        setCurrentPersona(p);
-                        setIsSwitcherOpen(false);
-                      }}
-                      className={`w-full text-left p-2.5 flex items-center justify-between transition-colors cursor-pointer ${
-                        isSelected
-                          ? "bg-orange-50/70 border-l-2 border-[#F0822A]"
-                          : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex flex-col min-w-0 pr-2">
-                        <span className={`font-bold truncate ${isSelected ? "text-[#C25E00]" : "text-slate-900"}`}>
-                          {p.prenom} {p.nom}
-                        </span>
-                        <span className="text-[11px] text-slate-500 truncate">
-                          {p.poste || p.departement || "Collaborateur"} &bull; <strong className="font-mono">{p.matricule}</strong>
-                        </span>
-                      </div>
-                      <span className={`text-[10px] font-extrabold px-1.5 py-0.5 border shrink-0 ${
-                        isSelected
-                          ? "bg-[#F0822A] text-white border-[#F0822A]"
-                          : "bg-slate-100 text-slate-600 border-slate-200"
-                      }`}>
-                        {p.labelRole}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+        {/* ── COMPTE CONNECTÉ ── */}
+        <div
+          className="inline-flex items-center gap-2 bg-white border border-slate-200 text-xs px-3 py-1.5 rounded-none"
+          title="Compte connecté"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+          <span className="font-bold text-slate-900 truncate max-w-[140px] sm:max-w-none">
+            {currentPersona.prenom} {currentPersona.nom}
+          </span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+            {currentPersona.labelRole}
+          </span>
         </div>
 
         {/* Bouton Rafraîchir */}

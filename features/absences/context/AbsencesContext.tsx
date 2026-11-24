@@ -21,7 +21,6 @@ import {
 import type { User } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { demandesApi, mapFrontendTypeToBackend, onDataChanged } from "@/lib/api";
-import { SIMULATION_ACTIVE } from "@/lib/utils/simulation";
 
 function mapUserRoleToActeurRH(role?: string): RoleActeurRH {
   const normalized = (role || "").toUpperCase();
@@ -62,12 +61,8 @@ const DEFAULT_SOLDE_CONGES: SoldeCongesInfo = {
 };
 
 interface AbsencesContextType {
-  // Persona actif & Démo
+  // Utilisateur connecté (vu par l'application Absences)
   currentPersona: PersonaUser;
-  setCurrentPersona: (persona: PersonaUser) => void;
-  allPersonas: PersonaUser[];
-  isDemoDrawerOpen: boolean;
-  setIsDemoDrawerOpen: (open: boolean) => void;
 
   // Données
   demandes: DemandeRHItem[];
@@ -103,74 +98,24 @@ interface AbsencesContextType {
   annulerDemande: (id: string) => void;
 }
 
-export const DIRECTION_PERSONAS: PersonaUser[] = [
-  {
-    id: "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb",
-    matricule: "EMP-SAMUEL",
-    nom: "KOUAME",
-    prenom: "Ebenezer Samuel",
-    email: "ebenezer.kouame@agilly.net",
-    poste: "Développeur",
-    departement: "Direction Juridique & Digital",
-    service: "Digital & Systèmes",
-    role: "SALARIE",
-    labelRole: "Salarié (Demandeur)",
-    numeroCnss: "CI-CNPS-884102",
-    avatarBg: "bg-[#F0822A]",
-  },
-  {
-    id: "1f77edad-716c-4552-b96f-58ec7d1ee1d7",
-    matricule: "EMP-ANGE",
-    nom: "TIANGBO",
-    prenom: "Ange-Dieudonne",
-    email: "ange.tiangbo@agilly.net",
-    poste: "Directeur Juridique & Conformité / DPO",
-    departement: "Direction Juridique",
-    service: "Juridique & Conformité",
-    role: "SUPERIEUR_N1",
-    labelRole: "Manager N+1 (Direction)",
-    numeroCnss: "CI-CNPS-771204",
-    avatarBg: "bg-blue-600",
-  },
-  {
-    id: "c970e84d-5fd5-4cb9-8c4e-7cccc14ad269",
-    matricule: "EMP-GERMAINE",
-    nom: "YAO",
-    prenom: "Germaine",
-    email: "germaine.yao@agilly.net",
-    poste: "Directrice des Ressources Humaines",
-    departement: "Direction des Ressources Humaines",
-    service: "Ressources Humaines",
-    role: "DRH",
-    labelRole: "Directrice RH (DRH)",
-    numeroCnss: "CI-CNPS-662910",
-    avatarBg: "bg-emerald-600",
-  },
-  {
-    id: "aaf364d4-b002-4ae1-943d-d7ab5ec90a9a",
-    matricule: "EMP-DAVID",
-    nom: "AKPA",
-    prenom: "David Martial",
-    email: "david.akpa@agilly.net",
-    poste: "Directeur Exécutif & DG",
-    departement: "Direction Générale",
-    service: "Direction Générale",
-    role: "DIRECTION_DG",
-    labelRole: "Direction Générale (DG)",
-    numeroCnss: "CI-CNPS-551009",
-    avatarBg: "bg-purple-600",
-  },
-];
+/** Utilisateur non encore chargé */
+const PERSONA_VIDE: PersonaUser = {
+  id: "",
+  matricule: "",
+  nom: "",
+  prenom: "",
+  email: "",
+  poste: "",
+  departement: "",
+  service: "",
+  role: "SALARIE",
+  labelRole: "Salarié",
+  numeroCnss: "",
+  avatarBg: "bg-[#D96F1D]",
+};
 
 function getPersonaForUser(user: User | null): PersonaUser {
-  if (!user) return DIRECTION_PERSONAS[0];
-
-  const foundInDirection = DIRECTION_PERSONAS.find(
-    (persona) =>
-      persona.email.toLowerCase() === (user.email || "").toLowerCase() ||
-      persona.id === user.id,
-  );
-  if (foundInDirection) return foundInDirection;
+  if (!user) return PERSONA_VIDE;
 
   const role = mapUserRoleToActeurRH(user.role);
   return {
@@ -203,84 +148,22 @@ const AbsencesContext = createContext<AbsencesContextType | undefined>(undefined
 export function AbsencesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
-  // Keep the first render identical on the server and in the browser.
-  const [currentPersona, setCurrentPersonaState] = useState<PersonaUser>(() =>
-    getPersonaForUser(user),
-  );
+  // Profil actif = utilisateur connecté (aucun profil simulé)
+  const currentPersona = useMemo(() => getPersonaForUser(user), [user]);
 
-  const [isDemoDrawerOpen, setIsDemoDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-
-  // Switcher de persona actif pour tests hiérarchiques Draw.io
-  const setCurrentPersona = useCallback((p: PersonaUser) => {
-    if (!SIMULATION_ACTIVE) return; // comptes de test : jamais en production
-    setCurrentPersonaState(p);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("agilly_test_persona_id", p.id);
-    }
-
-    // Mise à jour adaptée du solde de test
-    if (p.id === "0a5c4c64-abdd-4f4f-a3af-00057ebdddfb" || p.id === "3eef0762-8149-43c7-b673-581335cb4df8") {
-      setSoldeConges({
-        annee: 2026,
-        joursAcquis: 30,
-        joursPris: 4,
-        joursEnAttente: 4,
-        joursRestants: 22,
-        repartition: {
-          congesPayes: { acquis: 30, pris: 4, solde: 22 },
-          permissionsAnnuelles: { quotaTotal: 10, prises: 1, solde: 9 },
-          recuperations: { acquises: 2, prises: 0, solde: 2 },
-        },
-      });
-    } else if (p.id === "4d8b00e4-b383-4beb-b819-c184b5eddce4") {
-      setSoldeConges({
-        annee: 2026,
-        joursAcquis: 30,
-        joursPris: 5,
-        joursEnAttente: 3,
-        joursRestants: 22,
-        repartition: {
-          congesPayes: { acquis: 30, pris: 5, solde: 22 },
-          permissionsAnnuelles: { quotaTotal: 10, prises: 3, solde: 7 },
-          recuperations: { acquises: 2, prises: 0, solde: 2 },
-        },
-      });
-    } else {
-      setSoldeConges({
-        annee: 2026,
-        joursAcquis: 30,
-        joursPris: 3,
-        joursEnAttente: 0,
-        joursRestants: 27,
-        repartition: {
-          congesPayes: { acquis: 30, pris: 3, solde: 27 },
-          permissionsAnnuelles: { quotaTotal: 10, prises: 0, solde: 10 },
-          recuperations: { acquises: 2, prises: 0, solde: 2 },
-        },
-      });
-    }
-  }, []);
 
   // Données réactives — VRAIES données de la base dédiée PostgreSQL
   const [demandes, setDemandes] = useState<DemandeRHItem[]>([]);
   const [soldeConges, setSoldeConges] = useState<SoldeCongesInfo>(DEFAULT_SOLDE_CONGES);
 
+  // Nettoyage des anciens profils de test mémorisés dans le navigateur
   useEffect(() => {
-    let savedPersona: PersonaUser | undefined;
     try {
-      const savedPersonaId = localStorage.getItem("agilly_test_persona_id");
-      savedPersona = SIMULATION_ACTIVE ? DIRECTION_PERSONAS.find((persona) => persona.id === savedPersonaId) : undefined;
-      if (savedPersonaId && !savedPersona) {
-        localStorage.removeItem("agilly_test_persona_id");
-      }
-    } catch (error) {
-      console.warn("[AbsencesContext] Impossible de restaurer le profil actif:", error);
-    }
-
-    setCurrentPersonaState(savedPersona || getPersonaForUser(user));
-  }, [user]);
+      localStorage.removeItem("agilly_test_persona_id");
+    } catch {}
+  }, []);
 
   useEffect(() => {
     try {
@@ -924,10 +807,6 @@ export function AbsencesProvider({ children }: { children: React.ReactNode }) {
     <AbsencesContext.Provider
       value={{
         currentPersona,
-        setCurrentPersona,
-        allPersonas: DIRECTION_PERSONAS,
-        isDemoDrawerOpen,
-        setIsDemoDrawerOpen,
         demandes,
         soldeConges,
         kpis,
